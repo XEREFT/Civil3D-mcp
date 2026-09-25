@@ -2,7 +2,7 @@
 
 Generated from the runtime manifest for civil3d-mcp 1.2.1. Do not edit by hand.
 
-- Catalog entries: 206
+- Catalog entries: 225
 - Domains: 29
 
 | Tool | Domain | Operations | Plugin methods | Safe retry |
@@ -44,19 +44,38 @@ Generated from the runtime manifest for civil3d-mcp 1.2.1. Do not edit by hand.
 | `civil3d_docs` | docs | list_tool_capabilities, orchestrate | — | yes |
 | `civil3d_orchestrate` | docs | — | — | yes |
 | `list_tool_capabilities` | docs | — | — | yes |
-| `civil3d_drawing` | drawing | info, new, save, undo, redo, settings, selected_objects_info, list_object_types | getDrawingInfo, newDrawing, saveDrawing, undoDrawing, redoDrawing, getDrawingSettings, getSelectedCivilObjectsInfo, listCivilObjectTypes | no |
+| `acad_list_open_documents` | drawing | — | listOpenDocuments | yes |
+| `acad_set_active_document` | drawing | — | setActiveDocument | no |
+| `civil3d_drawing` | drawing | info, new, save, undo, redo, settings, selected_objects_info, list_object_types, list_open_documents, set_active_document | getDrawingInfo, newDrawing, saveDrawing, undoDrawing, redoDrawing, getDrawingSettings, getSelectedCivilObjectsInfo, listCivilObjectTypes, listOpenDocuments, setActiveDocument | no |
 | `get_drawing_info` | drawing | — | getDrawingInfo | yes |
 | `get_selected_civil_objects_info` | drawing | — | getSelectedCivilObjectsInfo | yes |
 | `list_civil_object_types` | drawing | — | listCivilObjectTypes | yes |
+| `acad_attach_xref` | geometry | — | attachXref | no |
+| `acad_audit_drawing` | geometry | — | auditDrawing | no |
 | `acad_create_3dpolyline` | geometry | — | create3dPolyline | no |
+| `acad_create_aligned_dimension` | geometry | — | createAlignedDimension | no |
+| `acad_create_mleader` | geometry | — | createMLeader | no |
 | `acad_create_mtext` | geometry | — | createMText | no |
+| `acad_create_or_update_layer` | geometry | — | createOrUpdateLayer | no |
 | `acad_create_polyline` | geometry | — | createPolyline | no |
 | `acad_create_text` | geometry | — | createText | no |
+| `acad_erase_entity` | geometry | — | eraseEntity | no |
+| `acad_insert_block_reference` | geometry | — | insertBlockReference | no |
+| `acad_list_block_references` | geometry | — | listBlockReferences | yes |
+| `acad_list_dimensions` | geometry | — | listDimensions | yes |
+| `acad_list_polyline_entities` | geometry | — | listPolylineEntities | yes |
+| `acad_list_shape_entities` | geometry | — | listShapeEntities | yes |
+| `acad_list_text_entities` | geometry | — | listTextEntities | yes |
+| `acad_list_viewports` | geometry | — | listViewports | yes |
+| `acad_purge_unused` | geometry | — | purgeUnused | no |
+| `acad_set_viewport_twist` | geometry | — | setViewportTwist | no |
+| `acad_update_block_reference` | geometry | — | updateBlockReference | no |
+| `acad_update_text_content` | geometry | — | updateTextContent | no |
 | `civil3d_cogo_curve_solve` | geometry | — | cogoCurveSolve | yes |
 | `civil3d_cogo_direction_distance` | geometry | — | cogoDirectionDistance | yes |
 | `civil3d_cogo_inverse` | geometry | — | cogoInverse | yes |
 | `civil3d_cogo_traverse` | geometry | — | cogoTraverse | yes |
-| `civil3d_geometry` | geometry | cogo_inverse, cogo_direction_distance, cogo_traverse, cogo_curve_solve, create_line_segment, create_polyline, create_3dpolyline, create_text, create_mtext | cogoInverse, cogoDirectionDistance, cogoTraverse, cogoCurveSolve, createLineSegment, createPolyline, create3dPolyline, createText, createMText | no |
+| `civil3d_geometry` | geometry | cogo_inverse, cogo_direction_distance, cogo_traverse, cogo_curve_solve, create_line_segment, create_polyline, create_3dpolyline, create_text, create_mtext, create_mleader, list_text_entities, list_polyline_entities, list_block_references, list_shape_entities, update_text_content, update_block_reference, erase_entity, attach_xref, create_or_update_layer, purge_unused, audit_drawing, insert_block_reference, list_dimensions, create_aligned_dimension, list_viewports, set_viewport_twist | cogoInverse, cogoDirectionDistance, cogoTraverse, cogoCurveSolve, createLineSegment, createPolyline, create3dPolyline, createText, createMText, createMLeader, listTextEntities, listPolylineEntities, listBlockReferences, listShapeEntities, updateTextContent, updateBlockReference, eraseEntity, attachXref, createOrUpdateLayer, purgeUnused, auditDrawing, insertBlockReference, listDimensions, createAlignedDimension, listViewports, setViewportTwist | no |
 | `create_line_segment` | geometry | — | createLineSegment | no |
 | `civil3d_feature_line` | grading | list, get, export_as_polyline | listFeatureLines, getFeatureLine, exportFeatureLineAsPolyline | no |
 | `civil3d_feature_line_create` | grading | — | createFeatureLine | no |

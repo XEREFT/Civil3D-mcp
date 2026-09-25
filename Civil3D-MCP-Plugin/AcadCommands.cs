@@ -111,7 +111,7 @@ public static class AcadCommands
     });
   }
 
-  private static string ParseTargetSpace(JsonObject? parameters)
+  internal static string ParseTargetSpace(JsonObject? parameters)
   {
     var space = PluginRuntime.GetOptionalString(parameters, "space")?.Trim().ToLowerInvariant() ?? "model";
     if (space != "model" && space != "paper")
@@ -128,7 +128,7 @@ public static class AcadCommands
 
   // Resolves the block table record new entities are appended to. For paper space, uses the named
   // layout, or the current layout when it is a paper layout; otherwise fails listing available layouts.
-  private static (BlockTableRecord Space, string LayoutName) ResolveTargetSpace(Database database, Transaction transaction, string space, string? layoutName)
+  internal static (BlockTableRecord Space, string LayoutName) ResolveTargetSpace(Database database, Transaction transaction, string space, string? layoutName)
   {
     if (space == "model")
     {

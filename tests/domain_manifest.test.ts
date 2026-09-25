@@ -434,6 +434,10 @@ describe("domain manifest migration", () => {
     expect(geometry!.operations).toContain("create_mleader");
     expect(geometry!.operations).toContain("list_text_entities");
     expect(geometry!.operations).toContain("list_polyline_entities");
+    expect(geometry!.operations).toContain("list_dimensions");
+    expect(geometry!.operations).toContain("create_aligned_dimension");
+    expect(geometry!.operations).toContain("list_viewports");
+    expect(geometry!.operations).toContain("set_viewport_twist");
     expect(geometry!.operations).toContain("list_block_references");
     expect(geometry!.operations).toContain("list_shape_entities");
     expect(geometry!.operations).toContain("update_text_content");
