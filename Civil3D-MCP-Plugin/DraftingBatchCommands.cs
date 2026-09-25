@@ -75,6 +75,11 @@ public static class DraftingBatchCommands
             dimension.RecomputeDimensionBlock(true);
           }
 
+          if (entity is MLeader mleader)
+          {
+            OrientMLeader(mleader, item);
+          }
+
           created.Add(new Dictionary<string, object?>
           {
             ["index"] = index,
@@ -314,6 +319,48 @@ public static class DraftingBatchCommands
     var leaderIndex = mleader.AddLeaderLine(arrowPoint);
     mleader.AddLastVertex(leaderIndex, textPoint);
     return mleader;
+  }
+
+  // Scale, text angle and dogleg need a database-resident MLeader (eInvalidContext otherwise), so they
+  // are applied after AppendEntity. On a twisted sheet viewport the text is rotated to the street
+  // angle to read horizontally, and the dogleg follows that direction toward the text side.
+  private static void OrientMLeader(MLeader mleader, JsonObject item)
+  {
+    var rotation = PluginRuntime.GetOptionalDouble(item, "rotation");
+    var scale = PluginRuntime.GetOptionalDouble(item, "scale");
+    if (!rotation.HasValue && !scale.HasValue)
+    {
+      return;
+    }
+
+    var height = PluginRuntime.GetOptionalDouble(item, "height");
+    // An annotative MLeader takes its scale from the annotation scale (CANNOSCALE); setting Scale throws eInvalidContext.
+    if (scale.HasValue && mleader.Annotative != AnnotativeStates.True)
+    {
+      mleader.Scale = scale.Value;
+    }
+
+    using var mtext = mleader.MText;
+    if (height.HasValue)
+    {
+      mtext.TextHeight = height.Value;
+    }
+
+    if (rotation.HasValue)
+    {
+      mleader.TextAngleType = TextAngleType.InsertAngle;
+      mtext.Rotation = rotation.Value;
+    }
+
+    mleader.MText = mtext;
+    var leaderIndexes = mleader.GetLeaderIndexes();
+    if (rotation.HasValue && leaderIndexes.Count > 0)
+    {
+      var arrow = new Point3d(PluginRuntime.GetRequiredDouble(item, "leaderX"), PluginRuntime.GetRequiredDouble(item, "leaderY"), 0);
+      var textPoint = new Point3d(PluginRuntime.GetRequiredDouble(item, "x"), PluginRuntime.GetRequiredDouble(item, "y"), 0);
+      var along = new Vector3d(Math.Cos(rotation.Value), Math.Sin(rotation.Value), 0);
+      mleader.SetDogleg((int)leaderIndexes[0], (textPoint - arrow).DotProduct(along) >= 0 ? along : along.Negate());
+    }
   }
 
   private static Entity BuildAlignedDimension(Database database, Transaction transaction, JsonObject item)
