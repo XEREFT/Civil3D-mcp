@@ -161,6 +161,11 @@ public static class DimensionViewportCommands
 
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
     {
+      if (string.Equals(layoutName, "Model", StringComparison.OrdinalIgnoreCase))
+      {
+        return SetModelViewTwist(doc, twistRadians, centerX, centerY);
+      }
+
       var candidates = EnumerateViewports(database, transaction, layoutName).ToList();
       if (candidates.Count == 0)
       {
@@ -275,6 +280,48 @@ public static class DimensionViewportCommands
     return new Point2d(
       viewport.ViewTarget.X + c.X * Math.Cos(t) - c.Y * Math.Sin(t),
       viewport.ViewTarget.Y + c.X * Math.Sin(t) + c.Y * Math.Cos(t));
+  }
+
+  // Model tab: twist the current model view (DVIEW TWist in model space) so the street reads
+  // horizontally while drafting, and turn the crosshairs with it (SNAPANG = street angle). The
+  // drawing opens on the Model tab afterwards, as a reference sheet saved from model space does.
+  private static Dictionary<string, object?> SetModelViewTwist(
+    Autodesk.AutoCAD.ApplicationServices.Document doc, double twistRadians, double? centerX, double? centerY)
+  {
+    if (!LayoutManager.Current.CurrentLayout.Equals("Model", StringComparison.OrdinalIgnoreCase))
+    {
+      LayoutManager.Current.CurrentLayout = "Model";
+    }
+
+    var editor = doc.Editor;
+    using var view = editor.GetCurrentView();
+    var beforeTwist = view.ViewTwist;
+    var c = view.CenterPoint;
+    var t = -view.ViewTwist;
+    var currentCenter = new Point2d(
+      view.Target.X + c.X * Math.Cos(t) - c.Y * Math.Sin(t),
+      view.Target.Y + c.X * Math.Sin(t) + c.Y * Math.Cos(t));
+    var center = centerX.HasValue ? new Point2d(centerX.Value, centerY!.Value) : currentCenter;
+
+    view.ViewDirection = Vector3d.ZAxis;
+    view.Target = new Point3d(center.X, center.Y, 0);
+    view.CenterPoint = Point2d.Origin;
+    view.ViewTwist = twistRadians;
+    editor.SetCurrentView(view);
+
+    var snapAngle = NormalizeAngle(2 * Math.PI - twistRadians);
+    Autodesk.AutoCAD.ApplicationServices.Application.SetSystemVariable("SNAPANG", snapAngle);
+
+    return new Dictionary<string, object?>
+    {
+      ["layout"] = "Model",
+      ["beforeTwistDegrees"] = beforeTwist * 180d / Math.PI,
+      ["twistDegrees"] = twistRadians * 180d / Math.PI,
+      ["snapAngleDegrees"] = snapAngle * 180d / Math.PI,
+      ["modelCenterX"] = center.X,
+      ["modelCenterY"] = center.Y,
+      ["viewHeight"] = view.Height,
+    };
   }
 
   private static double NormalizeAngle(double radians)
