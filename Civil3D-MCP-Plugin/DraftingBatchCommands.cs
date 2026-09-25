@@ -6,7 +6,7 @@ using System.Text.Json.Nodes;
 namespace Civil3DMcpPlugin;
 
 // Creates many drafting entities (lines, polylines, text, mtext, mleaders, aligned dimensions,
-// block references) in ONE transaction and ONE approval, each with explicit layer, color, linetype,
+// block references, layout viewports) in ONE transaction and ONE approval, each with explicit layer, color, linetype,
 // lineweight and style. Used to replay a firm drafting standard (layer/style recipes extracted from
 // a finished sheet) on a new project without one tool call per entity. All-or-nothing: any invalid
 // item aborts the whole batch.
@@ -30,8 +30,18 @@ public static class DraftingBatchCommands
     var space = AcadCommands.ParseTargetSpace(parameters);
     var layoutName = PluginRuntime.GetOptionalString(parameters, "layout");
 
+    var hasViewports = items.OfType<JsonObject>().Any(item =>
+      string.Equals(PluginRuntime.GetOptionalString(item, "kind")?.Trim(), "viewport", StringComparison.OrdinalIgnoreCase));
+
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
     {
+      // A new viewport can only be switched on while its layout is the active tab.
+      if (hasViewports && space == "paper" && !string.IsNullOrWhiteSpace(layoutName)
+        && !LayoutManager.Current.CurrentLayout.Equals(layoutName, StringComparison.OrdinalIgnoreCase))
+      {
+        LayoutManager.Current.CurrentLayout = layoutName;
+      }
+
       var (targetSpace, targetLayoutName) = AcadCommands.ResolveTargetSpace(database, transaction, space, layoutName);
       var layersCreated = EnsureLayers(database, transaction, layerDefinitions);
       var created = new List<Dictionary<string, object?>>();
@@ -56,8 +66,11 @@ public static class DraftingBatchCommands
             "mleader" => BuildMLeader(database, transaction, item),
             "aligned_dimension" => BuildAlignedDimension(database, transaction, item),
             "block" => BuildBlock(transaction, database, item),
+            "viewport" => space == "paper"
+              ? BuildViewport(item)
+              : throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "viewport items need space 'paper' and a layout."),
             _ => throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT",
-              "kind must be one of line, polyline, text, mtext, mleader, aligned_dimension, block."),
+              "kind must be one of line, polyline, text, mtext, mleader, aligned_dimension, block, viewport."),
           };
         }
         catch (JsonRpcDispatchException ex)
@@ -80,13 +93,19 @@ public static class DraftingBatchCommands
             OrientMLeader(mleader, item);
           }
 
-          created.Add(new Dictionary<string, object?>
+          var result = new Dictionary<string, object?>
           {
             ["index"] = index,
             ["kind"] = kind,
             ["handle"] = entity.Handle.ToString(),
             ["layer"] = entity.Layer,
-          });
+          };
+          if (entity is Viewport viewport)
+          {
+            result["on"] = ConfigureViewport(viewport, item);
+          }
+
+          created.Add(result);
         }
       }
 
@@ -404,6 +423,39 @@ public static class DraftingBatchCommands
       Rotation = PluginRuntime.GetOptionalDouble(item, "rotation") ?? 0d,
       ScaleFactors = new Scale3d(scale),
     };
+  }
+
+  private static Entity BuildViewport(JsonObject item)
+  {
+    return new Viewport
+    {
+      CenterPoint = new Point3d(PluginRuntime.GetRequiredDouble(item, "x"), PluginRuntime.GetRequiredDouble(item, "y"), 0),
+      Width = PluginRuntime.GetRequiredDouble(item, "width"),
+      Height = PluginRuntime.GetRequiredDouble(item, "height"),
+    };
+  }
+
+  // Plan view centered on (targetX, targetY): ViewCenter 0 puts the target at the viewport center for
+  // any twist, the same convention acad_set_viewport_twist uses. Returns whether the viewport is on.
+  private static bool ConfigureViewport(Viewport viewport, JsonObject item)
+  {
+    viewport.ViewDirection = Vector3d.ZAxis;
+    viewport.ViewTarget = new Point3d(PluginRuntime.GetRequiredDouble(item, "targetX"), PluginRuntime.GetRequiredDouble(item, "targetY"), 0);
+    viewport.ViewCenter = Point2d.Origin;
+    viewport.TwistAngle = (PluginRuntime.GetOptionalDouble(item, "twistDegrees") ?? 0d) * Math.PI / 180d;
+    viewport.CustomScale = PluginRuntime.GetOptionalDouble(item, "scale") ?? 1d;
+    var on = true;
+    try
+    {
+      viewport.On = true;
+    }
+    catch (Autodesk.AutoCAD.Runtime.Exception)
+    {
+      on = false;
+    }
+
+    viewport.Locked = PluginRuntime.GetOptionalBool(item, "locked") ?? false;
+    return on;
   }
 
   private static ObjectId ResolveTextStyleId(Database database, Transaction transaction, string? styleName)
