@@ -1,0 +1,245 @@
+{
+ "_about": "FormTech C-300 Water & Sewer Plan drafting standard. Every property here was extracted (scripts/dwg-dump.ps1 + extract-standards.mjs) from VILLA ONE C-300 (26-04.047); the recipes are identical in the engineer's worked package (Villa One\\2026-09-21_WASD - Xereft\\C-300.dwg, 985 of 990 entities byte-identical to the guide), which is the base source — the guide sheet is only the visual target. Cross-checked against Goulds C-300 (26-04.046). Reuse it on every new project: scripts/c300-build-spec.mjs turns it + the new X-TOPO into one acad_create_entities batch. Update it only when the firm changes a standard, and note the date in _changelog.",
+ "_changelog": [
+  "2026-09-25 extracted from VILLA ONE guide + Goulds C-300",
+  "2026-09-25 utility-label rules (MLeader rotation/scale 20, EXIST ARROW rotation offset, MH/FH rules) from guide + package C-300 + as-builts",
+  "2026-09-25 Formtech-1.0 confirmed annotative (scale from CANNOSCALE); verified created leaders = guide (40=20, 41=1.4, 42=1.5972)",
+  "2026-09-25 easement rule verified (survey+legal = guide within 0.09 ft)"
+ ],
+ "template": {
+  "note": "Start from the previous project's C-300.dwg (styles, layouts, title block, seal). scripts/c300-prep-template.ps1 empties model space, detaches xrefs and renames layouts.",
+  "layoutRename": {
+   "C-02": "C-300",
+   "C-03": "C-301"
+  },
+  "requiredStyles": {
+   "textStyle": "BCC-1.0",
+   "dimStyle": "BCC-1.0",
+   "mLeaderStyle": "Formtech-1.0"
+  }
+ },
+ "layers": {
+  "C-ANNO": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": -3,
+   "plot": true
+  },
+  "C-ROAD": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": -3,
+   "plot": true
+  },
+  "CENTER_LINE": {
+   "colorIndex": 1,
+   "linetype": "CENTER",
+   "lineweight": -3,
+   "plot": true
+  },
+  "TextTopoLabel_ep": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": 13,
+   "plot": true
+  },
+  "TEXT": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": 30,
+   "plot": true
+  },
+  "XREF": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": -3,
+   "plot": true
+  },
+  "C-FH-EXIST": {
+   "colorIndex": 8,
+   "linetype": "Continuous",
+   "lineweight": -3,
+   "plot": true
+  },
+  "VPORT": {
+   "colorIndex": 7,
+   "linetype": "Continuous",
+   "lineweight": -3,
+   "plot": false
+  }
+ },
+ "roles": {
+  "xref": {
+   "names": [
+    "X-TOPO",
+    "X-ARCH",
+    "X-UTIL"
+   ],
+   "overlay": true,
+   "insert": [
+    0,
+    0,
+    0
+   ],
+   "scale": 1,
+   "rotation": 0,
+   "layer": "XREF",
+   "note": "Guide put them on C-ANNO; firm convention (Goulds fix 2026-08-05) is XREF."
+  },
+  "alignment": {
+   "layer": "C-ROAD",
+   "geometry": "single tangent along the frontage-street CL",
+   "startBeforeFarIntersectionFt": 20,
+   "lengthRoundUpToFt": 10,
+   "nameFormat": "SW {n}TH AVE|ST",
+   "example": "SW 118TH AVE, 440 ft, 859794.38,444503.97 -> 859782.78,444943.81"
+  },
+  "streetCenterlineExtension": {
+   "kind": "polyline",
+   "layer": "CENTER_LINE",
+   "colorIndex": 256,
+   "linetypeScale": 0.3,
+   "lengthFromIntersectionFt": 250,
+   "note": "Extends each survey CL leg that dangles out of the survey limits; the main street is covered by the alignment instead."
+  },
+  "rowDimension": {
+   "kind": "aligned_dimension",
+   "layer": "C-ANNO",
+   "dimStyle": "BCC-1.0",
+   "offset": 0,
+   "source": "survey dims on layer DIM (style '1 IN 20'): CL -> each R/W line, one per side (25.00' + 25.00' for a 50' R/W)"
+  },
+  "streetLabel": {
+   "kind": "mtext",
+   "layer": "TextTopoLabel_ep",
+   "textStyle": "BCC-1.0",
+   "height": 3,
+   "attachment": 2,
+   "distanceFromIntersectionFt": 90,
+   "perStreet": 2,
+   "textFormat": "SW {n}TH AVENUE | SW {n}TH STREET (no periods; survey writes S.W. 118TH AVENUE)",
+   "rotationRule": "street direction chosen so (rotation + viewport twist) is 0 deg for the frontage street and 90 deg for cross streets (reads left-to-right / bottom-to-top on the sheet)"
+  },
+  "clSymbol": {
+   "kind": "block",
+   "blockName": "_cl",
+   "layer": "TEXT",
+   "scale": 30,
+   "note": "Copy the survey's _cl inserts (same point/rotation) and add one ~50 ft from the intersection on labelled legs that have none. Import the definition from X-TOPO.dwg if the template lacks it."
+  },
+  "plSymbol": {
+   "kind": "mtext",
+   "layer": "TEXT",
+   "textStyle": "BCC-1.0",
+   "height": 3,
+   "attachment": 1,
+   "text": "\\pxqc;{\\fISOCPEUR|b1|i0|c0|p34;\\H1.42857x;\\U+214A}",
+   "status": "derived 2026-09-25",
+   "width": 0.6468,
+   "placement": "midpoint of every lot line shared by two plat lots (county Lot_poly, shared >= 50 ft) inside the C-300 viewport; rotation = frontage angle for lines perpendicular to the frontage street, +90 for parallel ones; glyph centered on the line. Script: scripts/c300-pl-symbols.mjs"
+  },
+  "propertyLabel": {
+   "kind": "mtext",
+   "layer": "TextTopoLabel_ep",
+   "textStyle": "BCC-1.0",
+   "height": 2.8,
+   "attachment": 2,
+   "width": 54.04,
+   "textFormat": "{address} FOLIO NO: {folio}\\P{\\fArial|b1|i0|c0|p34;SUBJECT PROPERTY\\PPROP {units} {sf} SF \\P{use}\\P{gpd} GPD\\P\\pxi-3,l4,t4;}P.B.\t{book} PG-{page}",
+   "rotationRule": "frontage street direction (reads horizontally after twist)",
+   "sources": {
+    "folio/book/page": "scripts/pa-lookup.mjs --xy <point in lot>",
+    "units/sf/use/gpd": "project inputs (architect / WASD flow table)"
+   }
+  },
+  "existingUtilityLeader": {
+   "kind": "mleader",
+   "layer": "C-ANNO",
+   "colorIndex": 8,
+   "mLeaderStyle": "Formtech-1.0",
+   "height": 1.4,
+   "formats": [
+    "EXIST 8\" DIP WATER MAIN \\P(PER {asbuilt})\\P(TO REMAIN)",
+    "EXIST 8\" PVC (SDR-35) SAN MAIN @ {slope}% SLOPE\\P(PER {asbuilt})\\P(TO REMAIN)",
+    "EXIST. SAN MH \\PRIM: {rim}'\\PINV: {inv}' ({dir})\\P({asbuilt})",
+    "EXIST FH\\P(PER {asbuilt})\\P(TO REMAIN)",
+    "EXIST 5' U.E."
+   ],
+   "source": "X-UTIL + WASD as-builts (E#####-#, ES####-#) - not derivable from X-TOPO",
+   "rotationRule": "frontage street angle (text reads horizontally after the viewport twist); dogleg along the same direction",
+   "placement": "pipe label: arrow on the pipe 40 ft from the intersection MH (15 ft past the MH for tramos not touching it); water label 90 ft from the intersection; text 12-14 ft perpendicular on the side AWAY from the other utility, 8 ft along the pipe. MH label: arrow at MH, text 22 ft perpendicular away from water, 12 ft upstream. FH label: arrow at FH, text 12 ft further from the street CL.",
+   "manholeRule": "label every MH drawn in X-UTIL that the survey (X-TOPO) does not already label; values from the sewer as-built",
+   "hydrantRule": "FH block + label at the as-built F.H. ASSY coordinates (not copied from a previous sheet)",
+   "annotative": true,
+   "scaleNote": "Formtech-1.0 is ANNOTATIVE: overall scale 20 comes from CANNOSCALE 1\" = 20' — never pass scale (setting MLeader.Scale on an annotative leader throws eInvalidContext)"
+  },
+  "proposedLeader": {
+   "kind": "mleader",
+   "layer": "C-ANNO",
+   "colorIndex": 256,
+   "mLeaderStyle": "Formtech-1.0",
+   "height": 1.4,
+   "example": "PROP CLF",
+   "rotationRule": "frontage street angle",
+   "annotative": true,
+   "scaleNote": "Formtech-1.0 is ANNOTATIVE: overall scale 20 comes from CANNOSCALE 1\" = 20' — never pass scale (setting MLeader.Scale on an annotative leader throws eInvalidContext)"
+  },
+  "easementLine": {
+   "kind": "polyline",
+   "layer": "C-ANNO",
+   "colorIndex": 8,
+   "linetype": "DASHED2",
+   "status": "verified 2026-09-25 on VILLA ONE: guide easement = geometry derived from survey R/W + legal description within 0.09 ft",
+   "source": "recorded plat (U.E. width/which lot line); if the plat is not available the user may confirm the previous sheet's U.E., but the geometry is always rebuilt from survey R/W lines + legal lot dimensions (never copied)",
+   "placement": "two lines 5 ft each side of the lot line, from the frontage R/W line to the lot's rear line (legal depth); 5.00' aligned dims (BCC-1.0, C-ANNO) one each side ~58-64 ft from the R/W; MLeader 'EXIST 5' U.E.' (existingUtilityLeader recipe) with arrow on the lot line"
+  },
+  "existArrow": {
+   "kind": "block",
+   "blockName": "EXIST ARROW",
+   "layer": "C-ANNO",
+   "scale": 1,
+   "rotationRule": "flow direction angle + 3.8636 rad (block drawn pointing at 221.4 deg)",
+   "placement": "on each sewer tramo, 20 ft inside each end MH, pointing downstream (flow from the as-built inverts)"
+  },
+  "existFireHydrant": {
+   "kind": "block",
+   "blockName": "FH",
+   "layer": "C-FH-EXIST",
+   "scale": 1,
+   "note": "dynamic block",
+   "rotation": 1.5872,
+   "source": "block definition imported from the engineer's package C-300.dwg if the template lacks it (never from the guide)"
+  }
+ },
+ "viewport": {
+  "layout": "C-300",
+  "size": [
+   25,
+   23
+  ],
+  "scale": "1\"=20'",
+  "viewHeight": 460,
+  "twistRule": "twist = 360 - frontage street angle (acad_set_viewport_twist streetAngleDegrees)",
+  "centerRule": "point on the frontage CL midway between the far cross-street intersection and the lot label point + 25 ft along the street"
+ },
+ "titleBlock": {
+  "C-300": {
+   "sheetTitle": "WATER AND\\PSEWER PLAN",
+   "scale": "1\"=20\"",
+   "sheetCount": "2 OF 3"
+  },
+  "C-301": {
+   "sheetTitle": "WATER AND\\PSEWER PROF",
+   "scale": "AS SHOWN",
+   "sheetCount": "3 OF 3"
+  },
+  "projectTitleFormat": "WATER MAIN AND SANITARY\\PSEWER EXTENSION PLAN\\P{PROJECT NAME}\\P{ADDRESS}",
+  "fields": [
+   "project no. (e.g. 26-04.047)",
+   "drawn by JH",
+   "approved by CF",
+   "date MM/DD/YY",
+   "AGR. NO."
+  ]
+ }
+}
