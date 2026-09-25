@@ -71,7 +71,13 @@ public static class ProfileViewAnnotationCommands
         throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Profile view '{profileViewName}' was not found in model space.");
       }
 
-      return new Dictionary<string, object?> { ["profileViews"] = views };
+      var result = new Dictionary<string, object?> { ["profileViews"] = views };
+      if (string.IsNullOrWhiteSpace(profileViewName))
+      {
+        result["planLabels"] = DescribePlanLabels(database, transaction);
+      }
+
+      return result;
     });
   }
 
@@ -157,6 +163,38 @@ public static class ProfileViewAnnotationCommands
     };
   }
 
+  private static List<Dictionary<string, object?>> DescribePlanLabels(Database database, Transaction transaction)
+  {
+    var labels = new List<Dictionary<string, object?>>();
+    foreach (ObjectId id in NoteLabel.GetAvailableLabelIds(database))
+    {
+      if (!id.IsErased && transaction.GetObject(id, OpenMode.ForRead) is NoteLabel note)
+      {
+        var item = DescribeLabel(note, transaction);
+        // The note's anchor is where it was created; a dragged note keeps the anchor and moves the text.
+        var anchor = note.Dragged ? note.LabelLocation - note.DraggedOffset : note.LabelLocation;
+        item["anchor"] = XY(anchor);
+        labels.Add(item);
+      }
+    }
+
+    var blockTable = CivilObjectUtils.GetRequiredObject<BlockTable>(transaction, database.BlockTableId, OpenMode.ForRead);
+    var modelSpace = CivilObjectUtils.GetRequiredObject<BlockTableRecord>(transaction, blockTable[BlockTableRecord.ModelSpace], OpenMode.ForRead);
+    var stationOffsetClass = RXObject.GetClass(typeof(StationOffsetLabel));
+    foreach (ObjectId id in modelSpace)
+    {
+      if (id.ObjectClass.IsDerivedFrom(stationOffsetClass) && transaction.GetObject(id, OpenMode.ForRead) is StationOffsetLabel stationOffset)
+      {
+        var item = DescribeLabel(stationOffset, transaction);
+        item["alignmentName"] = transaction.GetObject(stationOffset.FeatureId, OpenMode.ForRead) is Alignment alignment ? alignment.Name : null;
+        item["location"] = new Dictionary<string, object?> { ["x"] = stationOffset.Location.X, ["y"] = stationOffset.Location.Y };
+        labels.Add(item);
+      }
+    }
+
+    return labels;
+  }
+
   private static List<Dictionary<string, object?>> DescribeBands(ProfileViewBandItemCollection items, Transaction transaction)
   {
     var bands = new List<Dictionary<string, object?>>();
@@ -223,6 +261,10 @@ public static class ProfileViewAnnotationCommands
         item["station"] = stationLabel.Station;
         item["elevation"] = stationLabel.Elevation;
         item["markerStyle"] = NameOf(transaction, stationLabel.AnchorMarkerStyleId);
+        break;
+      case NoteLabel:
+      case StationOffsetLabel:
+        item["markerStyle"] = NameOf(transaction, label.AnchorMarkerStyleId);
         break;
     }
 
@@ -410,6 +452,28 @@ public static class ProfileViewAnnotationCommands
     var type = PluginRuntime.GetRequiredString(spec, "type");
     var style = PluginRuntime.GetRequiredString(spec, "style");
     var ratio = PluginRuntime.GetOptionalDouble(spec, "ratio") ?? 0.5;
+
+    if (type == nameof(NoteLabel))
+    {
+      var anchor = ReadPoint(spec, "anchor") ?? ReadPoint(spec, "labelLocation")
+        ?? throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "a NoteLabel needs anchor {x,y}.");
+      var markerName = PluginRuntime.GetOptionalString(spec, "markerStyle");
+      var markerId = string.IsNullOrWhiteSpace(markerName) ? ObjectId.Null : FindStyle(transaction, markerName!, styles.MarkerStyles);
+      return NoteLabel.Create(new Point3d(anchor.X, anchor.Y, 0),
+        RequireStyle(transaction, style, "note label", labelStyles.GeneralNoteLabelStyles), markerId);
+    }
+
+    if (type == nameof(StationOffsetLabel))
+    {
+      var alignmentName = PluginRuntime.GetRequiredString(spec, "alignmentName");
+      var alignment = CivilObjectUtils.FindAlignmentByName(CivilApplication.ActiveDocument, transaction, alignmentName);
+      var location = ReadPoint(spec, "location")
+        ?? throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "a StationOffsetLabel needs location {x,y} (the labeled point).");
+      var markerName = PluginRuntime.GetOptionalString(spec, "markerStyle");
+      var markerId = string.IsNullOrWhiteSpace(markerName) ? ObjectId.Null : FindStyle(transaction, markerName!, styles.MarkerStyles);
+      return StationOffsetLabel.Create(alignment.ObjectId,
+        RequireStyle(transaction, style, "station offset label", labelStyles.AlignmentLabelStyles.StationOffsetLabelStyles), markerId, location);
+    }
 
     if (type == nameof(StationElevationLabel))
     {
