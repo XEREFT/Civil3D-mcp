@@ -66,10 +66,10 @@ public static class AcadCommands
     var x = PluginRuntime.GetRequiredDouble(parameters, "x");
     var y = PluginRuntime.GetRequiredDouble(parameters, "y");
     var z = PluginRuntime.GetOptionalDouble(parameters, "z") ?? 0d;
-    var height = PluginRuntime.GetOptionalDouble(parameters, "height") ?? 2.5d;
+    var space = ParseTargetSpace(parameters);
+    var height = PluginRuntime.GetOptionalDouble(parameters, "height") ?? DefaultTextHeight(space);
     var rotation = PluginRuntime.GetOptionalDouble(parameters, "rotation") ?? 0d;
     var layerName = PluginRuntime.GetOptionalString(parameters, "layer");
-    var space = ParseTargetSpace(parameters);
     var layoutName = PluginRuntime.GetOptionalString(parameters, "layout");
 
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
@@ -121,6 +121,10 @@ public static class AcadCommands
 
     return space;
   }
+
+  // Model-space text keeps the 2.5 drawing-unit default; on a sheet that would be 2.5 inches tall,
+  // so paper space defaults to 0.1 (a typical plotted note height).
+  private static double DefaultTextHeight(string space) => space == "paper" ? 0.1d : 2.5d;
 
   // Resolves the block table record new entities are appended to. For paper space, uses the named
   // layout, or the current layout when it is a paper layout; otherwise fails listing available layouts.
@@ -275,10 +279,10 @@ public static class AcadCommands
     var y = PluginRuntime.GetRequiredDouble(parameters, "y");
     var z = PluginRuntime.GetOptionalDouble(parameters, "z") ?? 0d;
     var width = PluginRuntime.GetOptionalDouble(parameters, "width") ?? 0d;
-    var textHeight = PluginRuntime.GetOptionalDouble(parameters, "textHeight") ?? 2.5d;
+    var space = ParseTargetSpace(parameters);
+    var textHeight = PluginRuntime.GetOptionalDouble(parameters, "textHeight") ?? DefaultTextHeight(space);
     var rotation = PluginRuntime.GetOptionalDouble(parameters, "rotation") ?? 0d;
     var layerName = PluginRuntime.GetOptionalString(parameters, "layer");
-    var space = ParseTargetSpace(parameters);
     var layoutName = PluginRuntime.GetOptionalString(parameters, "layout");
 
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
