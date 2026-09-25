@@ -21,7 +21,8 @@ const PipeFlowSchema = z.object({
 
 const GenericPipeResponseSchema = z.object({}).passthrough();
 const PipeNetworkCatalogArgsSchema = z.object({ action: z.literal("network_catalog") });
-const PipeAddNetworkToProfileViewArgsSchema = z.object({ action: z.literal("add_network_to_profile_view"), networkName: z.string(), profileViewName: z.string() });
+const PipeSetPartPropertiesArgsSchema = z.object({ action: z.literal("set_part_properties"), networkName: z.string(), partName: z.string(), description: z.string().optional(), newName: z.string().min(1).optional() });
+const PipeAddNetworkToProfileViewArgsSchema = z.object({ action: z.literal("add_network_to_profile_view"), networkName: z.string(), profileViewName: z.string(), partNames: z.array(z.string().min(1)).max(500).optional() });
 
 const canonicalPipeInputShape = {
   action: z.enum([
@@ -56,6 +57,7 @@ const canonicalPipeInputShape = {
     "add_pressure_appurtenance",
     "network_catalog",
     "add_network_to_profile_view",
+    "set_part_properties",
   ]),
   name: z.string().optional(),
   networkName: z.string().optional(),
@@ -823,7 +825,17 @@ export const PIPE_DOMAIN_DEFINITION: DomainToolDefinition = {
       requiresActiveDrawing: true,
       safeForRetry: false,
       pluginMethods: ["addNetworkToProfileView"],
-      execute: async (args) => await withApplicationConnection(async (appClient) => await appClient.sendCommand("addNetworkToProfileView", { networkName: args.networkName, profileViewName: args.profileViewName })),
+      execute: async (args) => await withApplicationConnection(async (appClient) => await appClient.sendCommand("addNetworkToProfileView", { networkName: args.networkName, profileViewName: args.profileViewName, partNames: args.partNames })),
+    },
+    set_part_properties: {
+      action: "set_part_properties",
+      inputSchema: PipeSetPartPropertiesArgsSchema,
+      responseSchema: GenericPipeResponseSchema,
+      capabilities: ["edit"],
+      requiresActiveDrawing: true,
+      safeForRetry: true,
+      pluginMethods: ["setPartProperties"],
+      execute: async (args) => await withApplicationConnection(async (appClient) => await appClient.sendCommand("setPartProperties", { networkName: args.networkName, partName: args.partName, description: args.description, newName: args.newName })),
     },
   },
   exposures: [
@@ -839,7 +851,7 @@ export const PIPE_DOMAIN_DEFINITION: DomainToolDefinition = {
         "assign_pressure_parts_list", "set_pressure_cover", "validate_pressure_network", "export_pressure_network",
         "connect_pressure_networks", "add_pressure_pipe", "get_pressure_pipe_properties", "resize_pressure_pipe",
         "add_pressure_fitting", "get_pressure_fitting_properties", "add_pressure_appurtenance",
-        "network_catalog", "add_network_to_profile_view",
+        "network_catalog", "add_network_to_profile_view", "set_part_properties",
       ],
       resolveAction: (rawArgs) => ({ action: String(rawArgs.action ?? ""), args: rawArgs }),
     },
@@ -1067,10 +1079,18 @@ export const PIPE_DOMAIN_DEFINITION: DomainToolDefinition = {
     {
       toolName: "civil3d_pipe_network_add_to_profile_view",
       displayName: "Civil 3D Add Network To Profile View",
-      description: "Draws every part of a gravity pipe network (pipes + structures) or a pressure network (pipes, fittings, appurtenances) into an existing profile view, found by name.",
-      inputShape: { networkName: z.string(), profileViewName: z.string() },
+      description: "Draws the parts of a gravity pipe network (pipes + structures) or a pressure network (pipes, fittings, appurtenances) into an existing profile view, found by name. partNames limits it to those parts (e.g. only an existing sewer stub that crosses another street's profile); names that match nothing are reported in failed.",
+      inputShape: { networkName: z.string(), profileViewName: z.string(), partNames: z.array(z.string().min(1)).max(500).optional() },
       supportedActions: ["add_network_to_profile_view"],
-      resolveAction: (rawArgs) => ({ action: "add_network_to_profile_view", args: { action: "add_network_to_profile_view", networkName: rawArgs.networkName, profileViewName: rawArgs.profileViewName } }),
+      resolveAction: (rawArgs) => ({ action: "add_network_to_profile_view", args: { action: "add_network_to_profile_view", networkName: rawArgs.networkName, profileViewName: rawArgs.profileViewName, partNames: rawArgs.partNames } }),
+    },
+    {
+      toolName: "civil3d_pipe_set_part_properties",
+      displayName: "Civil 3D Set Network Part Properties",
+      description: "Sets the Description (what pipe/structure labels print as <[Description]>) and/or renames a part of a gravity or pressure network, found by network and part name. Use it to give a stand-in part the real material text from the as-built, e.g. an existing water main crossing modeled with a gravity part.",
+      inputShape: { networkName: z.string(), partName: z.string(), description: z.string().optional(), newName: z.string().min(1).optional() },
+      supportedActions: ["set_part_properties"],
+      resolveAction: (rawArgs) => ({ action: "set_part_properties", args: { action: "set_part_properties", networkName: rawArgs.networkName, partName: rawArgs.partName, description: rawArgs.description, newName: rawArgs.newName } }),
     },
   ],
 };

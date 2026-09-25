@@ -102,16 +102,35 @@ public static class NetworkDesignCommands
   {
     var networkName = PluginRuntime.GetRequiredString(parameters, "networkName");
     var profileViewName = PluginRuntime.GetRequiredString(parameters, "profileViewName");
+    // Optional: draw only these parts (e.g. one crossing stub in another street's profile).
+    var partNames = (PluginRuntime.GetParameter(parameters, "partNames") as JsonArray)?
+      .Select(node => node?.GetValue<string>())
+      .Where(name => !string.IsNullOrWhiteSpace(name))
+      .Select(name => name!)
+      .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
     {
       var profileViewId = FindProfileViewId(civilDoc, transaction, profileViewName);
       var added = 0;
       var failed = new List<string>();
+      var matchedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
       void AddPart(ObjectId partId)
       {
-        var part = transaction.GetObject(partId, OpenMode.ForWrite);
+        var part = transaction.GetObject(partId, OpenMode.ForRead);
+        if (partNames is { Count: > 0 })
+        {
+          var name = part switch { Part gravityPart => gravityPart.Name, PressurePart pressurePart => pressurePart.Name, _ => null };
+          if (name == null || !partNames.Contains(name))
+          {
+            return;
+          }
+
+          matchedNames.Add(name);
+        }
+
+        part.UpgradeOpen();
         try
         {
           switch (part)
@@ -150,6 +169,14 @@ public static class NetworkDesignCommands
         foreach (ObjectId id in pressure.GetAppurtenanceIds()) AddPart(id);
       }
 
+      if (partNames is { Count: > 0 })
+      {
+        foreach (var missing in partNames.Where(name => !matchedNames.Contains(name)))
+        {
+          failed.Add($"{missing}: no part with that name in network '{networkName}'");
+        }
+      }
+
       return new Dictionary<string, object?>
       {
         ["networkName"] = networkName,
@@ -158,6 +185,68 @@ public static class NetworkDesignCommands
         ["partsAdded"] = added,
         ["failed"] = failed,
       };
+    });
+  }
+
+  // Sets a network part's Description (what pipe labels print as <[Description]>, e.g. the as-built
+  // "EXIST 8\" DIP WATER MAIN" on a crossing drawn with a stand-in part) and/or renames it.
+  public static Task<object?> SetPartPropertiesAsync(JsonObject? parameters)
+  {
+    var networkName = PluginRuntime.GetRequiredString(parameters, "networkName");
+    var partName = PluginRuntime.GetRequiredString(parameters, "partName");
+    var description = PluginRuntime.GetOptionalString(parameters, "description");
+    var newName = PluginRuntime.GetOptionalString(parameters, "newName");
+    if (description == null && string.IsNullOrWhiteSpace(newName))
+    {
+      throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "Pass description and/or newName.");
+    }
+
+    return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
+    {
+      var ids = new List<ObjectId>();
+      var gravity = FindGravityNetwork(civilDoc, transaction, networkName);
+      if (gravity != null)
+      {
+        foreach (ObjectId id in gravity.GetPipeIds()) ids.Add(id);
+        foreach (ObjectId id in gravity.GetStructureIds()) ids.Add(id);
+      }
+      else
+      {
+        var pressure = FindPressureNetwork(civilDoc, transaction, networkName)
+          ?? throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"No gravity or pressure network named '{networkName}'.");
+        foreach (ObjectId id in pressure.GetPipeIds()) ids.Add(id);
+        foreach (ObjectId id in pressure.GetFittingIds()) ids.Add(id);
+        foreach (ObjectId id in pressure.GetAppurtenanceIds()) ids.Add(id);
+      }
+
+      foreach (var id in ids)
+      {
+        if (transaction.GetObject(id, OpenMode.ForRead) is Autodesk.Civil.DatabaseServices.Entity part
+          && string.Equals(part.Name, partName, StringComparison.OrdinalIgnoreCase))
+        {
+          part.UpgradeOpen();
+          if (description != null)
+          {
+            part.Description = description;
+          }
+
+          if (!string.IsNullOrWhiteSpace(newName))
+          {
+            part.Name = newName;
+          }
+
+          return new Dictionary<string, object?>
+          {
+            ["networkName"] = networkName,
+            ["name"] = part.Name,
+            ["description"] = part.Description,
+            ["type"] = part.GetType().Name,
+            ["handle"] = part.Handle.ToString(),
+          };
+        }
+      }
+
+      throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"No part named '{partName}' in network '{networkName}'.");
     });
   }
 

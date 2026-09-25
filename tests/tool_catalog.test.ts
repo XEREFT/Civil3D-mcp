@@ -180,6 +180,7 @@ describe("Tool Catalog", () => {
       "civil3d_profile_view_annotations",
       "civil3d_profile_view_apply_annotations",
       "acad_move_entities",
+      "civil3d_pipe_set_part_properties",
       "acad_list_block_references",
       "acad_list_shape_entities",
       "acad_update_text_content",
