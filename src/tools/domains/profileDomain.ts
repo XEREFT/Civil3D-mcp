@@ -218,6 +218,25 @@ const ProfileViewBandSetArgsSchema = z.object({
   bandSetName: z.string(),
 });
 
+const StationElevationSchema = z.object({ station: z.number(), elevation: z.number() });
+const ModelXYSchema = z.object({ x: z.number(), y: z.number() });
+
+const ProfileViewInfoArgsSchema = z.object({
+  action: z.literal("view_info"),
+  profileViewName: z.string().optional(),
+  points: z.array(StationElevationSchema).max(500).optional(),
+  xyPoints: z.array(ModelXYSchema).max(500).optional(),
+});
+
+const ProfileViewSetLocationArgsSchema = z.object({
+  action: z.literal("view_set_location"),
+  profileViewName: z.string(),
+  anchorStation: z.number(),
+  anchorElevation: z.number(),
+  targetX: z.number(),
+  targetY: z.number(),
+});
+
 // ─── Canonical input shape (union of all action fields) ───────────────────────
 
 const canonicalProfileInputShape = {
@@ -241,7 +260,15 @@ const canonicalProfileInputShape = {
     "check_k_values",
     "view_create",
     "view_band_set",
+    "view_info",
+    "view_set_location",
   ]),
+  points: z.array(StationElevationSchema).optional(),
+  xyPoints: z.array(ModelXYSchema).optional(),
+  anchorStation: z.number().optional(),
+  anchorElevation: z.number().optional(),
+  targetX: z.number().optional(),
+  targetY: z.number().optional(),
   alignmentName: z.string().optional(),
   profileName: z.string().optional(),
   profileViewName: z.string().optional(),
@@ -593,6 +620,40 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
         }),
       ),
     },
+    view_info: {
+      action: "view_info",
+      inputSchema: ProfileViewInfoArgsSchema,
+      responseSchema: GenericProfileResponseSchema,
+      capabilities: ["query"],
+      requiresActiveDrawing: true,
+      safeForRetry: true,
+      pluginMethods: ["profileViewInfo"],
+      execute: async (args) => await withApplicationConnection(
+        async (appClient) => await appClient.sendCommand("profileViewInfo", {
+          profileViewName: args.profileViewName,
+          points: args.points,
+          xyPoints: args.xyPoints,
+        }),
+      ),
+    },
+    view_set_location: {
+      action: "view_set_location",
+      inputSchema: ProfileViewSetLocationArgsSchema,
+      responseSchema: GenericProfileResponseSchema,
+      capabilities: ["edit"],
+      requiresActiveDrawing: true,
+      safeForRetry: false,
+      pluginMethods: ["profileViewSetLocation"],
+      execute: async (args) => await withApplicationConnection(
+        async (appClient) => await appClient.sendCommand("profileViewSetLocation", {
+          profileViewName: args.profileViewName,
+          anchorStation: args.anchorStation,
+          anchorElevation: args.anchorElevation,
+          targetX: args.targetX,
+          targetY: args.targetY,
+        }),
+      ),
+    },
   },
   exposures: [
     {
@@ -616,6 +677,8 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
         "check_k_values",
         "view_create",
         "view_band_set",
+        "view_info",
+        "view_set_location",
       ],
       resolveAction: (rawArgs) => ({
         action: String(rawArgs.action ?? ""),
@@ -826,6 +889,38 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
           profileViewName: rawArgs.profileViewName,
           bandSetName: rawArgs.bandSetName,
         },
+      }),
+    },
+    {
+      toolName: "civil3d_profile_view_info",
+      displayName: "Civil 3D Profile View Info",
+      description: "Reads a profile view's placement: location, grid origin, station and elevation range, model units per station and per foot of elevation (vertical exaggeration), and converts design points {station, elevation} to model XY (points) or model XY to station/elevation (xyPoints). Omit profileViewName to list every profile view with its placement (station0Elevation0 = model XY of STA 0+00 at elevation 0). Use it to place profile annotations from design values.",
+      inputShape: {
+        profileViewName: z.string().optional(),
+        points: z.array(StationElevationSchema).max(500).optional(),
+        xyPoints: z.array(ModelXYSchema).max(500).optional(),
+      },
+      supportedActions: ["view_info"],
+      resolveAction: (rawArgs) => ({
+        action: "view_info",
+        args: { action: "view_info", profileViewName: rawArgs.profileViewName, points: rawArgs.points, xyPoints: rawArgs.xyPoints },
+      }),
+    },
+    {
+      toolName: "civil3d_profile_view_set_location",
+      displayName: "Civil 3D Profile View Set Location",
+      description: "Moves a profile view so the grid point (anchorStation, anchorElevation) lands exactly on model point (targetX, targetY), e.g. to line a rebuilt view up with an existing sheet's viewports and annotations. Parts drawn in the view move with it.",
+      inputShape: {
+        profileViewName: z.string(),
+        anchorStation: z.number(),
+        anchorElevation: z.number(),
+        targetX: z.number(),
+        targetY: z.number(),
+      },
+      supportedActions: ["view_set_location"],
+      resolveAction: (rawArgs) => ({
+        action: "view_set_location",
+        args: { action: "view_set_location", profileViewName: rawArgs.profileViewName, anchorStation: rawArgs.anchorStation, anchorElevation: rawArgs.anchorElevation, targetX: rawArgs.targetX, targetY: rawArgs.targetY },
       }),
     },
   ],
