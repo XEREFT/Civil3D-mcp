@@ -92,41 +92,12 @@ public static class DimensionViewportCommands
       throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "The two dimension points are identical.");
     }
 
-    // Without an explicit dimension-line point, place the line `offset` units to the left of p1->p2
-    // (negative = right). offset 0 keeps the dimension line on the measured points.
-    Point3d dimLinePoint;
-    if (dimLineX.HasValue && dimLineY.HasValue)
-    {
-      dimLinePoint = new Point3d(dimLineX.Value, dimLineY.Value, 0);
-    }
-    else
-    {
-      var direction = (p2 - p1).GetNormal();
-      var left = new Vector3d(-direction.Y, direction.X, 0);
-      dimLinePoint = new Point3d((x1 + x2) / 2, (y1 + y2) / 2, 0) + left * offset;
-    }
+    var dimLinePoint = ComputeDimLinePoint(p1, p2, dimLineX, dimLineY, offset);
 
     return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
     {
       var (targetSpace, targetLayoutName) = AcadCommands.ResolveTargetSpace(database, transaction, space, layoutName);
-
-      var dimStyleId = database.Dimstyle;
-      if (!string.IsNullOrWhiteSpace(dimStyleName))
-      {
-        var dimStyleTable = CivilObjectUtils.GetRequiredObject<DimStyleTable>(transaction, database.DimStyleTableId, OpenMode.ForRead);
-        if (!dimStyleTable.Has(dimStyleName))
-        {
-          var available = new List<string>();
-          foreach (ObjectId id in dimStyleTable)
-          {
-            available.Add(CivilObjectUtils.GetRequiredObject<DimStyleTableRecord>(transaction, id, OpenMode.ForRead).Name);
-          }
-
-          throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Dimension style '{dimStyleName}' not found. Available: {string.Join(", ", available)}.");
-        }
-
-        dimStyleId = dimStyleTable[dimStyleName];
-      }
+      var dimStyleId = ResolveDimStyleId(database, transaction, dimStyleName);
 
       using var dimension = new AlignedDimension();
       dimension.SetDatabaseDefaults(database);
@@ -142,6 +113,7 @@ public static class DimensionViewportCommands
 
       var dimensionId = targetSpace.AppendEntity(dimension);
       transaction.AddNewlyCreatedDBObject(dimension, true);
+      dimension.RecomputeDimensionBlock(true);
 
       var created = CivilObjectUtils.GetRequiredObject<Dimension>(transaction, dimensionId, OpenMode.ForRead);
       var entry = BuildDimensionEntry(created, targetLayoutName, space == "model");
@@ -225,6 +197,42 @@ public static class DimensionViewportCommands
         ["after"] = BuildViewportEntry(target, layoutName),
       };
     });
+  }
+
+  // Without an explicit dimension-line point, place the line `offset` units to the left of p1->p2
+  // (negative = right). offset 0 keeps the dimension line on the measured points.
+  internal static Point3d ComputeDimLinePoint(Point3d p1, Point3d p2, double? dimLineX, double? dimLineY, double offset)
+  {
+    if (dimLineX.HasValue && dimLineY.HasValue)
+    {
+      return new Point3d(dimLineX.Value, dimLineY.Value, 0);
+    }
+
+    var direction = (p2 - p1).GetNormal();
+    var left = new Vector3d(-direction.Y, direction.X, 0);
+    return new Point3d((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2, 0) + left * offset;
+  }
+
+  internal static ObjectId ResolveDimStyleId(Database database, Transaction transaction, string? dimStyleName)
+  {
+    if (string.IsNullOrWhiteSpace(dimStyleName))
+    {
+      return database.Dimstyle;
+    }
+
+    var dimStyleTable = CivilObjectUtils.GetRequiredObject<DimStyleTable>(transaction, database.DimStyleTableId, OpenMode.ForRead);
+    if (dimStyleTable.Has(dimStyleName))
+    {
+      return dimStyleTable[dimStyleName];
+    }
+
+    var available = new List<string>();
+    foreach (ObjectId id in dimStyleTable)
+    {
+      available.Add(CivilObjectUtils.GetRequiredObject<DimStyleTableRecord>(transaction, id, OpenMode.ForRead).Name);
+    }
+
+    throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Dimension style '{dimStyleName}' not found. Available: {string.Join(", ", available)}.");
   }
 
   private static IEnumerable<(Layout Layout, Viewport Viewport)> EnumerateViewports(Database database, Transaction transaction, string? layoutFilter)

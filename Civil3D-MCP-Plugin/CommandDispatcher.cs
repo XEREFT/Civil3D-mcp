@@ -41,6 +41,7 @@ public static class CommandDispatcher
       "createAlignedDimension" => DimensionViewportCommands.CreateAlignedDimensionAsync(parameters),
       "listViewports" => DimensionViewportCommands.ListViewportsAsync(parameters),
       "setViewportTwist" => DimensionViewportCommands.SetViewportTwistAsync(parameters),
+      "createEntities" => DraftingBatchCommands.CreateEntitiesAsync(parameters),
       "listBlockReferences" => AcadCommands.ListBlockReferencesAsync(parameters),
       "listShapeEntities" => AcadCommands.ListShapeEntitiesAsync(parameters),
       "updateTextContent" => AcadCommands.UpdateTextContentAsync(parameters),

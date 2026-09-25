@@ -171,6 +171,7 @@ describe("Tool Catalog", () => {
       "acad_create_aligned_dimension",
       "acad_list_viewports",
       "acad_set_viewport_twist",
+      "acad_create_entities",
       "acad_list_block_references",
       "acad_list_shape_entities",
       "acad_update_text_content",
