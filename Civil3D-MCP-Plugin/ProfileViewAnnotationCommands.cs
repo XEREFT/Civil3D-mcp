@@ -78,9 +78,35 @@ public static class ProfileViewAnnotationCommands
   private static Dictionary<string, object?> DescribeAnnotations(ProfileView view, Transaction transaction)
   {
     var labels = new List<Dictionary<string, object?>>();
-    foreach (ObjectId labelId in view.GetLabelIds())
+    var labelIds = new List<ObjectId>();
+    void Collect(ObjectIdCollection ids)
     {
-      if (transaction.GetObject(labelId, OpenMode.ForRead) is Label label)
+      foreach (ObjectId id in ids)
+      {
+        if (!labelIds.Contains(id))
+        {
+          labelIds.Add(id);
+        }
+      }
+    }
+
+    // GetLabelIds() only covers labels owned by the view (station/elevation, depth); labels on parts
+    // drawn in the view come from the part-label lists and from each drawn pressure part.
+    Collect(view.GetLabelIds());
+    Collect(view.GetAvailableStructureProfileLabelIds());
+    Collect(view.GetAvailablePipeProfileLabelIds());
+    Collect(view.GetAvailableSpanningPipeProfileLabelIds());
+    foreach (ObjectId drawnId in view.GetPressureNetworkPartsInGraph())
+    {
+      if (transaction.GetObject(drawnId, OpenMode.ForRead) is ProfileViewPart drawn)
+      {
+        Collect(drawn.GetLabelIds());
+      }
+    }
+
+    foreach (var labelId in labelIds)
+    {
+      if (!labelId.IsErased && transaction.GetObject(labelId, OpenMode.ForRead) is Label label)
       {
         labels.Add(DescribeLabel(label, transaction));
       }
@@ -159,6 +185,7 @@ public static class ProfileViewAnnotationCommands
       ["handle"] = label.Handle.ToString(),
       ["type"] = label.GetType().Name,
       ["style"] = label.StyleName,
+      ["layer"] = label.Layer,
       ["dragged"] = label.Dragged,
       ["labelLocation"] = XY(label.LabelLocation),
     };
@@ -254,15 +281,31 @@ public static class ProfileViewAnnotationCommands
       if (clearBands)
       {
         var top = view.Bands.GetTopBandItems();
-        top.RemoveAll();
-        view.Bands.SetTopBandItems(top);
+        if (top != null)
+        {
+          top.RemoveAll();
+          view.Bands.SetTopBandItems(top);
+        }
+
         var bottom = view.Bands.GetBottomBandItems();
-        bottom.RemoveAll();
-        view.Bands.SetBottomBandItems(bottom);
+        if (bottom != null)
+        {
+          bottom.RemoveAll();
+          view.Bands.SetBottomBandItems(bottom);
+        }
         result["bandsCleared"] = true;
       }
 
       var parts = CollectParts(civilDoc, transaction);
+      var existingStationLabels = new List<StationElevationLabel>();
+      foreach (ObjectId id in view.GetLabelIds())
+      {
+        if (!id.IsErased && transaction.GetObject(id, OpenMode.ForRead) is StationElevationLabel existing)
+        {
+          existingStationLabels.Add(existing);
+        }
+      }
+
       var labelResults = new List<Dictionary<string, object?>>();
       for (var index = 0; index < (labelSpecs?.Count ?? 0); index++)
       {
@@ -275,8 +318,23 @@ public static class ProfileViewAnnotationCommands
             throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "label spec must be an object.");
           }
 
-          var labelId = CreateLabel(spec, view, transaction, database, labelStyles, styles, parts, maxDistance, entry);
-          ApplyLabelPlacement(spec, labelId, transaction);
+          var labelId = FindExistingStationLabel(spec, existingStationLabels);
+          if (labelId.IsNull)
+          {
+            labelId = CreateLabel(spec, view, transaction, database, labelStyles, styles, parts, maxDistance, entry);
+          }
+          else
+          {
+            entry["reused"] = true;
+            var reused = CivilObjectUtils.GetRequiredObject<Label>(transaction, labelId, OpenMode.ForWrite);
+            var wantedStyle = PluginRuntime.GetRequiredString(spec, "style");
+            if (!string.Equals(reused.StyleName, wantedStyle, StringComparison.OrdinalIgnoreCase))
+            {
+              reused.StyleId = RequireStyle(transaction, wantedStyle, "station elevation label", labelStyles.ProfileViewLabelStyles.StationElevationLabelStyles);
+            }
+          }
+
+          ApplyLabelPlacement(spec, labelId, transaction, database);
           entry["handle"] = labelId.Handle.ToString();
         }
         catch (System.Exception ex)
@@ -425,17 +483,43 @@ public static class ProfileViewAnnotationCommands
 
   // Dragged labels keep the engineer's position (same grid, so the same model XY); text overrides are
   // replayed by component order because component ids differ between drawings.
-  private static void ApplyLabelPlacement(JsonObject spec, ObjectId labelId, Transaction transaction)
+  private static ObjectId FindExistingStationLabel(JsonObject spec, List<StationElevationLabel> existing)
+  {
+    if (PluginRuntime.GetOptionalString(spec, "type") != nameof(StationElevationLabel))
+    {
+      return ObjectId.Null;
+    }
+
+    var station = PluginRuntime.GetRequiredDouble(spec, "station");
+    var elevation = PluginRuntime.GetRequiredDouble(spec, "elevation");
+    var match = existing.FirstOrDefault(label => Math.Abs(label.Station - station) < 1e-4 && Math.Abs(label.Elevation - elevation) < 1e-4);
+    return match?.ObjectId ?? ObjectId.Null;
+  }
+
+  private static void ApplyLabelPlacement(JsonObject spec, ObjectId labelId, Transaction transaction, Database database)
   {
     var dragged = PluginRuntime.GetOptionalBool(spec, "dragged") ?? false;
     var location = ReadPoint(spec, "labelLocation");
     var overrides = PluginRuntime.GetParameter(spec, "overrides") as JsonArray;
-    if ((!dragged || location == null) && (overrides == null || overrides.Count == 0))
+    var layer = PluginRuntime.GetOptionalString(spec, "layer");
+    if ((!dragged || location == null) && (overrides == null || overrides.Count == 0) && string.IsNullOrWhiteSpace(layer))
     {
       return;
     }
 
     var label = CivilObjectUtils.GetRequiredObject<Label>(transaction, labelId, OpenMode.ForWrite);
+    if (!string.IsNullOrWhiteSpace(layer))
+    {
+      // Without an explicit layer a new label lands on the current layer (often a no-plot one).
+      var layers = CivilObjectUtils.GetRequiredObject<LayerTable>(transaction, database.LayerTableId, OpenMode.ForRead);
+      if (!layers.Has(layer))
+      {
+        throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Layer '{layer}' does not exist in this drawing.");
+      }
+
+      label.Layer = layer;
+    }
+
     if (dragged && location != null)
     {
       label.LabelLocation = new Point3d(location.Value.X, location.Value.Y, 0);
@@ -560,7 +644,7 @@ public static class ProfileViewAnnotationCommands
     throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Profile '{profileName}' was not found on alignment '{alignment.Name}'.");
   }
 
-  private static ObjectId RequireStyle(Transaction transaction, string name, string what, params System.Collections.IEnumerable[] collections)
+  private static ObjectId RequireStyle(Transaction transaction, string name, string what, params TreeNodeCollectionBase[] collections)
   {
     foreach (var collection in collections)
     {
@@ -574,11 +658,11 @@ public static class ProfileViewAnnotationCommands
     throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"The {what} style '{name}' does not exist in this drawing (civil3d_profile_view_styles lists the available ones).");
   }
 
-  private static ObjectId FindStyle(Transaction transaction, string name, System.Collections.IEnumerable collection)
+  private static ObjectId FindStyle(Transaction transaction, string name, TreeNodeCollectionBase collection)
   {
-    foreach (var node in collection)
+    foreach (var id in StyleIds(collection))
     {
-      if (node is ObjectId id && string.Equals(NameOf(transaction, id), name, StringComparison.OrdinalIgnoreCase))
+      if (string.Equals(NameOf(transaction, id), name, StringComparison.OrdinalIgnoreCase))
       {
         return id;
       }
@@ -587,12 +671,21 @@ public static class ProfileViewAnnotationCommands
     return ObjectId.Null;
   }
 
-  private static List<string> Names(Transaction transaction, System.Collections.IEnumerable collection)
+  private static IEnumerable<ObjectId> StyleIds(TreeNodeCollectionBase collection)
+  {
+    var ids = collection is LabelStyleCollection labelStyles ? labelStyles.GetDescendantIds() : collection.ToObjectIds();
+    foreach (ObjectId id in ids)
+    {
+      yield return id;
+    }
+  }
+
+  private static List<string> Names(Transaction transaction, TreeNodeCollectionBase collection)
   {
     var names = new List<string>();
-    foreach (var node in collection)
+    foreach (var id in StyleIds(collection))
     {
-      if (node is ObjectId id && NameOf(transaction, id) is string name)
+      if (NameOf(transaction, id) is string name)
       {
         names.Add(name);
       }
@@ -608,7 +701,13 @@ public static class ProfileViewAnnotationCommands
       return null;
     }
 
-    return CivilObjectUtils.GetName(transaction.GetObject(id, OpenMode.ForRead));
+    // Typed first: the reflection-based GetName returns null for styles on Civil 3D 2027.
+    return transaction.GetObject(id, OpenMode.ForRead) switch
+    {
+      StyleBase style => style.Name,
+      Profile profile => profile.Name,
+      var other => CivilObjectUtils.GetName(other),
+    };
   }
 
   private static Dictionary<string, object?> XY(Point3d point) => new() { ["x"] = point.X, ["y"] = point.Y };
