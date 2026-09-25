@@ -228,6 +228,26 @@ const ProfileViewInfoArgsSchema = z.object({
   xyPoints: z.array(ModelXYSchema).max(500).optional(),
 });
 
+const ProfileViewStylesArgsSchema = z.object({ action: z.literal("view_styles") });
+
+const ProfileViewAnnotationsArgsSchema = z.object({
+  action: z.literal("view_annotations"),
+  profileViewName: z.string().optional(),
+});
+
+const AnnotationItemSchema = z.object({}).passthrough();
+
+const ProfileViewApplyAnnotationsArgsSchema = z.object({
+  action: z.literal("view_apply_annotations"),
+  profileViewName: z.string(),
+  style: z.string().optional(),
+  bandSetStyle: z.string().optional(),
+  clearBands: z.boolean().optional(),
+  labels: z.array(AnnotationItemSchema).max(500).optional(),
+  labelGroups: z.array(AnnotationItemSchema).max(100).optional(),
+  maxMatchDistance: z.number().positive().optional(),
+});
+
 const ProfileViewSetLocationArgsSchema = z.object({
   action: z.literal("view_set_location"),
   profileViewName: z.string(),
@@ -262,7 +282,15 @@ const canonicalProfileInputShape = {
     "view_band_set",
     "view_info",
     "view_set_location",
+    "view_styles",
+    "view_annotations",
+    "view_apply_annotations",
   ]),
+  bandSetStyle: z.string().optional(),
+  clearBands: z.boolean().optional(),
+  labels: z.array(AnnotationItemSchema).optional(),
+  labelGroups: z.array(AnnotationItemSchema).optional(),
+  maxMatchDistance: z.number().positive().optional(),
   points: z.array(StationElevationSchema).optional(),
   xyPoints: z.array(ModelXYSchema).optional(),
   anchorStation: z.number().optional(),
@@ -636,6 +664,44 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
         }),
       ),
     },
+    view_styles: {
+      action: "view_styles",
+      inputSchema: ProfileViewStylesArgsSchema,
+      responseSchema: GenericProfileResponseSchema,
+      capabilities: ["query"],
+      requiresActiveDrawing: true,
+      safeForRetry: true,
+      pluginMethods: ["profileViewStyles"],
+      execute: async () => await withApplicationConnection(async (appClient) => await appClient.sendCommand("profileViewStyles", {})),
+    },
+    view_annotations: {
+      action: "view_annotations",
+      inputSchema: ProfileViewAnnotationsArgsSchema,
+      responseSchema: GenericProfileResponseSchema,
+      capabilities: ["query"],
+      requiresActiveDrawing: true,
+      safeForRetry: true,
+      pluginMethods: ["profileViewAnnotations"],
+      execute: async (args) => await withApplicationConnection(async (appClient) => await appClient.sendCommand("profileViewAnnotations", { profileViewName: args.profileViewName })),
+    },
+    view_apply_annotations: {
+      action: "view_apply_annotations",
+      inputSchema: ProfileViewApplyAnnotationsArgsSchema,
+      responseSchema: GenericProfileResponseSchema,
+      capabilities: ["edit"],
+      requiresActiveDrawing: true,
+      safeForRetry: false,
+      pluginMethods: ["profileViewApplyAnnotations"],
+      execute: async (args) => await withApplicationConnection(async (appClient) => await appClient.sendCommand("profileViewApplyAnnotations", {
+        profileViewName: args.profileViewName,
+        style: args.style,
+        bandSetStyle: args.bandSetStyle,
+        clearBands: args.clearBands,
+        labels: args.labels,
+        labelGroups: args.labelGroups,
+        maxMatchDistance: args.maxMatchDistance,
+      })),
+    },
     view_set_location: {
       action: "view_set_location",
       inputSchema: ProfileViewSetLocationArgsSchema,
@@ -679,6 +745,9 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
         "view_band_set",
         "view_info",
         "view_set_location",
+        "view_styles",
+        "view_annotations",
+        "view_apply_annotations",
       ],
       resolveAction: (rawArgs) => ({
         action: String(rawArgs.action ?? ""),
@@ -904,6 +973,41 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
       resolveAction: (rawArgs) => ({
         action: "view_info",
         args: { action: "view_info", profileViewName: rawArgs.profileViewName, points: rawArgs.points, xyPoints: rawArgs.xyPoints },
+      }),
+    },
+    {
+      toolName: "civil3d_profile_view_styles",
+      displayName: "Civil 3D Profile View Styles",
+      description: "Lists the drawing's profile view styles, profile view band set styles, marker styles, and the label styles usable in profile views, keyed by label type: StructureProfileLabel, PipeProfileLabel, PressurePipeProfileLabel, PressureFittingProfileLabel, PressureAppurtenanceProfileLabel, StationElevationLabel, ProfileStationLabelGroup (major station) and ProfileMinorStationLabelGroup.",
+      inputShape: {},
+      supportedActions: ["view_styles"],
+      resolveAction: () => ({ action: "view_styles", args: { action: "view_styles" } }),
+    },
+    {
+      toolName: "civil3d_profile_view_annotations",
+      displayName: "Civil 3D Profile View Annotations",
+      description: "Reads a profile view's presentation, or every view's when profileViewName is omitted: view style, top and bottom bands (type, style, profiles, intervals), labels (type, style, featured part with plan position featureX/featureY, ratio, direction, station/elevation, dragged label location, text overrides by component index) and profile label groups (type, style, profile, increment). The labels and labelGroups arrays can be passed unchanged to civil3d_profile_view_apply_annotations.",
+      inputShape: { profileViewName: z.string().optional() },
+      supportedActions: ["view_annotations"],
+      resolveAction: (rawArgs) => ({ action: "view_annotations", args: { action: "view_annotations", profileViewName: rawArgs.profileViewName } }),
+    },
+    {
+      toolName: "civil3d_profile_view_apply_annotations",
+      displayName: "Civil 3D Profile View Apply Annotations",
+      description: "Applies presentation to a profile view: view style by name, a band set style (bandSetStyle) or no bands (clearBands), labels and labelGroups as returned by civil3d_profile_view_annotations (from another drawing or view). Part labels are matched to this drawing's parts by plan position (featureX/featureY within maxMatchDistance, default 1 ft); dragged labels keep their labelLocation; text overrides are replayed by component index. Each label reports its handle or its error; the rest still get created.",
+      inputShape: {
+        profileViewName: z.string(),
+        style: z.string().optional(),
+        bandSetStyle: z.string().optional(),
+        clearBands: z.boolean().optional(),
+        labels: z.array(AnnotationItemSchema).max(500).optional(),
+        labelGroups: z.array(AnnotationItemSchema).max(100).optional(),
+        maxMatchDistance: z.number().positive().optional(),
+      },
+      supportedActions: ["view_apply_annotations"],
+      resolveAction: (rawArgs) => ({
+        action: "view_apply_annotations",
+        args: { action: "view_apply_annotations", profileViewName: rawArgs.profileViewName, style: rawArgs.style, bandSetStyle: rawArgs.bandSetStyle, clearBands: rawArgs.clearBands, labels: rawArgs.labels, labelGroups: rawArgs.labelGroups, maxMatchDistance: rawArgs.maxMatchDistance },
       }),
     },
     {

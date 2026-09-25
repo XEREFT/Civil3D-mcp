@@ -42,6 +42,7 @@ public static class CommandDispatcher
       "listViewports" => DimensionViewportCommands.ListViewportsAsync(parameters),
       "setViewportTwist" => DimensionViewportCommands.SetViewportTwistAsync(parameters),
       "createEntities" => DraftingBatchCommands.CreateEntitiesAsync(parameters),
+      "moveEntities" => DraftingBatchCommands.MoveEntitiesAsync(parameters),
       "listBlockReferences" => AcadCommands.ListBlockReferencesAsync(parameters),
       "listShapeEntities" => AcadCommands.ListShapeEntitiesAsync(parameters),
       "updateTextContent" => AcadCommands.UpdateTextContentAsync(parameters),
@@ -232,6 +233,9 @@ public static class CommandDispatcher
       "profileViewBandSet" => ProfileEditCommands.ProfileViewBandSetAsync(parameters),
       "profileViewInfo" => ProfileEditCommands.ProfileViewInfoAsync(parameters),
       "profileViewSetLocation" => ProfileEditCommands.ProfileViewSetLocationAsync(parameters),
+      "profileViewStyles" => ProfileViewAnnotationCommands.ProfileViewStylesAsync(parameters),
+      "profileViewAnnotations" => ProfileViewAnnotationCommands.ProfileViewAnnotationsAsync(parameters),
+      "profileViewApplyAnnotations" => ProfileViewAnnotationCommands.ProfileViewApplyAnnotationsAsync(parameters),
       // Plan production
       "listSheetSets" => PlanProductionCommands.ListSheetSetsAsync(),
       "getSheetSetInfo" => PlanProductionCommands.GetSheetSetInfoAsync(parameters),

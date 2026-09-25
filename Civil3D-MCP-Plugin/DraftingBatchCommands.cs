@@ -120,6 +120,51 @@ public static class DraftingBatchCommands
     });
   }
 
+  // Moves entities (any space) by a displacement, e.g. to put a template's paper-space notes where the
+  // reference sheet has them. All-or-nothing: an unknown handle aborts the move.
+  public static Task<object?> MoveEntitiesAsync(JsonObject? parameters)
+  {
+    if (PluginRuntime.GetParameter(parameters, "handles") is not JsonArray handles || handles.Count == 0)
+    {
+      throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", "moveEntities requires a non-empty 'handles' array.");
+    }
+
+    var displacement = new Vector3d(
+      PluginRuntime.GetRequiredDouble(parameters, "dx"),
+      PluginRuntime.GetRequiredDouble(parameters, "dy"),
+      PluginRuntime.GetOptionalDouble(parameters, "dz") ?? 0d);
+
+    return CivilExecution.WriteAsync<object?>((doc, civilDoc, database, transaction) =>
+    {
+      var moved = new List<Dictionary<string, object?>>();
+      foreach (var node in handles)
+      {
+        var handleText = node?.GetValue<string>() ?? string.Empty;
+        long value;
+        try
+        {
+          value = Convert.ToInt64(handleText, 16);
+        }
+        catch (System.Exception ex) when (ex is FormatException or OverflowException or ArgumentException)
+        {
+          throw new JsonRpcDispatchException("CIVIL3D.INVALID_INPUT", $"Handle '{handleText}' is not a valid hexadecimal handle.");
+        }
+
+        var objectId = database.GetObjectId(false, new Handle(value), 0);
+        if (objectId.IsNull || objectId.IsErased)
+        {
+          throw new JsonRpcDispatchException("CIVIL3D.OBJECT_NOT_FOUND", $"Entity with handle '{handleText}' was not found.");
+        }
+
+        var entity = CivilObjectUtils.GetRequiredObject<Entity>(transaction, objectId, OpenMode.ForWrite);
+        entity.TransformBy(Matrix3d.Displacement(displacement));
+        moved.Add(new Dictionary<string, object?> { ["handle"] = handleText, ["type"] = entity.GetType().Name, ["layer"] = entity.Layer });
+      }
+
+      return new Dictionary<string, object?> { ["movedCount"] = moved.Count, ["moved"] = moved, ["dx"] = displacement.X, ["dy"] = displacement.Y };
+    });
+  }
+
   // Layers named in `layers` are created with those properties when missing; existing layers are
   // left untouched so a project's own layer overrides survive.
   private static List<string> EnsureLayers(Database database, Transaction transaction, JsonObject? definitions)
