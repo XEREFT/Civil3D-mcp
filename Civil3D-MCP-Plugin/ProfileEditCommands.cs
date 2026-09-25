@@ -263,7 +263,27 @@ public static class ProfileEditCommands
       }
 
       var profileView = CivilObjectUtils.GetRequiredObject<ProfileView>(
-        transaction, pvId.Value, OpenMode.ForRead);
+        transaction, pvId.Value, OpenMode.ForWrite);
+
+      // Optional user-specified ranges (e.g. STA -0+20..4+40, elev 0..12) so pipes well below the
+      // ground stay inside the grid; otherwise Civil 3D fits the view to the profiles automatically.
+      var stationStart = PluginRuntime.GetOptionalDouble(parameters, "stationStart");
+      var stationEnd = PluginRuntime.GetOptionalDouble(parameters, "stationEnd");
+      if (stationStart.HasValue && stationEnd.HasValue)
+      {
+        profileView.StationRangeMode = StationRangeType.UserSpecified;
+        profileView.StationStart = stationStart.Value;
+        profileView.StationEnd = stationEnd.Value;
+      }
+
+      var elevationMin = PluginRuntime.GetOptionalDouble(parameters, "elevationMin");
+      var elevationMax = PluginRuntime.GetOptionalDouble(parameters, "elevationMax");
+      if (elevationMin.HasValue && elevationMax.HasValue)
+      {
+        profileView.ElevationRangeMode = ElevationRangeType.UserSpecified;
+        profileView.ElevationMin = elevationMin.Value;
+        profileView.ElevationMax = elevationMax.Value;
+      }
 
       return new Dictionary<string, object?>
       {
@@ -272,6 +292,10 @@ public static class ProfileEditCommands
         ["alignmentName"] = alignment.Name,
         ["insertX"] = insertX,
         ["insertY"] = insertY,
+        ["stationStart"] = profileView.StationStart,
+        ["stationEnd"] = profileView.StationEnd,
+        ["elevationMin"] = profileView.ElevationMin,
+        ["elevationMax"] = profileView.ElevationMax,
         ["success"] = true,
       };
     });

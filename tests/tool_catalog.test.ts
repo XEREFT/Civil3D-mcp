@@ -172,6 +172,8 @@ describe("Tool Catalog", () => {
       "acad_list_viewports",
       "acad_set_viewport_twist",
       "acad_create_entities",
+      "civil3d_network_catalog",
+      "civil3d_pipe_network_add_to_profile_view",
       "acad_list_block_references",
       "acad_list_shape_entities",
       "acad_update_text_content",

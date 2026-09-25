@@ -153,6 +153,8 @@ public static class CommandDispatcher
       "resizePipeInNetwork" => PipeNetworkCommands.ResizePipeInNetworkAsync(parameters),
       "addStructureToNetwork" => PipeNetworkCommands.AddStructureToNetworkAsync(parameters),
       "listPipePartsCatalog" => PipeNetworkCommands.ListPipePartsCatalogAsync(parameters),
+      "listNetworkCatalog" => NetworkDesignCommands.ListNetworkCatalogAsync(parameters),
+      "addNetworkToProfileView" => NetworkDesignCommands.AddNetworkToProfileViewAsync(parameters),
       "listPressureNetworks" => PressureNetworkCommands.ListPressureNetworksAsync(),
       "getPressureNetworkInfo" => PressureNetworkCommands.GetPressureNetworkInfoAsync(parameters),
       "createPressureNetwork" => PressureNetworkCommands.CreatePressureNetworkAsync(parameters),

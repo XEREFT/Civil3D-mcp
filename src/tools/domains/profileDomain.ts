@@ -206,6 +206,10 @@ const ProfileViewCreateArgsSchema = z.object({
   insertY: z.number(),
   style: z.string().optional(),
   bandSet: z.string().optional(),
+  stationStart: z.number().optional(),
+  stationEnd: z.number().optional(),
+  elevationMin: z.number().optional(),
+  elevationMax: z.number().optional(),
 });
 
 const ProfileViewBandSetArgsSchema = z.object({
@@ -217,6 +221,10 @@ const ProfileViewBandSetArgsSchema = z.object({
 // ─── Canonical input shape (union of all action fields) ───────────────────────
 
 const canonicalProfileInputShape = {
+  stationStart: z.number().optional(),
+  stationEnd: z.number().optional(),
+  elevationMin: z.number().optional(),
+  elevationMax: z.number().optional(),
   action: z.enum([
     "list",
     "get",
@@ -563,6 +571,10 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
           insertY: args.insertY,
           style: args.style,
           bandSet: args.bandSet,
+          stationStart: args.stationStart,
+          stationEnd: args.stationEnd,
+          elevationMin: args.elevationMin,
+          elevationMax: args.elevationMax,
         }),
       ),
     },
@@ -767,7 +779,7 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
     {
       toolName: "civil3d_profile_view_create",
       displayName: "Civil 3D Profile View Create",
-      description: "Creates a Civil 3D profile view at the specified insertion point in model space. Optionally applies a style and band set.",
+      description: "Creates a Civil 3D profile view at the specified insertion point in model space. Optionally applies a style and band set, and a user-specified station range (stationStart/stationEnd, may start before the alignment, e.g. -20) and elevation range (elevationMin/elevationMax) so deep pipes stay inside the grid.",
       inputShape: {
         alignmentName: z.string(),
         profileViewName: z.string(),
@@ -775,6 +787,10 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
         insertY: z.number(),
         style: z.string().optional(),
         bandSet: z.string().optional(),
+        stationStart: z.number().optional(),
+  stationEnd: z.number().optional(),
+  elevationMin: z.number().optional(),
+  elevationMax: z.number().optional(),
       },
       supportedActions: ["view_create"],
       resolveAction: (rawArgs) => ({
@@ -787,6 +803,10 @@ export const PROFILE_DOMAIN_DEFINITION: DomainToolDefinition = {
           insertY: rawArgs.insertY,
           style: rawArgs.style,
           bandSet: rawArgs.bandSet,
+          stationStart: rawArgs.stationStart,
+          stationEnd: rawArgs.stationEnd,
+          elevationMin: rawArgs.elevationMin,
+          elevationMax: rawArgs.elevationMax,
         },
       }),
     },

@@ -104,6 +104,8 @@ describe("domain manifest migration", () => {
     expect(pipe).toBeDefined();
     expect(pipe!.operations).toContain("list");
     expect(pipe!.operations).toContain("catalog_list");
+    expect(pipe!.operations).toContain("network_catalog");
+    expect(pipe!.operations).toContain("add_network_to_profile_view");
     expect(pipe!.operations).toContain("calculate_hgl");
     expect(pipe!.operations).toContain("size_network");
     expect(pipe!.operations).toContain("create_pressure_network");
