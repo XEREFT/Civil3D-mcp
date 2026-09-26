@@ -113,12 +113,32 @@ public static class DimensionViewportCommands
 
       var dimensionId = targetSpace.AppendEntity(dimension);
       transaction.AddNewlyCreatedDBObject(dimension, true);
+      ApplyStyleAnnotative(database, transaction, dimension);
       dimension.RecomputeDimensionBlock(true);
 
       var created = CivilObjectUtils.GetRequiredObject<Dimension>(transaction, dimensionId, OpenMode.ForRead);
       var entry = BuildDimensionEntry(created, targetLayoutName, space == "model");
       return entry;
     });
+  }
+
+  // A dimension created through the API does not inherit the annotative flag of its style: with an annotative
+  // style (e.g. BCC-1.0) it would draw at scale 1 (0.1 ft text, invisible on a 1"=20' sheet). Make it
+  // annotative and give it the current annotation scale (CANNOSCALE), as the DIMLINEAR command does.
+  internal static void ApplyStyleAnnotative(Database database, Transaction transaction, Dimension dimension)
+  {
+    if (transaction.GetObject(dimension.DimensionStyle, OpenMode.ForRead) is not DimStyleTableRecord style
+      || style.Annotative != AnnotativeStates.True)
+    {
+      return;
+    }
+
+    dimension.Annotative = AnnotativeStates.True;
+    var scale = database.Cannoscale;
+    if (scale != null && !dimension.HasContext(scale))
+    {
+      dimension.AddContext(scale);
+    }
   }
 
   public static Task<object?> ListViewportsAsync(JsonObject? parameters)

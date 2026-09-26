@@ -85,6 +85,7 @@ public static class DraftingBatchCommands
           transaction.AddNewlyCreatedDBObject(entity, true);
           if (entity is Dimension dimension)
           {
+            DimensionViewportCommands.ApplyStyleAnnotative(database, transaction, dimension);
             dimension.RecomputeDimensionBlock(true);
           }
 
