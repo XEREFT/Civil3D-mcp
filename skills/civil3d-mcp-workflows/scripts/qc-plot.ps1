@@ -1,7 +1,7 @@
 # Fase 4 plot: plots layouts of a DWG to PDF with the Core Console on a %TEMP% COPY (5-10 s there; the same DWG on a
 # OneDrive path hangs 8+ min, so never point accoreconsole at the real file). Xrefs (X-*.dwg next to the DWG) are copied along.
 # Nothing in the real drawing is touched. Save the drawing in Civil 3D first (the plot sees the saved file, not the live one).
-#   pwsh -NoProfile -File qc-plot.ps1 -Dwg "<dir>\<NAME> FASE 1 v2.dwg" [-Layouts C-300,C-301] [-Tag f9]
+#   pwsh -NoProfile -File qc-plot.ps1 -Dwg "<dir>\<NAME> FASE 1.dwg" [-Layouts C-300,C-301] [-Tag f9]
 # -> %TEMP%\c3d-dwg-dump\plot\<Tag>\c300.pdf, c301.pdf   (then: python qc-compare.py words <pdf>  /  text|visual|crop ...)
 param(
   [Parameter(Mandatory)][string]$Dwg,

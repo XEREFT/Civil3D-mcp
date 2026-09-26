@@ -75,6 +75,8 @@ Revisa `acad.exe` (vivo y Responding), el puerto 8080, el final de `plugin.log`,
 ## Diálogos modales conocidos que bloquean
 "Unsigned Executable File" (tras cada rebuild del DLL), notificación de xref no encontrado, "Save changes?", pantalla de inicio, proxy objects, "Missing SHX", recuperación de dibujo.
 
+**Arranque:** `Start-Process "<dwg>"` mientras Civil 3D aún está cargando abre `Drawing1.dwg` (plantilla vacía) en vez del DWG. Esperar el puerto 8080 (`until (echo > /dev/tcp/127.0.0.1/8080) 2>/dev/null; do sleep 3; done` en Bash, en background) y **relanzar** `Start-Process "<dwg>"`: se abre en la sesión existente y el `Drawing1` vacío se cierra solo (visto 2026-09-26). Cerrar sin guardar: `close-civil3d.ps1 -Discard '<fragmento del nombre>;Drawing1'`.
+
 ## Códigos de error (`CIVIL3D.*` → JSON-RPC)
 `UNAVAILABLE` -32001 · `OBJECT_NOT_FOUND` -32004 · `TIMEOUT` -32008 · `CONFLICT` -32009 · `CANCELLED` -32010 · `INVALID_INPUT` -32602 · `METHOD_NOT_FOUND` -32601 · resto -32000 (`API_ERROR`, `TRANSACTION_FAILED`, `HOST_BUSY`, `NO_DRAWING`, `PATH_NOT_ALLOWED`, `FILE_IO_ERROR`, `COMMAND_FAILED`, `QC_ERROR`, `INTERNAL_ERROR`).
 Del lado Node, los mensajes se clasifican por regex: /timed out/ → TIMEOUT; /failed to connect|connection closed/ → UNAVAILABLE; /not found/ → OBJECT_NOT_FOUND.
