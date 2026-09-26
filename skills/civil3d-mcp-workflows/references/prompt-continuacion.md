@@ -13,7 +13,7 @@ Reglas fijas: la guía C-300_GUIA_COMO_DEBE_QUEDAR.dwg y Draft 1.pdf son SOLO ob
 
 Ahorro de tokens: usa las recetas y scripts (no rehagas a mano lo que ya está automatizado): C-301 = acad_layout copy_layout con excludeLayers/excludeBlockNames/excludeWindow/replaceText + 1 acad_create_entities; corregir escala de anotación = acad_layout set_viewport_scale; mover texto/flecha de un MLeader = acad_update_text_content (x,y,rotation,leaderX,leaderY); etiquetas Civil = civil3d_profile_view_apply_annotations (idempotente, con dragged/labelLocation); máscara de MText = backgroundMask; QC = qc-plot.ps1 + qc-compare.py. Pide varias aprobaciones a la vez (civil3d_request_approval en paralelo) y carga esquemas con un solo ToolSearch. Prueba métodos nuevos del plugin con scripts/plugin-rpc.mjs sobre un documento scratch.
 
-Pendientes que decido yo (pregúntame, no los ejecutes solos): (a) refrescar la rama pública de la skill en el fork con `bash scripts/sync-skill-to-fork.sh "<mensaje>" --yes` (el commit del plugin ya está subido); (b) reemplazar FASE 1.dwg por v2 y borrar "FASE 1 (fix).dwg"; (c) la siguiente tarea de proyecto: [ESCRIBE AQUÍ].
+Pendientes que decido yo (pregúntame, no los ejecutes solos): (a) reemplazar FASE 1.dwg por v2 y borrar "FASE 1 (fix).dwg"; (b) la siguiente tarea de proyecto: [ESCRIBE AQUÍ]. (El commit del plugin y la rama de la skill ya están subidos al fork; para volver a respaldar la skill: `bash scripts/sync-skill-to-fork.sh "<mensaje>" --yes`, solo si yo lo pido.)
 
 Al terminar cualquier trabajo deja TODO registrado sin que yo lo pida: memoria del proyecto (hecho/pendiente/handles/gotchas), skill (receta + tool-index + troubleshooting si se aprendió algo), agentes (.claude/agents/civil3d-new-project.md y civil3d-deploy.md si cambió un proceso), plugin (las 4 capas: C# + dispatcher + TS domain + tests, luego deploy con el agente civil3d-deploy) y una línea en MEMORY.md.
 ```
@@ -28,5 +28,5 @@ Al terminar cualquier trabajo deja TODO registrado sin que yo lo pida: memoria d
 | Probar plugin sin reiniciar Claude Desktop | skill `scripts/plugin-rpc.mjs` |
 | Síntoma → causa → arreglo (etiquetas apiladas, MLeaders sin envolver, `OFF: 0.00'R`, viewport `1" = 1'`, …) | skill `references/troubleshooting.md` |
 | Flujo de trabajo del agente de proyectos nuevos | agente `civil3d-new-project` (fases 2–4 + scripts) |
-| Respaldo de la skill en el fork | `scripts/sync-skill-to-fork.sh` (pendiente; solo con tu orden) |
+| Respaldo de la skill en el fork | rama `skill/civil3d-mcp-workflows` (3b9cdd8) vía `scripts/sync-skill-to-fork.sh` (solo con tu orden) |
 | Estado del proyecto | memoria `villa-one-c300-status` (+ `villa-one-c300-history`) |
