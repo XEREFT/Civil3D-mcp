@@ -114,12 +114,50 @@ public static class DimensionViewportCommands
       var dimensionId = targetSpace.AppendEntity(dimension);
       transaction.AddNewlyCreatedDBObject(dimension, true);
       ApplyStyleAnnotative(database, transaction, dimension);
+      ApplyDimOverrides(dimension, parameters);
       dimension.RecomputeDimensionBlock(true);
 
       var created = CivilObjectUtils.GetRequiredObject<Dimension>(transaction, dimensionId, OpenMode.ForRead);
       var entry = BuildDimensionEntry(created, targetLayoutName, space == "model");
       return entry;
     });
+  }
+
+  // Per-dimension overrides a reference sheet's dimensions carry (e.g. DIMTAD 4 + DIMTXTDIRECTION on so
+  // the text reads upright on a twisted sheet). Applied to the database-resident dimension.
+  // Written as the DSTYLE xdata AutoCAD itself stores (only these codes). Setting Dimtad/Dimtxtdirection
+  // through the properties also froze every other variable of an annotative dimension as an override,
+  // at the wrong scale (DIMTXT 0.005 instead of the style's value).
+  internal static void ApplyDimOverrides(Dimension dimension, JsonObject? item)
+  {
+    var tad = PluginRuntime.GetOptionalInt(item, "dimTad");
+    var direction = PluginRuntime.GetOptionalBool(item, "dimTxtDirection");
+    if (!tad.HasValue && !direction.HasValue)
+    {
+      return;
+    }
+
+    var values = new List<TypedValue>
+    {
+      new((int)DxfCode.ExtendedDataRegAppName, "ACAD"),
+      new((int)DxfCode.ExtendedDataAsciiString, "DSTYLE"),
+      new((int)DxfCode.ExtendedDataControlString, "{"),
+    };
+    if (tad.HasValue)
+    {
+      values.Add(new((int)DxfCode.ExtendedDataInteger16, (short)77));
+      values.Add(new((int)DxfCode.ExtendedDataInteger16, (short)tad.Value));
+    }
+
+    if (direction.HasValue)
+    {
+      values.Add(new((int)DxfCode.ExtendedDataInteger16, (short)294));
+      values.Add(new((int)DxfCode.ExtendedDataInteger16, (short)(direction.Value ? 1 : 0)));
+    }
+
+    values.Add(new((int)DxfCode.ExtendedDataControlString, "}"));
+    using var buffer = new ResultBuffer(values.ToArray());
+    dimension.XData = buffer;
   }
 
   // A dimension created through the API does not inherit the annotative flag of its style: with an annotative
@@ -135,9 +173,30 @@ public static class DimensionViewportCommands
 
     dimension.Annotative = AnnotativeStates.True;
     var scale = database.Cannoscale;
-    if (scale != null && !dimension.HasContext(scale))
+    if (scale == null)
+    {
+      return;
+    }
+
+    if (!dimension.HasContext(scale))
     {
       dimension.AddContext(scale);
+    }
+
+    // Keep only the current annotation scale: a stray extra scale (e.g. 1" = 1') makes the dimension draw
+    // at that scale in any viewport set to it (0.1 ft text on the profile sheet).
+    var scales = database.ObjectContextManager?.GetContextCollection("ACDB_ANNOTATIONSCALES");
+    if (scales == null)
+    {
+      return;
+    }
+
+    foreach (ObjectContext context in scales)
+    {
+      if (context.Name != scale.Name && dimension.HasContext(context))
+      {
+        dimension.RemoveContext(context);
+      }
     }
   }
 

@@ -86,6 +86,7 @@ public static class DraftingBatchCommands
           if (entity is Dimension dimension)
           {
             DimensionViewportCommands.ApplyStyleAnnotative(database, transaction, dimension);
+            DimensionViewportCommands.ApplyDimOverrides(dimension, item);
             dimension.RecomputeDimensionBlock(true);
           }
 
