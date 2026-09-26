@@ -373,16 +373,29 @@ public static class DraftingBatchCommands
       mleader.MLeaderStyle = styleDict.GetAt(styleName);
     }
 
-    using var mtext = new MText { Contents = text, Location = textPoint };
+    // The text takes the MLeader style's text style (a new MText would otherwise use the drawing's
+    // current text style, which draws wider text and wraps differently from the reference sheet).
+    var leaderStyle = CivilObjectUtils.GetRequiredObject<MLeaderStyle>(transaction, mleader.MLeaderStyle, OpenMode.ForRead);
+    using var mtext = new MText { Contents = text, Location = textPoint, TextStyleId = leaderStyle.TextStyleId };
+    mleader.TextStyleId = leaderStyle.TextStyleId;
     var height = PluginRuntime.GetOptionalDouble(item, "height");
     if (height.HasValue)
     {
       mtext.TextHeight = height.Value;
     }
 
+    // Text box width in model units (e.g. 23.3525 = 1.17" at 1"=20'): the text wraps like the reference
+    // sheet's leaders instead of running on one line.
+    var width = PluginRuntime.GetOptionalDouble(item, "width");
+    if (width.HasValue && width.Value > 0)
+    {
+      mtext.Width = width.Value;
+    }
+
     mleader.MText = mtext;
-    var leaderIndex = mleader.AddLeaderLine(arrowPoint);
-    mleader.AddLastVertex(leaderIndex, textPoint);
+    // One leader line from the arrow; AutoCAD derives the landing and dogleg from the text location.
+    // Adding the text point as a second vertex drew the line back across the text.
+    mleader.AddLeaderLine(arrowPoint);
     return mleader;
   }
 
@@ -405,6 +418,13 @@ public static class DraftingBatchCommands
       mleader.Scale = scale.Value;
     }
 
+    var arrow = new Point3d(PluginRuntime.GetRequiredDouble(item, "leaderX"), PluginRuntime.GetRequiredDouble(item, "leaderY"), 0);
+    var textPoint = new Point3d(PluginRuntime.GetRequiredDouble(item, "x"), PluginRuntime.GetRequiredDouble(item, "y"), 0);
+    var along = rotation.HasValue ? new Vector3d(Math.Cos(rotation.Value), Math.Sin(rotation.Value), 0) : Vector3d.XAxis;
+    // Text on the far side of the arrow along the reading direction: dogleg forward, text hangs from its
+    // top-left corner; otherwise dogleg backward and the text hangs from its top-right corner (as drafted by hand).
+    var forward = (textPoint - arrow).DotProduct(along) >= 0;
+
     using var mtext = mleader.MText;
     if (height.HasValue)
     {
@@ -415,16 +435,16 @@ public static class DraftingBatchCommands
     {
       mleader.TextAngleType = TextAngleType.InsertAngle;
       mtext.Rotation = rotation.Value;
+      mtext.Attachment = forward ? AttachmentPoint.TopLeft : AttachmentPoint.TopRight;
     }
 
     mleader.MText = mtext;
     var leaderIndexes = mleader.GetLeaderIndexes();
     if (rotation.HasValue && leaderIndexes.Count > 0)
     {
-      var arrow = new Point3d(PluginRuntime.GetRequiredDouble(item, "leaderX"), PluginRuntime.GetRequiredDouble(item, "leaderY"), 0);
-      var textPoint = new Point3d(PluginRuntime.GetRequiredDouble(item, "x"), PluginRuntime.GetRequiredDouble(item, "y"), 0);
-      var along = new Vector3d(Math.Cos(rotation.Value), Math.Sin(rotation.Value), 0);
-      mleader.SetDogleg((int)leaderIndexes[0], (textPoint - arrow).DotProduct(along) >= 0 ? along : along.Negate());
+      mleader.SetDogleg((int)leaderIndexes[0], forward ? along : along.Negate());
+      // Setting the text or dogleg moves the text to AutoCAD's default landing; put it back last.
+      mleader.TextLocation = textPoint;
     }
   }
 
