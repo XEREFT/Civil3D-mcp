@@ -15,7 +15,9 @@
 param(
   [Parameter(Mandatory)][string]$Source,
   [Parameter(Mandatory)][string]$Out,
-  [string]$LayoutRename = 'C-02=C-300,C-03=C-301'
+  [string]$LayoutRename = 'C-02=C-300,C-03=C-301',
+  # Layouts to delete after renaming, e.g. 'C-301' for a phase-1 (existing conditions) file with only model + C-300.
+  [string]$DeleteLayouts = ''
 )
 
 $acc = Get-ChildItem 'C:\Program Files\Autodesk\AutoCAD 20*\accoreconsole.exe' -ErrorAction SilentlyContinue |
@@ -31,6 +33,10 @@ $renames = ($LayoutRename -split ',' | Where-Object { $_ -match '=' } | ForEach-
   "(if (dictsearch (cdr (assoc -1 (dictsearch (namedobjdict) `"ACAD_LAYOUT`"))) `"$($from.Trim())`") (command `"_.-LAYOUT`" `"_R`" `"$($from.Trim())`" `"$($to.Trim())`"))"
 }) -join "`r`n"
 
+$deletes = ($DeleteLayouts -split ',' | Where-Object { $_.Trim() } | ForEach-Object {
+  "(if (dictsearch (cdr (assoc -1 (dictsearch (namedobjdict) `"ACAD_LAYOUT`"))) `"$($_.Trim())`") (command `"_.-LAYOUT`" `"_D`" `"$($_.Trim())`"))"
+}) -join "`r`n"
+
 $scr = Join-Path (Split-Path $Out) 'c300-prep.scr'
 @"
 (setvar "CMDECHO" 0)
@@ -38,6 +44,7 @@ $scr = Join-Path (Split-Path $Out) 'c300-prep.scr'
 (if (setq ss (ssget "X" '((410 . "Model")))) (command "_.ERASE" ss ""))
 (command "_.-XREF" "_D" "*")
 $renames
+$deletes
 (setq ss (ssget "X" '((410 . "Model"))))
 (setq f (open (strcat (getvar "DWGPREFIX") (vl-filename-base (getvar "DWGNAME")) "_prep.txt") "w"))
 (write-line (strcat "MODEL_LEFT|" (if ss (itoa (sslength ss)) "0")) f)

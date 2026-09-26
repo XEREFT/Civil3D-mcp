@@ -128,3 +128,29 @@ Resultado VILLA ONE: alignment idéntico a la guía (±0.001 ft, 440 ft), giro 2
 - POC de WASD (`POC.pdf`): AGR, GPD agua/alcantarillado, descripción (unidades, SF), punto de conexión.
 - Página del PA (`gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/6`, PaParcel, SR 2236 = mismo del dibujo): lotes y ubicación; comparar ángulo de la calle (debe coincidir con el giro) y anchos de R/W. Ojo: el polígono GIS puede diferir de la descripción legal — reportar, no ajustar en silencio.
 - Giro: verificar con 3 fuentes independientes (CL del survey, coordenadas de MH del as-built, bordes de lote del PA) — deben coincidir ±0.05°.
+
+## 9. Producción por fases (usuario 2026-09-25)
+| Fase | Archivo | Contenido |
+|---|---|---|
+| 1 | `<NOMBRE> FASE 1.dwg` | **Solo Model + layout C-300**, condiciones existentes: alineamiento, calles/CL/R/W/EOP, utilidades existentes (as-built), MH, FH, U.E., lotes vecinos (LOT/BLK/FOLIO + medidas). **Nada propuesto.** |
+| 2 | (siguiente) | Diseño en planta: agua/alcantarillado propuestos, laterales, cerca, etiquetas de diseño. |
+| 3 | | C-301: EG, vistas de perfil, redes en perfil, anotaciones. |
+| 4 | | QC contra el objetivo (solo comparar), plots, entrega. |
+
+### Receta Fase 1 (validada 2026-09-25 en `VILLA ONE @XEREFT FASE 1.dwg`, ~60 llamadas MCP)
+1. Pasos 1–4 del §7 (dump X-TOPO, PA, project.json, spec).
+2. Plantilla: `c300-prep-template.ps1 -Source <C-300 anterior> -Out "<carpeta>\<NOMBRE> FASE 1.dwg" -DeleteLayouts 'C-301'`.
+3. Abrir (`civil3d_drawing new` + `save saveAs` mismo path) → **verificar documento activo** (la guía puede estar abierta).
+4. Xrefs overlay capa XREF: X-TOPO, X-UTIL, X-ARCH (los de la carpeta de entrega).
+5. Alineamiento del spec; `_cl` desde X-TOPO; `acad_create_entities` del spec (rótulo del sujeto: SF/GPD/unidades del **POC**, folio del **PA**).
+6. Giro viewport C-300 + vista Model (11 y 11b del §7).
+7. Title block: textos del **C-300 del paquete del ingeniero** (layout C-300 de una copia abierta con new-from-template, sin guardar): título, proyecto, fecha, dibujó/aprobó, AGR (= POC).
+8. Existentes: `c300-utility-labels.mjs` (as-built) + bloques `EXIST ARROW`/`FH` importados del **paquete** (`sourceFilePath`), capa `C-FH-EXIST` definida en `layers` (si no existe, la inserción cae en la capa actual `_NPLT`); cotas existentes del paquete (VILLA: 6.00' WM↔CL 118th, 8.00' WM↔SAN en 228th); U.E. (§8 easementLine). Todo en 1 `acad_create_entities`.
+9. EOP / EXIST R/W / ALGN START-END: `planLabels` del paquete (solo NoteLabel + ALGN del alineamiento; SAN LAT/C.O./WATER SERVICE son de diseño → fase 2). `apply_annotations` exige una vista de perfil: crear una vista temporal (`civil3d_profile_view_create`), aplicar, **borrar la vista** (`acad_erase_entity`); las etiquetas de planta no dependen de ella.
+10. Lotes vecinos: `node scripts/neighbor-lots.mjs --frontage θ --center X,Y --out lots.json` (Lot_poly + PaParcel + ficha PA por folio; **nunca** propietarios) → `node scripts/lots-vs-survey.cjs` (desvío GIS vs R/W del survey) → configurar `RW`/`ROWS` en `scripts/neighbor-lots-build.cjs` y correrlo → 1 `acad_create_entities` (cotas + rótulos `LOT n BLK n\PFOLIO: …` C-ANNO c8 h2.0 rot θ + notas QC en `_NPLT` que no imprimen) + reubicar los PL (`acad_update_text_content` x/y) sobre los linderos legales.
+    - **Regla de medidas**: plats viejos (VILLA: Goulds Ests Sec 1, P.B. 46-94) → GIS del PA desplazado 0.1–13 ft y 4–21 % de área; se reconstruye cada lote con el "LOT SIZE W X D" legal del PA, anclado en la esquina de manzana = intersección de R/W del survey, frente sobre la calle, laterales paralelos a la calle del frente, fondo a D. Validación: manzanas con calle a ambos lados deben cerrar (VILLA BLK 9 y 10: 0.00 ft). Plats nuevos sin medidas en la legal (Southland P.B. 172-14/173-30) → polígono GIS (sobre el R/W del survey ±0.75 ft, área = PA).
+    - Cotas: ancho del lote a 14 ft del R/W (libre de las etiquetas EXIST R/W a ~5 ft); fondos en los linderos interiores a 4 ft; no acotar sobre el R/W de la calle del frente (ya lo acota el survey).
+    - Rótulo: caja completa dentro del lote visible, libre de textos existentes (muestreados por su extensión real, no solo el punto de inserción); si no cabe (VILLA LOT 6 BLK 3, franja ocupada por "BLOCK 3" del survey) se reporta y no se rotula.
+11. Guardar, plot Core Console sobre copia con xrefs, **comprobar alto de texto de cotas en el PDF** (pymupdf `get_text('words')`: las cotas BCC-1.0 deben medir ~0.13"; 0.007" = cota no anotativa).
+
+**Gotcha (encontrado 2026-09-25):** BCC-1.0 es un estilo de cota **anotativo**; el plugin anterior creaba las cotas sin la bandera anotativa → texto de 0.1 ft, invisible en 1"=20' (afectaba también a CREATOR: C-300 y 22 cotas de C-301). Corregido en `DimensionViewportCommands.ApplyStyleAnnotative` (cota anotativa + CANNOSCALE). Cotas ya creadas: borrar con Core Console (`(ssget "X" '((0 . "DIMENSION") (3 . "BCC-1.0")))` sin xdata AcadAnnotative → `entdel`) y recrearlas.
