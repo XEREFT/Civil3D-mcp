@@ -97,7 +97,7 @@ reglas). No las escribas a mano: el generador las toma de ahí. ~25 llamadas MCP
 | 7 | Xref | `acad_attach_xref` X-TOPO, overlay, capa `XREF`, 0,0,0 | queda con ruta relativa `.\X-TOPO.dwg` si está en la misma carpeta |
 | 8 | Alignment | `civil3d_alignment create` con `spec.alignment` | 1 tangente, capa `C-ROAD` |
 | 9 | Bloque `_cl` | `acad_insert_block_reference` (1er `_cl` del spec) con `sourceFilePath`=X-TOPO | importa la definición si falta |
-| 10 | Todo lo demás | `acad_create_entities` con `spec.createEntities` (sin el `_cl` del paso 9) | 1 aprobación; tab real en `P.B.<TAB>46` |
+| 10 | Todo lo demás | `acad_create_entities` con `spec.createEntities` (sin el `_cl` del paso 9) | 1 aprobación; tab real en `P.B.<TAB>46`. El spec ya **no** copia las cotas de R/W del survey (el X-TOPO las muestra; `--rw-dims` solo si no hay paquete). Rótulos de calle/sujeto y cotas R/W: replay del paquete (§9 Replay) |
 | 11 | Giro | `acad_set_viewport_twist` con `spec.twist` + `viewportHandle` del viewport grande de C-300 | |
 | 11b | Vista de modelo horizontal | `acad_set_viewport_twist` con `layout:"Model"`, `streetAngleDegrees` = ángulo del alineamiento del frente (VILLA 91.5109), centro = punto medio del alineamiento → giro 360−θ, SNAPANG = θ (cursor alineado), el dibujo queda abriendo en Model | igual que el objetivo: VPORT *ACTIVE 51 = 4.686 rad, 50 = 1.597 |
 | 12 | Title block | `acad_list_text_entities contains:` `EXTENSION` · `26-04` · `C-30` · `AGR` · `/26` → `acad_update_text_content` ×2 layouts | cambiar solo la subcadena |
@@ -151,6 +151,26 @@ Resultado VILLA ONE: alignment idéntico a la guía (±0.001 ft, 440 ft), giro 2
     - **Regla de medidas**: plats viejos (VILLA: Goulds Ests Sec 1, P.B. 46-94) → GIS del PA desplazado 0.1–13 ft y 4–21 % de área; se reconstruye cada lote con el "LOT SIZE W X D" legal del PA, anclado en la esquina de manzana = intersección de R/W del survey, frente sobre la calle, laterales paralelos a la calle del frente, fondo a D. Validación: manzanas con calle a ambos lados deben cerrar (VILLA BLK 9 y 10: 0.00 ft). Plats nuevos sin medidas en la legal (Southland P.B. 172-14/173-30) → polígono GIS (sobre el R/W del survey ±0.75 ft, área = PA).
     - Cotas: ancho del lote a 14 ft del R/W (libre de las etiquetas EXIST R/W a ~5 ft); fondos en los linderos interiores a 4 ft; no acotar sobre el R/W de la calle del frente (ya lo acota el survey).
     - Rótulo: caja completa dentro del lote visible, libre de textos existentes (muestreados por su extensión real, no solo el punto de inserción); si no cabe (VILLA LOT 6 BLK 3, franja ocupada por "BLOCK 3" del survey) se reporta y no se rotula.
+    - **Decisión del usuario 2026-09-26: los lotes vecinos NO se dibujan en la hoja** (el objetivo no los tiene). Los scripts quedan como verificación/reporte (folio, medidas legales vs GIS). Los PL van en la posición del Lot_poly del condado (`c300-pl-symbols.mjs`), como el objetivo.
 11. Guardar, plot Core Console sobre copia con xrefs, **comprobar alto de texto de cotas en el PDF** (pymupdf `get_text('words')`: las cotas BCC-1.0 deben medir ~0.13"; 0.007" = cota no anotativa).
 
 **Gotcha (encontrado 2026-09-25):** BCC-1.0 es un estilo de cota **anotativo**; el plugin anterior creaba las cotas sin la bandera anotativa → texto de 0.1 ft, invisible en 1"=20' (afectaba también a CREATOR: C-300 y 22 cotas de C-301). Corregido en `DimensionViewportCommands.ApplyStyleAnnotative` (cota anotativa + CANNOSCALE). Cotas ya creadas: borrar con Core Console (`(ssget "X" '((0 . "DIMENSION") (3 . "BCC-1.0")))` sin xdata AcadAnnotative → `entdel`) y recrearlas.
+
+### Pulido de Fase 1 contra el objetivo (2026-09-26, solo comparar; datos del paquete del ingeniero = fuente base)
+- **Cotas de R/W**: NO copiar las del survey (el X-TOPO ya las muestra; quedaban duplicadas y encimadas). Usar las cotas BCC-1.0 del C-300 del paquete (VILLA: 16, posiciones propias con p10 desplazado).
+- **Overrides de cota de la firma**: todas las cotas BCC-1.0 del paquete llevan DSTYLE `DIMTAD=4` + `DIMTXTDIRECTION=1` (texto derecho en la hoja girada) → pasar `dimTad: 4, dimTxtDirection: true` en cada `aligned_dimension`. El plugin los escribe como xdata DSTYLE (como AutoCAD); fijarlos por propiedad congelaba todas las variables a escala errónea (DIMTXT 0.005).
+- **BCC-1.0 es anotativo**: el plugin ya crea la cota anotativa con CANNOSCALE; verificar en el PDF que el texto de cota mida ~0.13" (0.007" = cota no anotativa).
+- **MLeaders de utilidades existentes**: posiciones (flecha, `x/y` = ubicación del texto) del paquete; textos de los as-built; FH con la flecha en el as-built y el texto al mismo desfase que en el paquete. `width` por etiqueta: 23.3525 (largas), 12.865 (FH, "DIP\PWATER MAIN", MH), 10.6638 (U.E.). El plugin: una sola línea de guía, texto con el estilo de texto del estilo de MLeader (BCC-1.0), enganche TopLeft si la cola va hacia +calle y TopRight si va al revés, `TextLocation` fijado al final. Comprobar con Core Console (context 12/43/171 y LEADER 10/11) contra el paquete.
+- **Rótulos de calle y del sujeto**: posiciones y anchos del paquete (VILLA 118th: w 34.83/37.94; 227th/228th: 34.33; sujeto w 54.04) + máscara de fondo (MTEXT 90=3, 63=256, 45=1.2; sujeto 45=1.0). Sin máscara el relleno del asfalto del X-TOPO los tapa. El plugin aún no expone la máscara: se aplica con Core Console (`entmod` agregando 90/63/45/441).
+- **Estaciones del alineamiento**: label set "Major and Minor only" (`civil3d_label add labelType:label_set`; el plugin usa `Alignment.ImportLabelSet`). "Major Minor and Geometry Points" agrega "EP: 4+40.00'" que el objetivo no tiene.
+- Comparar por cuadrantes (pymupdf, 85 dpi, recortes 12.6"×11.6") guía vs nuestro plot.
+
+### Replay desde el paquete del ingeniero (2026-09-26; aplicado a FASE 1 y CREATOR)
+El paquete (`C-300.dwg` del ingeniero) es fuente base: lo que ya dibuja se **reproduce** con su geometría exacta en vez de regenerarlo por regla.
+1. Cerrar Civil 3D: `pwsh -NoProfile -File scripts/close-civil3d.ps1 -AllowSave '<A>.dwg;<B>.dwg'`.
+2. Dump de paquete y destino (copias): `.scr` = `(setq *dumpfile* "…/full.txt")` + contenido de `scripts/mleader-dump.lsp` + `QUIT Y` (SECURELOAD impide `load`).
+3. `node scripts/replay-from-package.cjs --pkg pkg/full.txt --pkgdump PKG-C-300_dump.txt --target dst/full.txt --add rw.json --add util.json --drop survey-dims.json --skip-ml "EXIST ,EXIST. " --plan-y <Y entre perfil y planta> --out replay.json` → `deleteHandles` + `payload`. (VILLA: 46 cotas + 36 MLeaders en CREATOR; `--add` = 16 cotas R/W del paquete y 13 MLeaders de utilidades con textos de as-built.)
+4. Core Console: `entdel` por handle verificando el tipo (dims, MLeaders, MTEXT viejos) + `QSAVE`; respaldar antes.
+5. `Start-Process "<dwg>"` → `acad_create_entities` con el payload (+ rótulos de calle/sujeto con ancho del paquete) → `civil3d_label` label set "Major and Minor only" → save.
+6. Cerrar → máscara (`mtext-mask.lsp` inline, 1.2 calles / 1.0 sujeto) → si alguna cota muestra escala extra, `fix-annoscale.scr.txt`.
+7. Plot Core Console + pymupdf: 0 palabras de cota < 0.05"; comparar cuadrantes contra la guía.

@@ -13,7 +13,7 @@ ya están en el propio MCP. Para el detalle fino consulta esas fuentes, no esta 
 - `ToolSearch select:<tool>` → cargar el esquema de una herramienta diferida antes de llamarla.
 
 Repo del plugin: `C:\Users\camil\OneDrive\Documents\Civil3D-mcp` (C# en `Civil3D-MCP-Plugin/`, servidor Node en `src/`).
-Scripts de esta skill: `~/.claude/skills/civil3d-mcp-workflows/scripts/` (Node 18 + PowerShell; **no hay Python en esta máquina**).
+Scripts de esta skill: `~/.claude/skills/civil3d-mcp-workflows/scripts/` (Node 24 + PowerShell + Python con `pypdf`/`pymupdf` para leer y rasterizar PDFs; Core Console (`accoreconsole.exe` en la carpeta de AutoCAD 2027) para DWG cerrados).
 
 ---
 
@@ -23,7 +23,7 @@ Scripts de esta skill: `~/.claude/skills/civil3d-mcp-workflows/scripts/` (Node 1
    - `drawingLoaded: false` → no hay documento enfocado.
    - `operationInProgress: true` con `currentOperationDurationMs` > ~30 s → **diálogo modal bloqueando Civil 3D**. Detente y pide al usuario revisar la ventana de Civil 3D. No reintentes en bucle.
    - `queueDepth` cerca de `queueCapacity` → espera; no encoles más.
-2. `acad_list_open_documents` → confirma que el DWG correcto está abierto. Si no es el activo: `acad_set_active_document { match: "<substring del nombre/ruta>" }`. **No existe herramienta para abrir un DWG desde disco**: si no está abierto, el usuario debe abrirlo.
+2. `acad_list_open_documents` → confirma que el DWG correcto está abierto. Si no es el activo: `acad_set_active_document { match: "<substring del nombre/ruta>" }`. Para abrir un DWG: `Start-Process "<ruta>.dwg"` (asociación de archivos; lo abre en el Civil 3D que corre, o lanza Civil 3D con él — úsalo también tras reiniciar para no quedar en la pestaña Start) o `civil3d_drawing new templatePath=<dwg>` + `save saveAs=<misma ruta> overwrite:true`. **Nunca** actives/guardes un archivo que el usuario tiene abierto con cambios (p. ej. la guía).
 3. `get_drawing_info` → anota `unsavedChanges`. Si ya es `true` **antes** de que edites, hay trabajo humano no revisado: al final guarda con Save As en una carpeta fechada, no en sitio (ver §3).
 4. Si algo falla → `references/troubleshooting.md` **antes** de reintentar. Diagnóstico rápido desde la shell:
    `powershell -NoProfile -ExecutionPolicy Bypass -File ~/.claude/skills/civil3d-mcp-workflows/scripts/c3d-health.ps1`
@@ -81,6 +81,8 @@ Lee **solo** la referencia que corresponde. Cada una es autosuficiente.
 
 **E. Producción de planos** (`plan-production-sheets.md`): `civil3d_sheet_set_list/get_info` → `sheet_add` / `sheet_view_create` / `set_scale` → title block (texto) → `civil3d_sheet_publish_pdf` o `civil3d_workflow_plan_production_publish`.
 
+**G. Hoja a partir de datos base + paquete del ingeniero** (`c300-water-sewer-plan.md` §7, §9): la guía/objetivo solo se compara; datos de survey/as-built/POC/PA/paquete. Anotaciones que el paquete ya tiene (cotas R/W, MLeaders de utilidades, rótulos de calle, laterales, anotaciones de perfil) → **replay**: `scripts/mleader-dump.lsp` (Core Console, inline) sobre paquete y destino → `node scripts/replay-from-package.cjs` (empareja por texto/coords, copia geometría, ancho, overrides DSTYLE) → borrar lo viejo con Core Console → un `acad_create_entities` → máscara con `scripts/mtext-mask.lsp` → label set del alineamiento (`civil3d_label add labelType:label_set`) → plot Core Console + comparación por cuadrantes (pymupdf). Cerrar Civil 3D con `scripts/close-civil3d.ps1`.
+
 **F. QC antes de entregar**: `civil3d_workflow_drawing_readiness_audit` → `civil3d_qc_check_*` (drawing_standards, alignment, profile, pipe_network, labels) → `civil3d_qc_report_generate`. Complementa con el checklist manual de `pipe-networks.md` §Checklist.
 
 Los `civil3d_workflow_*` son orquestaciones del lado del plugin. Úsalos cuando el flujo coincide completo; para pasos sueltos usa las herramientas atómicas.
@@ -93,6 +95,8 @@ Los `civil3d_workflow_*` son orquestaciones del lado del plugin. Úsalos cuando 
 - Resume salidas grandes con `scripts/summarize-entities.mjs`.
 - Cotas y viewports: `acad_list_dimensions` / `acad_create_aligned_dimension` / `acad_list_viewports` / `acad_set_viewport_twist`. Rutas de xref y DWG que no están abiertos: `scripts/dwg-dump.ps1 <dwg>` (Core Console sobre una copia; lee el último estado guardado).
 - Datos de propiedad Miami-Dade: `node scripts/pa-lookup.mjs --xy X,Y` (coords del dibujo) — no navegues la web del PA.
+- **Ediciones masivas (borrar/recrear decenas de entidades) → Core Console sobre el DWG cerrado**, no `acad_erase_entity` uno por uno (2 llamadas por entidad). Patrón: cerrar Civil 3D (`close-civil3d.ps1`), respaldar, `.scr` con `entdel` por handle verificando el tipo, `QSAVE`; reabrir con `Start-Process`; recrear todo en **un** `acad_create_entities`.
+- Verificación visual barata: plot con Core Console (`-PLOT`, DWG To PDF) y `pymupdf` → recortes por cuadrante a 85 dpi + alto de palabras (cotas BCC-1.0 ≈ 0.13"). No uses screenshots de Civil 3D.
 - Al final de una sesión de proyecto, deja el estado en memoria del proyecto (hecho / pendiente / handles / gotchas). No lo pongas en esta skill: la skill contiene solo patrones generales.
 
 ## 5. Cómo expandir esta skill (cuando el plugin gane una capacidad nueva)

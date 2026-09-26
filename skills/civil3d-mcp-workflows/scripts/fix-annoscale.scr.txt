@@ -1,0 +1,13 @@
+; Core Console fix: sheet annotation scale 1"=20' as CANNOSCALE, and drop the stray 1"=1' scale from
+; annotative dimensions / MLeaders (they then show at 1"=20' in every 1"=20' viewport, plan and profile).
+; Copy to a .scr, replace OUTFILE, run:  accoreconsole /i <dwg> /s <scr>
+(setvar "TILEMODE" 1)
+(setvar "CANNOSCALE" "1\" = 20'")
+(setq ss (ssget "X" '((-4 . "<OR") (0 . "DIMENSION") (0 . "MULTILEADER") (-4 . "OR>") (410 . "Model"))))
+(if ss (command "_.-OBJECTSCALE" ss "" "_D" "1\" = 1'" ""))
+(setq f (open "OUTFILE" "w"))
+(write-line (strcat "CANNOSCALE=" (getvar "CANNOSCALE") " objects=" (if ss (itoa (sslength ss)) "0")) f)
+(close f)
+(command "_.QSAVE")
+QUIT
+

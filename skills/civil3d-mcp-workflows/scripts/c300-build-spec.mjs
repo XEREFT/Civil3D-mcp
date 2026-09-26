@@ -138,9 +138,12 @@ for (const c of cross) {
 }
 pushCl(alStart, add(far.int, mul(uLot, -ext.lengthFromIntersectionFt)));
 
-// 3) R/W dimensions replicated from the survey DIM layer
+// 3) R/W dimensions replicated from the survey DIM layer - OFF by default (--rw-dims to enable).
+//    The survey xref already shows its own R/W dims; copying them stacks two dims on top of each other.
+//    The target sheet dimensions R/W at its own stations (engineer's package): replay those with
+//    scripts/replay-from-package.cjs (dimTad 4 + dimTxtDirection, as the package's DSTYLE xdata).
 const dim = S.rowDimension;
-for (const e of ents.filter((x) => x.type === 'DIMENSION' && x.layer === 'DIM' && +x.meas > 1)) {
+for (const e of ents.filter((x) => args['rw-dims'] && x.type === 'DIMENSION' && x.layer === 'DIM' && +x.meas > 1)) {
   const p2 = pt(e.p2);
   entities.push({ kind: 'aligned_dimension', layer: dim.layer, dimStyle: dim.dimStyle, offset: dim.offset, x1: r4(e.p[0]), y1: r4(e.p[1]), x2: r4(p2[0]), y2: r4(p2[1]) });
 }
