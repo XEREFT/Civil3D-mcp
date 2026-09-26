@@ -132,7 +132,7 @@ Resultado VILLA ONE: alignment idéntico a la guía (±0.001 ft, 440 ft), giro 2
 ## 9. Producción por fases (usuario 2026-09-25)
 | Fase | Archivo | Contenido |
 |---|---|---|
-| 1 | `<NOMBRE> FASE 1.dwg` | **Solo Model + layout C-300**, condiciones existentes: alineamiento, calles/CL/R/W/EOP, utilidades existentes (as-built), MH, FH, U.E., lotes vecinos (LOT/BLK/FOLIO + medidas). **Nada propuesto.** |
+| 1 | `<NOMBRE> FASE 1.dwg` | **Solo Model + layout C-300**, condiciones existentes: alineamiento, calles/CL/R/W/EOP, utilidades existentes (as-built), MH, FH, U.E., símbolos PL. Lotes vecinos NO se dibujan (decisión 2026-09-26; el objetivo no los trae). **Nada propuesto.** |
 | 2 | (siguiente) | Diseño en planta: agua/alcantarillado propuestos, laterales, cerca, etiquetas de diseño. |
 | 3 | | C-301: EG, vistas de perfil, redes en perfil, anotaciones. |
 | 4 | | QC contra el objetivo (solo comparar), plots, entrega. |
