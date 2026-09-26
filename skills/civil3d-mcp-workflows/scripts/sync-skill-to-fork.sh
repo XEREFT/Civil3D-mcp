@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Backs this skill up to the fork branch `skill/civil3d-mcp-workflows` (XEREFT/Civil3D-mcp, PUBLIC repo; the skill holds firm
+# standards + project data — the user accepted that). The skill folder is NOT a git repo, so the branch is refreshed through a
+# temporary worktree (procedure from memory `github-publishing`). PUSHES to the fork: run it ONLY when the user asks for it.
+#   bash sync-skill-to-fork.sh "<commit message>" --yes        (without --yes it stops after committing locally in the worktree)
+set -euo pipefail
+MSG="${1:?commit message required}"
+PUSH="${2:-}"
+REPO="/c/Users/camil/OneDrive/Documents/Civil3D-mcp"
+SKILL="/c/Users/camil/.claude/skills/civil3d-mcp-workflows"
+TMP="$(mktemp -d)/skill-wt"
+BR="skill/civil3d-mcp-workflows"
+
+cd "$REPO"
+git fetch fork "$BR"
+git worktree add -B "$BR" "$TMP" "fork/$BR" >/dev/null
+trap 'cd "$REPO"; git worktree remove --force "$TMP" >/dev/null 2>&1 || true' EXIT
+
+mkdir -p "$TMP/skills"
+rm -rf "$TMP/skills/civil3d-mcp-workflows"
+cp -r "$SKILL" "$TMP/skills/civil3d-mcp-workflows"
+cd "$TMP"
+git add -A skills
+if git diff --cached --quiet; then echo "skill already up to date on the fork branch"; exit 0; fi
+git commit -q -m "$MSG
+
+Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+git log --oneline -1
+if [ "$PUSH" = "--yes" ]; then
+  git push fork "$BR"
+  echo "pushed $BR"
+else
+  echo "committed locally in the temp worktree only (re-run with --yes to push)"
+fi

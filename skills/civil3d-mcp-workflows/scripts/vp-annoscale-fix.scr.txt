@@ -1,0 +1,54 @@
+; NOTE 2026-09-26 (build 16:48): section A is now `acad_layout set_viewport_scale {layout}` (1 plugin call, no copy, tested on CREATOR); sections B/C
+; (delete old MLeaders / QSAVE) remain Core Console only. Kept for drawings/sessions without that build.
+; Core Console fix (validated 2026-09-26, VILLA ONE C-301, after 3 iterations): annotative dimensions/MLeaders
+; created through the plugin do NOT display correctly in viewports that were also created through the plugin.
+; Root causes found (in this order of discovery):
+;  1. Plugin viewports have NO annotation scale of their own (a template viewport carries an xdict for it).
+;     Dims created under CANNOSCALE `1" = 20'` are then hidden in the viewport (plot has no "25.00'" words).
+;     FIX = set each viewport's annotation scale (section A below). This is the only step the dims needed.
+;  2. MLeaders created with a LAYOUT tab active get scale `1" = 1'` only. After (1) they vanish. DO NOT "add" the
+;     20' scale to them: AutoCAD scales their geometry x20 (giant text). FIX = delete them and RECREATE with the
+;     Model tab active (`acad_set_viewport_twist layout:"Model"` activates it; CANNOSCALE there = `1" = 20'`), and
+;     pass `rotation: 0` on each mleader item so the plugin's OrientMLeader picks the anchor side (TopRight when the
+;     text is left of the arrow) — without rotation it returns early and every label anchors TopLeft and crosses
+;     its own leader.
+;  3. NEVER type the scale name `1"=20'` (no spaces) at the -OBJECTSCALE prompt: it creates a NEW custom scale that
+;     is not the standard `1" = 20'` (with spaces) the viewports use, so it never matches. Accept the default
+;     (blank line) or send it through LISP `(command ... "1\" = 20'")`. Clean stray ones with
+;     `(command "_.-OBJECTSCALE" ss "" "_D" "1\"=20'" "")` then `(command "_.-SCALELISTEDIT" "_D" "1\"=20'" "_E")`.
+;
+; USE ON A COPY in %TEMP% (with X-TOPO/X-UTIL/X-ARCH next to it; Core Console opens it in ~5 s there but hung for
+; minutes on the OneDrive path). Then open the copy in Civil 3D, recreate the MLeaders, and Save As a NEW name
+; (overwriting the real DWG is blocked by the auto-mode classifier — let the user swap files).
+;   accoreconsole /i <copy.dwg> /s <this.scr>     then verify with pymupdf: dimension words present, 0 tiny words
+;   viewport numbers: 1 is the layout's own sheet viewport (KEEP it), the plugin ones are 2,3,4...
+
+;--- A. viewport annotation scale (dims then show) -------------------------------------------------------------
+(setvar "FILEDIA" 0)
+(setvar "CMDDIA" 0)
+(setq vps (ssadd))
+(foreach h '(VP_HANDLES) (ssadd (handent h) vps))     ; e.g. "1301C" "1301E" "13020"
+(setvar "CTAB" "C-301")
+_.MVIEW
+_L
+_OFF
+!vps
+
+_.MSPACE
+(foreach n '(VP_NUMBERS) (setvar "CVPORT" n) (setvar "CANNOSCALE" "1\" = 20'"))   ; e.g. 2 3 4
+_.PSPACE
+_.MVIEW
+_L
+_ON
+!vps
+
+;--- B. delete the old MLeaders (then recreate them live with Model tab active + rotation:0) -------------------
+(setq n 0)
+(foreach h '(MLEADER_HANDLES) (setq e (handent h)) (if (and e (= (cdr (assoc 0 (entget e))) "MULTILEADER")) (progn (entdel e) (setq n (1+ n)))))
+(princ (strcat "\nDIAG mleaders deleted=" (itoa n)))
+
+;--- C. finish -----------------------------------------------------------------------------------------------
+(setvar "CTAB" "Model")
+_.QSAVE
+QUIT
+Y
