@@ -23,6 +23,7 @@ Al terminar cualquier trabajo deja TODO registrado sin que yo lo pida: memoria d
 |---|---|
 | Fases 1–4 de C-300/C-301, recetas paso a paso | skill `references/c300-water-sewer-plan.md` §9 |
 | Herramientas nuevas del plugin (idempotencia, escala de anotación, filtros de `copy_layout`, `set_viewport_scale`, mover MLeader, máscara MText) | repo, commit `75c00a5` (subido al fork, PR #16) (C# + `CommandDispatcher.cs` + `geometryDomain.ts`/`profileDomain.ts` + tests + `docs/tools.generated.md`); skill `references/tool-index.md` |
+| Variables de sistema (ícono naranja "i" de override = `LABELOVERRIDEGLYPHS`), lista de permitidos | repo (sin commit aún): `SystemVariableCommands.cs` + `drawingRuntimeDomain.ts` + tests; skill `tool-index.md` (`acad_get/set_system_variable`) y `troubleshooting.md`; memoria `sysvar-tool-pending` |
 | QC automatizado (plot + comparación) | skill `scripts/qc-plot.ps1`, `scripts/qc-compare.py`; SKILL.md flujo H |
 | Deploy en 3 capas y diálogo "Unsigned Executable File" | agente `civil3d-deploy` (sección "Scripted shortcuts"), memoria `plugin-deployment-gotcha`, `scripts/install-plugin-dll.ps1`, `verify-deploy.ps1`, `close-civil3d.ps1` |
 | Probar plugin sin reiniciar Claude Desktop | skill `scripts/plugin-rpc.mjs` |
