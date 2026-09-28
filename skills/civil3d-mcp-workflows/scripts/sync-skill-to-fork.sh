@@ -16,6 +16,15 @@ git fetch fork "$BR"
 git worktree add -B "$BR" "$TMP" "fork/$BR" >/dev/null
 trap 'cd "$REPO"; git worktree remove --force "$TMP" >/dev/null 2>&1 || true' EXIT
 
+# Backups that live outside the skill folder:
+#  - the 4 subagents (repo .claude/agents is gitignored, so they exist nowhere else) -> skill/agents/ (goes to the public fork)
+#  - the Claude Code memory folder -> a PRIVATE OneDrive folder (never the public fork)
+AGENTS_SRC="$REPO/.claude/agents"
+MEM_SRC="/c/Users/camil/.claude/projects/C--Users-camil-OneDrive-Documents-Civil3D-mcp/memory"
+MEM_DST="/c/Users/camil/OneDrive/Documents/Civil3D-MCP-backup/memory"
+if [ -d "$AGENTS_SRC" ]; then mkdir -p "$SKILL/agents"; cp -f "$AGENTS_SRC"/*.md "$SKILL/agents/"; fi
+if [ -d "$MEM_SRC" ]; then mkdir -p "$MEM_DST"; cp -f "$MEM_SRC"/*.md "$MEM_DST/"; echo "memory backed up to $MEM_DST"; fi
+
 mkdir -p "$TMP/skills"
 rm -rf "$TMP/skills/civil3d-mcp-workflows"
 cp -r "$SKILL" "$TMP/skills/civil3d-mcp-workflows"
