@@ -52,7 +52,7 @@ await withApplicationConnection(async (client) => {
     if (model.length) {
       add("FAIL", "PROP text in Model", `${model.length} item(s): ` + model.slice(0, 12).map((e) => `${e.handle}:${strip(e.text).slice(0, 40)}`).join(" | ") + (model.length > 12 ? " …" : ""));
     } else add("OK", "PROP text in Model", "none");
-    if (paper.length) add("INFO", "PROP wording in paper space", `${paper.length} standard-note MText(s) (${paper.map((e) => e.layout + ":" + e.handle).join(", ")}) — MD-WASD template notes, decide with the user`);
+    if (paper.length) add("FAIL", "PROP/PROPOSED wording in paper space", `${paper.length} note MText(s) (${paper.map((e) => e.layout + ":" + e.handle).join(", ")}) -> node scripts/fase1-strip-prop-notes.mjs on the MD-WASD notes + acad_update_text_content; erase off-sheet template notes that say PROP/PROPOSED`);
   }
 
   // 3. design objects

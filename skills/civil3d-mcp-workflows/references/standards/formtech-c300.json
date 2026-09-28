@@ -6,7 +6,8 @@
   "2026-09-25 Formtech-1.0 confirmed annotative (scale from CANNOSCALE); verified created leaders = guide (40=20, 41=1.4, 42=1.5972)",
   "2026-09-25 easement rule verified (survey+legal = guide within 0.09 ft)",
   "2026-09-28 user: alignment style BCC - ALIGNMENT + SAN/WM marking are the firm standard on every project (recorded from VILLA ONE guide vs FASE 1 comparison)",
-  "2026-09-28 roles.fase1: definition of done + cleanup rules for Fase 1 files (no proposals), used by scripts/fase1-audit.mjs and fase1-cleanup-plan.mjs"
+  "2026-09-28 roles.fase1: definition of done + cleanup rules for Fase 1 files (no proposals), used by scripts/fase1-audit.mjs and fase1-cleanup-plan.mjs",
+  "2026-09-28 user decision: Fase 1 has NO PROP/PROPOSED wording anywhere (subject label line 'PROP <units> <sf> SF' and every MD-WASD note that says PROP/PROPOSED removed); fase1-strip-prop-notes.mjs added"
  ],
  "template": {
   "note": "Start from the previous project's C-300.dwg (styles, layouts, title block, seal). scripts/c300-prep-template.ps1 empties model space, detaches xrefs and renames layouts.",
@@ -150,12 +151,13 @@
    "height": 2.8,
    "attachment": 2,
    "width": 54.04,
-   "textFormat": "{address} FOLIO NO: {folio}\\P{\\fArial|b1|i0|c0|p34;SUBJECT PROPERTY\\PPROP {units} {sf} SF \\P{use}\\P{gpd} GPD\\P\\pxi-3,l4,t4;}P.B.\t{book} PG-{page}",
+   "textFormat": "{address} FOLIO NO: {folio}\\P{\\fArial|b1|i0|c0|p34;SUBJECT PROPERTY\\P{use}\\P{gpd} GPD\\P\\pxi-3,l4,t4;}P.B.\t{book} PG-{page}",
    "rotationRule": "frontage street direction (reads horizontally after twist)",
    "sources": {
     "folio/book/page": "scripts/pa-lookup.mjs --xy <point in lot>",
     "units/sf/use/gpd": "project inputs (architect / WASD flow table)"
-   }
+   },
+   "fase1Note": "Fase 1 label has no 'PROP {units} {sf} SF' line (user 2026-09-28); units/sf are design data and are not printed in Fase 1. The line 'SINGLE FAMILY RESIDENCE' ({use}) and '{gpd} GPD' stay unless the user says otherwise."
   },
   "existingUtilityLeader": {
    "kind": "mleader",
@@ -277,13 +279,18 @@
     "_QC/C-300 FASE 1.pdf (no C-301 PDF)"
    ],
    "openDecisions": [
-    "subject-property label line 'PROP ONE (1) 5,200 SF' (POC data) - asked 2026-09-28, unanswered",
-    "MD-WASD standard notes that contain 'PROPOSED' / 'IF PROP.' (template text) - left as is"
+    "Remaining subject-label lines '{use}' (e.g. SINGLE FAMILY RESIDENCE) and '{gpd} GPD' are kept; ask the user if they must go too"
    ],
    "tools": [
     "scripts/fase1-audit.mjs (read-only checks)",
-    "scripts/fase1-cleanup-plan.mjs (read-only plan for an over-built file)"
-   ]
+    "scripts/fase1-cleanup-plan.mjs (read-only plan for an over-built file)",
+    "scripts/fase1-strip-prop-notes.mjs (raw MText transform for the MD-WASD notes)",
+    "scripts/fase1-notes-shift.py (dy for the orphaned '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs)"
+   ],
+   "decisions": [
+    "2026-09-28: nothing that says PROP or PROPOSED stays in a Fase 1 file: the subject label 'PROP ONE (1) 5,200 SF' line and every MD-WASD bullet/paragraph that says PROP/PROPOSED were removed (scripts/fase1-strip-prop-notes.mjs); template notes parked off-sheet that said PROP/PROPOSED were erased"
+   ],
+   "mdWaspNotes": "MD-WASD NOTES MText on C-300: run scripts/fase1-strip-prop-notes.mjs on its raw text and write the result with acad_update_text_content. The 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block goes too (its only predicate says PROPOSED ACTIVITY)."
   }
  },
  "viewport": {
