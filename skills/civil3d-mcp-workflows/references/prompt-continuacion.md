@@ -1,5 +1,15 @@
-# Prompt de continuación VIGENTE (2026-09-28) — pegar tal cual en un chat nuevo tras reiniciar Claude Desktop
+# Prompt de continuación VIGENTE (2026-09-28, sesión 2 — Fase 1 de VILLA ONE CERRADA) — pegar tal cual en un chat nuevo
 
+```
+Continuamos VILLA ONE (26-04.047), entregable "VILLA ONE @XEREFT FASE 1.dwg" (carpeta C:\Users\camil\OneDrive\Documents\AUTOCAD @XEREFT\VILLA ONE @XEREFT\). Responde en español.
+Estado (2026-09-28, tarde): Fase 1 pura TERMINADA, guardada y con PDF _QC\C-300 FASE 1.pdf regenerado: alineación SW 118TH AVE = BCC - ALIGNMENT, cascarones PROP SAN SEWER y EXIST WM CROSSING borrados, fase1-audit.mjs con --dump = 0 FAIL, 0 palabras PROP/PROPOSED (solo "SUBJECT PROPERTY", legítimo).
+Decidido: las líneas "SINGLE FAMILY RESIDENCE" y "510 GPD" SE QUEDAN. No queda nada pendiente en este archivo; si no te doy tarea nueva, pregúntame cuál sigue.
+Lee antes: memoria `villa-one-c300-status`, `fase1-standard`, `guide-is-target-only`, `integrity-second-brain` y corre `node scripts/integrity-check.mjs` (0 FAIL esperado; el WARN de la rama del fork es normal hasta que pida sync); skill civil3d-mcp-workflows (SKILL.md flujo I y §2.4 sobre aprobaciones de herramientas de una acción).
+Reglas fijas: la guía es solo objetivo/comparación; SAN/WM existentes = X-UTIL amarillo tal como llegan; toda alineación de C-300 = BCC - ALIGNMENT. Al terminar deja TODO registrado sin que lo pida: memoria, skill, agentes y repo (sync-skill-to-fork.sh solo si lo pido).
+```
+
+---
+# (anterior, 2026-09-28 mañana — ya ejecutado)
 ```
 Continuamos VILLA ONE (26-04.047), entregable "VILLA ONE @XEREFT FASE 1.dwg" (carpeta C:\Users\camil\OneDrive\Documents\AUTOCAD @XEREFT\VILLA ONE @XEREFT\). Responde en español.
 Estado: el 2026-09-28 se dejó en Fase 1 pura (sin C-301, sin redes/perfiles/etiquetas propuestas, borde EG oculto con la capa C-TINN-BNDY congelada), guardado, y el PDF _QC\C-300 FASE 1.pdf regenerado; respaldo previo en _backup_2026-09-28_antes_limpieza_PROP\. El plugin ya tiene 3 acciones nuevas desplegadas (DLL + servidor): civil3d_alignment set_style, acad_erase_entities (borrado masivo, 1 aprobación) y civil3d_pipe_network_delete.

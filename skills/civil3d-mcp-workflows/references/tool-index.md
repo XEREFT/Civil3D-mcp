@@ -165,7 +165,7 @@ Cuando el plugin gane una herramienta o acción nueva, agrega **una fila** en la
 
 ### civil3d_pipe_network_delete  (dominio: pipe, acción: delete_pipe_network, plugin: deletePipeNetwork en PipeNetworkCommands.cs, agregado: 2026-09-28)
 - Cuándo: quitar una red de gravedad (sanitario/pluvial) o el cascarón vacío que queda tras borrar sus piezas.
-- Payload mínimo: `{ name:"PROP SAN SEWER" }`. Aprobación: sí.
+- Payload mínimo: `{ name:"PROP SAN SEWER" }`. Aprobación: sí — `civil3d_request_approval { toolName:"civil3d_pipe_network_delete", action:"delete_pipe_network", parameters:{name} }` (sin `action` dentro de `parameters`). Probado en vivo 2026-09-28 sobre los dos cascarones vacíos de VILLA ONE (`{deleted:true}`), uno por uno.
 - Gotcha: `civil3d_pipe list/get` pueden fallar con "Retrieve attribute failed" en redes recién creadas o vacías; el nombre de la red se obtiene con `get_structure`/`get_pipe` (`connectedPipes`) o de la receta Fase 2.
 
 ### acad_list_text_entities / acad_update_text_content (geometry; listTextEntities/updateTextContent en AcadCommands.cs; 2026-07-18)

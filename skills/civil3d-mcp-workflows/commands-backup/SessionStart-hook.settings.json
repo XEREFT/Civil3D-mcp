@@ -1,0 +1,8 @@
+{
+  "_doc": "Copia del hook de SessionStart (destino: <repo>/.claude/settings.json o ~/.claude/settings.json, clave 'hooks'). Corre integrity-check en modo silencioso (~2 s, sin tocar Civil 3D ni la red): solo imprime si hay FAIL/WARN, y esa salida entra al contexto de la sesión.",
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node C:/Users/camil/.claude/skills/civil3d-mcp-workflows/scripts/integrity-check.mjs --skip-live --offline --hook", "timeout": 30 } ] }
+    ]
+  }
+}
