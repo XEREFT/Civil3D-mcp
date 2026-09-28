@@ -919,6 +919,59 @@
           "pattern": "not byte-deterministic"
         }
       ]
+    },
+    {
+      "id": "plan-approval-order",
+      "since": "2026-09-28",
+      "area": "node",
+      "status": "fixed",
+      "match": "Plan steps must run in order",
+      "symptom": "paso de un plan rechazado",
+      "cause": "orden/documento/parámetros/expiración",
+      "fix": "pedir un plan nuevo",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/approvalPolicy.ts",
+          "pattern": "requestPlan"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/approval_policy.test.ts"
+        }
+      ]
+    },
+    {
+      "id": "fase1-audit-layer-reader",
+      "since": "2026-09-28",
+      "area": "deploy",
+      "status": "fixed",
+      "match": "layer reader is unavailable",
+      "symptom": "audit sin estado de capas en vivo",
+      "cause": "DLL anterior a listLayers",
+      "fix": "deploy-all.ps1 -Go",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/LayerXrefCommands.cs",
+          "pattern": "ListLayersAsync"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_audit.test.ts"
+        },
+        {
+          "type": "rpc",
+          "method": "listLayers",
+          "params": {
+            "name": "C-TINN-BNDY",
+            "includeXref": false
+          },
+          "contains": [
+            "layers"
+          ]
+        }
+      ]
     }
   ]
 }

@@ -5,7 +5,10 @@
 // 2. dwg-dump.ps1 of the saved file -> fase1-audit.mjs --dump   (layers/xrefs; FAIL if C-TINN-BNDY is not frozen, PROP, networks, style…)
 // 3. qc-plot.ps1 -Layouts <layouts> on a %TEMP% copy (Core Console; never on the OneDrive path)
 // 4. PDF checks with pymupdf: 0 words < 5 pt, no PROP/PROPOSED words (SUBJECT PROPERTY is fine), page is not blank
-// 5. copies the PDF to <dwg folder>\_QC\<pdf-name>; an existing PDF is MOVED to _QC\_prev\<name>_<timestamp>.pdf (never deleted)
+// 5. golden PDF: compares with _QC\_golden\<name> (the last APPROVED plot) and WARNs with the changed regions; --approve-golden (or the
+//    first run) stores the new PDF as the golden one
+// 6. copies the PDF to <dwg folder>\_QC\<pdf-name>; an existing PDF is MOVED to _QC\_prev\<name>_<timestamp>.pdf (never deleted)
+// 7. updates <dwg folder>\project.json when it exists (lastVerified.audit/pdf, status delivered, deliverables, history)
 // Exit 1 if the audit FAILs or the PDF checks fail (the PDF is then NOT copied). Prints a READY / NOT READY verdict.
 import { existsSync, mkdirSync, copyFileSync, renameSync, statSync, readFileSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
@@ -87,6 +90,23 @@ if (!has("no-copy") && !bad && results.length) {
   for (const { layout, pdf } of results) {
     const name = layouts.length === 1 && flag("pdf-name") ? flag("pdf-name") : `${layout} FASE 1.pdf`;
     const dest = join(qc, name);
+    // golden PDF: what changed since the last approved plot?
+    const golden = join(qc, "_golden", name);
+    if (existsSync(golden) && !has("approve-golden")) {
+      const cmp = run("python", [join(here, "qc-compare.py"), "visual", golden, pdf], { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+      const only = (label) => Number(new RegExp(`ONLY ${label}: (\\d+) regions`).exec(cmp.stdout ?? "")?.[1] ?? NaN);
+      const gone = only("GUIDE"), added = only("OURS");
+      if (Number.isNaN(gone) || Number.isNaN(added)) verdict("WARN", `golden ${layout}`, "qc-compare visual gave no result (numpy/scipy missing?)");
+      else if (gone + added === 0) verdict("OK", `golden ${layout}`, "identical to the last approved plot");
+      else {
+        const regions = (cmp.stdout ?? "").split("\n").filter((l) => /^\s+\(.*->/.test(l)).slice(0, 4).map((l) => l.trim().replace(/\s+/g, " "));
+        verdict("WARN", `golden ${layout}`, `differs from the approved plot: ${gone} region(s) gone, ${added} new (in inches from top-left) e.g. ${regions.join(" | ")}. Intended? re-run with --approve-golden`);
+      }
+    } else {
+      mkdirSync(join(qc, "_golden"), { recursive: true });
+      copyFileSync(pdf, golden);
+      verdict("OK", `golden ${layout}`, existsSync(golden) && has("approve-golden") ? "approved: stored as the golden plot" : "first plot stored as the golden plot");
+    }
     if (existsSync(dest)) {
       const stamp = new Date(statSync(dest).mtimeMs).toISOString().replace(/[-:T]/g, "").slice(0, 12);
       renameSync(dest, join(qc, "_prev", name.replace(/\.pdf$/i, `_${stamp}.pdf`)));
@@ -95,6 +115,22 @@ if (!has("no-copy") && !bad && results.length) {
     verdict("OK", "delivered", dest);
   }
 } else if (!has("no-copy")) log("SKIP copy to _QC (fix the FAIL lines first)");
+
+// 7. project.json
+if (!bad && !has("no-copy")) {
+  const projectDir = dirname(dwg);
+  const ps = await import(pathToFileURL(join(here, "project-state.mjs")).href);
+  const project = ps.loadProject(projectDir);
+  if (project) {
+    const now = new Date().toISOString();
+    project.status = "delivered";
+    project.deliverables = { ...(project.deliverables ?? {}), dwg: basename(dwg), pdf: `_QC/${layouts[0]} FASE 1.pdf`, layout: layouts[0] };
+    project.lastVerified = { audit: now, pdf: now };
+    (project.history ??= []).push({ date: now.slice(0, 10), event: "fase1-finish: audit 0 FAIL, PDF clean and delivered to _QC" });
+    ps.saveProject(projectDir, project);
+    verdict("OK", "project.json", "lastVerified + status delivered updated");
+  } else log("INFO no project.json in the project folder (create it: node project-state.mjs init <dir>)");
+}
 
 log(bad ? `\nNOT READY: ${bad} FAIL` : has("no-copy") ? "\nREADY (dry run: nothing copied to _QC)" : "\nREADY: Fase 1 delivered (dwg saved + audit 0 FAIL + PDF clean in _QC). Now update memory (status file) and the paste-ready prompt.");
 process.exit(bad ? 1 : 0);

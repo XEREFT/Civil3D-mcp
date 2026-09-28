@@ -6,6 +6,7 @@
 // Groups:
 //   deploy  repo build fresh? build == installed extension server/ (layer 2)? ProgramData DLL == bin/Release, has every dispatcher
 //           method (layer 1)? Claude Desktop / Civil 3D started after their layer was updated (layer 3)?
+//   projects project.json of every project under the AUTOCAD @XEREFT root valid; latest fase1-batch report not older than 8 days
 //   docs    plugin tools added by our commits are in tool-index.md; tool-index headings still exist in src; troubleshooting.md rows
 //           <-> registry entries (both ways); every references/… scripts/… path named in SKILL.md exists.
 //   agents  repo .claude/agents == skill subagents-backup; skill folder == fork branch skill/civil3d-mcp-workflows (drift).
@@ -144,11 +145,41 @@ function docs(registry) {
   const orphan = tableRows.filter((l) => !registry.bugs.some((b) => l.includes(b.match)));
   add(g, orphan.length ? "WARN" : "OK", "troubleshooting.md -> registry", orphan.length ? `${orphan.length} table rows have no registry entry (add one to known-bugs.json): ${short(orphan.map((l) => l.slice(0, 60)), 4)}` : `${tableRows.length} rows covered`);
 
+  // scripts syntax (skill-selfcheck.mjs does the same in CI)
+  const badScripts = walk(join(skill, "scripts"), (p) => /\.(mjs|cjs)$/.test(p) && !/ErrorReports/.test(p)).filter((p) => spawnSync(process.execPath, ["--check", p], { encoding: "utf8" }).status !== 0);
+  add(g, badScripts.length ? "FAIL" : "OK", "skill scripts pass node --check", badScripts.length ? badScripts.map((p) => relative(skill, p)).join(", ") : "all scripts parse");
+
   // SKILL.md paths
   const skillMd = read(join(skill, "SKILL.md"));
   const paths = [...new Set([...skillMd.matchAll(/\b((?:references|scripts)\/[\w./-]+\.(?:md|mjs|ps1|py|cjs|json|sh|txt))/g)].map((m) => m[1]))];
   const gone = paths.filter((p) => !existsSync(join(skill, p)));
   add(g, gone.length ? "WARN" : "OK", "SKILL.md paths exist", gone.length ? `missing: ${gone.join(", ")}` : `${paths.length} referenced paths exist`);
+}
+
+// ------------------------------------------------------------------ projects (project.json of every project) + batch report
+async function projects() {
+  const g = "projects";
+  const ps = await import(pathToFileURL(join(skill, "scripts/project-state.mjs")).href);
+  const root = flag("projects-root") ?? ps.DEFAULT_ROOT;
+  if (!existsSync(root)) { add(g, "SKIP", "projects", `root not found: ${root}`); return; }
+  const found = ps.discoverProjects(root);
+  if (!found.length) { add(g, "INFO", "projects", "no projects found"); return; }
+  for (const f of found) {
+    const issues = ps.validateProject(f.dir);
+    const name = ps.loadProject(f.dir)?.name ?? f.dir.split("/").pop();
+    if (!issues.length) add(g, "OK", `project ${name}`, "project.json valid, deliverables consistent");
+    for (const i of issues) add(g, i.level === "ERROR" ? "FAIL" : "WARN", `project ${name}`, i.msg);
+  }
+  const reports = join(root, "_reports");
+  const latest = existsSync(reports) ? readdirSync(reports).filter((f) => /^fase1-batch_.*\.md$/.test(f)).sort().at(-1) : undefined;
+  if (!latest) add(g, "WARN", "fase1-batch report", "no batch report yet: node scripts/fase1-batch.mjs --report (the scheduled task does it nightly)");
+  else {
+    const ageDays = (Date.now() - mtime(join(reports, latest))) / 86400000;
+    add(g, ageDays > 8 ? "WARN" : "OK", "fase1-batch report", `${latest} (${ageDays.toFixed(1)} days old)${ageDays > 8 ? ": the scheduled batch is not running" : ""}`);
+    const text = read(join(reports, latest));
+    const bad = (text.match(/\| (?:FAIL) \|/g) ?? []).length;
+    add(g, bad ? "WARN" : "OK", "fase1-batch result", bad ? `${bad} project(s) with FAIL in ${latest}` : "no FAIL in the last batch");
+  }
 }
 
 // ------------------------------------------------------------------ agents (+ skill drift vs fork)
@@ -332,6 +363,7 @@ function tests() {
 const registry = JSON.parse(read(join(skill, "references/standards/known-bugs.json")));
 if (want("deploy")) deploy();
 if (want("docs")) docs(registry);
+if (want("projects")) await projects();
 if (want("agents")) agents();
 if (want("memory")) memory();
 let queue = [];
@@ -340,7 +372,7 @@ if (want("live")) await live(queue);
 else if (want("bugs") && queue.length) add("bugs", "SKIP", "rpc checks", `${queue.length} live rpc checks skipped (--only without live)`);
 tests();
 
-const groupOrder = ["deploy", "docs", "agents", "memory", "bugs", "live", "tests"];
+const groupOrder = ["deploy", "docs", "projects", "agents", "memory", "bugs", "live", "tests"];
 rows.sort((a, b) => groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group));   // Array.sort is stable: keeps insertion order inside a group
 if (has("json")) console.log(JSON.stringify(rows, null, 2));
 else if (has("hook")) {

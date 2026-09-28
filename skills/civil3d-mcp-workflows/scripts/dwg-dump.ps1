@@ -10,7 +10,8 @@
   powershell -NoProfile -ExecutionPolicy Bypass -File dwg-dump.ps1 "C:\...\C-300.dwg"
   -> prints the path of <name>_dump.txt. Lines: XREF|name|path|flags, LAYER|name|c=|lt=|fl=,
      VPORT|layout|h=|psctr=|w=|ht=|viewctr=|viewht=|twist_rad=|layer=,
-     DIM|layout|h=|layer=|style=|type=|meas=|txt=|p13=|p14=|p10=|tm=|rot=
+     DIM|layout|h=|layer=|style=|type=|meas=|txt=|p13=|p14=|p10=|tm=|rot=,
+     LAYOUT|name (one per layout, incl. Model), PTXT|layout|type|handle|txt= (paper-space text/MText/MLeader, for the PROP scan)
   Viewport scale = ht / viewht (e.g. 23/460 = 1"=20'). Twist in degrees = twist_rad*180/pi.
 #>
 param([Parameter(Mandatory)][string]$Dwg, [string]$OutDir = "$env:TEMP\c3d-dwg-dump")
@@ -83,6 +84,12 @@ $scr = Join-Path $work 'dump.scr'
       (setq ed (entget (ssname ss (setq i (1- i)))))
       (write-line (strcat "DIM|" (_p (_g 410 ed)) "|h=" (_p (_g 5 ed)) "|layer=" (_p (_g 8 ed)) "|style=" (_p (_g 3 ed)) "|type=" (_p (_g 70 ed))
         "|meas=" (_p (_g 42 ed)) "|txt=" (_p (_g 1 ed)) "|p13=" (_p (_g 13 ed)) "|p14=" (_p (_g 14 ed)) "|p10=" (_p (_g 10 ed)) "|tm=" (_p (_g 11 ed)) "|rot=" (_p (_g 50 ed))) f)))
+  (foreach d (dictsearch (namedobjdict) "ACAD_LAYOUT")
+    (if (= (car d) 3) (write-line (strcat "LAYOUT|" (cdr d)) f)))
+  (if (setq ss (ssget "X" '((0 . "MTEXT,TEXT,MULTILEADER") (410 . "~Model"))))
+    (repeat (setq i (sslength ss))
+      (setq ed (entget (ssname ss (setq i (1- i)))) ty (_g 0 ed))
+      (write-line (strcat "PTXT|" (_p (_g 410 ed)) "|" ty "|" (_p (_g 5 ed)) "|txt=" (vl-string-translate "\n\r" "  " (cond ((= ty "MULTILEADER") (_p (_g 304 ed))) (T (_p (_g 1 ed)))))) f)))
   (close f)
   (princ))
 DUMPINFO

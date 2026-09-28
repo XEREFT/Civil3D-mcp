@@ -31,6 +31,12 @@ cp -r "$SKILL" "$TMP/skills/civil3d-mcp-workflows"
 # runtime junk written by Core Console / plot runs (never part of the skill)
 rm -rf "$TMP/skills/civil3d-mcp-workflows/scripts/ErrorReports" "$TMP/skills/civil3d-mcp-workflows/scripts/plot.log"
 cd "$TMP"
+# CI of the skill branch: runs scripts/skill-selfcheck.mjs (skill-only checks) on every push touching the skill
+if [ -f "$SKILL/ci/skill-check.yml" ]; then
+  mkdir -p "$TMP/.github/workflows"
+  cp -f "$SKILL/ci/skill-check.yml" "$TMP/.github/workflows/skill-check.yml"
+  git add -A .github/workflows/skill-check.yml
+fi
 git add -A skills
 if git diff --cached --quiet; then echo "skill already up to date on the fork branch"; exit 0; fi
 git commit -q -m "$MSG

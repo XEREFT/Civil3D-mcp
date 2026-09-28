@@ -88,7 +88,13 @@ await withApplicationConnection(async (client) => {
   const sf = await call(client, "listSurfaces", {});
   const hasSurface = !sf.__error && (sf.surfaces ?? []).length > 0;
   if (hasSurface) {
-    if (dumpPath) {
+    // live layer state first (plugin listLayers, deployed 2026-09-28+); the saved-file dump is the fallback for an old DLL
+    const live = await call(client, "listLayers", { name: "C-TINN-BNDY", includeXref: false });
+    const liveLayer = live.__error ? undefined : (live.layers ?? [])[0];
+    if (liveLayer) {
+      if (liveLayer.isFrozen || liveLayer.isOff) add("OK", "surface boundary", `C-TINN-BNDY is ${liveLayer.isFrozen ? "frozen" : "off"} (live)`);
+      else add("FAIL", "surface boundary", "C-TINN-BNDY is visible: the green EG boundary shows -> acad_create_or_update_layer {name:\"C-TINN-BNDY\", frozen:true}");
+    } else if (dumpPath) {
       const line = readFileSync(dumpPath, "utf8").split(/\r?\n/).find((l) => l.startsWith("LAYER|C-TINN-BNDY|"));
       const flags = Number(/fl=(\d+)/.exec(line ?? "")?.[1] ?? 0);
       if (!line) add("WARN", "surface boundary", "layer C-TINN-BNDY not in the dump");

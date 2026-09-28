@@ -168,6 +168,22 @@ Cuando el plugin gane una herramienta o acción nueva, agrega **una fila** en la
 - Payload mínimo: `{ name:"PROP SAN SEWER" }`. Aprobación: sí — `civil3d_request_approval { toolName:"civil3d_pipe_network_delete", action:"delete_pipe_network", parameters:{name} }` (sin `action` dentro de `parameters`). Probado en vivo 2026-09-28 sobre los dos cascarones vacíos de VILLA ONE (`{deleted:true}`), uno por uno.
 - Gotcha: `civil3d_pipe list/get` pueden fallar con "Retrieve attribute failed" en redes recién creadas o vacías; el nombre de la red se obtiene con `get_structure`/`get_pipe` (`connectedPipes`) o de la receta Fase 2.
 
+### acad_list_layers  (dominio: geometry, acción: list_layers, plugin: listLayers en LayerXrefCommands.cs, agregado: 2026-09-28)
+- Cuándo: leer el estado de capas EN VIVO (congelada/apagada/bloqueada, color, tipo de línea, si viene de un xref) — antes solo se veía en el guardado con `dwg-dump.ps1`.
+- Payload mínimo: `{ name?:"C-TINN-BNDY", namePattern?:"X-UTIL|*", includeXref?:false, limit?:2000 }` (comodines `*` y `?`). Aprobación: no.
+- Gotcha: necesita el DLL nuevo (si no: METHOD_NOT_FOUND). Las capas de xref aparecen como `XREF|CAPA` con `isXrefDependent:true`.
+
+### civil3d_workflow_fase1_audit  (dominio: workflow, acción: fase1_audit; TS sobre listLayouts/listTextEntities/listPressureNetworks/profileViewInfo/listPipeNetworks/listAlignments/getAlignment/listSurfaces/listLayers; agregado: 2026-09-28)
+- Cuándo: al abrir un proyecto y antes de entregar; lo puede usar un subagente sin Bash. Solo lectura. Es la versión nativa de `scripts/fase1-audit.mjs`.
+- Payload mínimo: `{}` (opcionales `alignmentStyle` = "BCC - ALIGNMENT", `boundaryLayer` = "C-TINN-BNDY", `allowedLayouts` = ["Model","C-300"]). Devuelve `outputs.checks[]` con OK/WARN/FAIL y la llamada exacta que arregla cada FAIL.
+- Gotcha: sin el DLL nuevo la comprobación del borde EG sale WARN (lector de capas no disponible). Lógica en `src/tools/domains/fase1Audit.ts` (con pruebas `tests/fase1_audit.test.ts`).
+
+### civil3d_request_plan_approval  (aprobación; `src/tools/approvalTool.ts`, agregado: 2026-09-28)
+- Cuándo: una secuencia conocida de pasos con aprobación (p. ej. la limpieza a Fase 1: `delete_layout`, `erase_entities`, `delete_pipe_network` ×n, `set_style`, capa congelada, `save`). Una llamada, un token POR PASO.
+- Payload: `{ steps:[{toolName, action, parameters}, …] (1..40), ttlSeconds?:60..1800 (def. 900) }` → `steps[i].approvalToken`. Cada paso lleva su `toolName`/`action`/`parameters` exactos (misma regla que `civil3d_request_approval`: una acción → `action` interna y `parameters` sin `action`; multi-acción → `action` dentro de `parameters`).
+- Reglas: se ejecutan EN ORDEN; el plan queda atado al DOCUMENTO activo (no a su contenido, que cambia con cada paso); otro documento, parámetros distintos, paso saltado o vencimiento → rechazo y hay que pedir un plan nuevo. Todo paso debe requerir aprobación (los de solo lectura se ejecutan directos).
+- Necesita Node desplegado + reinicio de Claude Desktop (herramienta nueva).
+
 ### acad_list_text_entities / acad_update_text_content (geometry; listTextEntities/updateTextContent en AcadCommands.cs; 2026-07-18)
 - Cuándo: es el núcleo de toda corrección de notas y callouts.
 - Payload mínimo: `{ contains }` / `{ handle, text }`

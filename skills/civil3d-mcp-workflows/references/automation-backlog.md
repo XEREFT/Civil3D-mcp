@@ -11,7 +11,21 @@
 
 Pasos que NUNCA se automatizan (decisión de seguridad): aprobar el diálogo "Unsigned Executable File", reiniciar Claude Desktop, cerrar dibujos con cambios ajenos, borrar de forma permanente, publicar/subir al fork sin que lo pidas.
 
-## Ideas priorizadas (por retorno = veces que se repite × llamadas que ahorra)
+## Estado de las 10 ideas (todas aplicadas el 2026-09-28; el DLL/Node nuevos requieren desplegar: `deploy-all.ps1 -Go` + reinicio de Claude Desktop)
+| # | Idea | Estado |
+|---|---|---|
+| 1 | Lector de capas en el plugin | HECHO: `acad_list_layers` (C# `ListLayersAsync` + TS + pruebas); commit local 8c29f8a |
+| 2 | Auditoría Fase 1 nativa | HECHO: `civil3d_workflow_fase1_audit` (`fase1Audit.ts`, 4 pruebas); `fase1-audit.mjs` usa el lector en vivo con respaldo al volcado |
+| 3 | Aprobación por plan | HECHO: `civil3d_request_plan_approval` (`approvalPolicy.requestPlan`, 3 pruebas nuevas); atada al documento, en orden, ≤ 40 pasos, ≤ 30 min |
+| 4 | `project.json` por proyecto | HECHO: `project-state.mjs` (+ VILLA ONE creado y validado por `integrity-check`) |
+| 5 | Auditoría por lote | HECHO: `fase1-batch.mjs` (+ `dwg-dump.ps1` ahora vuelca LAYOUT y texto de paper space) |
+| 6 | Tareas programadas | HECHO: `civil3d-integrity-weekly` (lunes 08:30) y `fase1-batch-nightly` (L–V 22:00) — corren con la app abierta |
+| 7 | Bootstrap de proyecto nuevo | HECHO: `new-project.mjs` + `/proyecto-nuevo` |
+| 8 | PDFs golden | HECHO: en `fase1-finish.mjs` (`_QC\_golden\`, `--approve-golden`) |
+| 9 | CI | HECHO: `ci/skill-check.yml` + `scripts/skill-selfcheck.mjs` (lo instala `sync-skill-to-fork.sh` en la rama de la skill); el CI del repo ya corría build/tests/docs |
+| 10 | Lector del POC | HECHO: `poc-extract.mjs` (probado con el POC de VILLA ONE: folio, 510 GPD, 1 unidad, 5,200 SF, SFR) |
+
+## Ideas originales, priorizadas (por retorno = veces que se repite × llamadas que ahorra)
 1. **Lector de capas en el plugin** (`civil3d_layer list/get`: congelada/apagada/bloqueada, color, tipo de línea) → el audit ya no necesita `dwg-dump.ps1` ni el archivo guardado, y el borde EG se verifica en vivo. Es la única pieza de `fase1-audit` que hoy sale del plugin por el costado (Core Console). Coste: 1 handler C# + dominio TS + tests + deploy (`deploy-all.ps1`).
 2. **`civil3d_workflow_fase1_audit` nativo** (TS sobre los métodos que ya usa `fase1-audit.mjs`) → subagentes sin Bash (p. ej. `civil3d-new-project`) pueden auditar; se dispara solo al abrir un proyecto. Depende de la idea 1.
 3. **Aprobación por plan**: `civil3d_request_approval` de un plan completo (lista de acciones con hash) → 1 aprobación para los ~10 pasos de la limpieza a Fase 1 en vez de 1 por paso. Requiere cambiar `approvalPolicy.ts` (con pruebas); toca el diseño de seguridad → decidirlo tú.

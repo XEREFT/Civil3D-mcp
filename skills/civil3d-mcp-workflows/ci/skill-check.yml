@@ -1,0 +1,21 @@
+name: Skill check
+
+# Installed on the skill branch by sync-skill-to-fork.sh. Runs the parts of integrity-check that need only the skill folder.
+on:
+  push:
+    paths:
+      - "skills/civil3d-mcp-workflows/**"
+      - ".github/workflows/skill-check.yml"
+  pull_request:
+    paths:
+      - "skills/civil3d-mcp-workflows/**"
+
+jobs:
+  skill:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node skills/civil3d-mcp-workflows/scripts/skill-selfcheck.mjs
