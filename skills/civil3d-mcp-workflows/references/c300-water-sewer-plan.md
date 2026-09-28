@@ -137,6 +137,23 @@ Resultado VILLA ONE: alignment idéntico a la guía (±0.001 ft, 440 ft), giro 2
 | 3 | | C-301: EG, vistas de perfil, redes en perfil, anotaciones. |
 | 4 | | QC contra el objetivo (solo comparar), plots, entrega. |
 
+### Fase 1: definición de terminado + auditoría automática (usuario 2026-09-28: "todo lo que diga PROP es propuesta de diseño")
+Un archivo de Fase 1 es **solo condiciones existentes**: el DWG tiene Model + C-300 y nada de diseño. Se verifica con `node scripts/fase1-audit.mjs [--dump <salida de dwg-dump.ps1 del archivo guardado>]` (solo lectura, exit 1 si hay FAIL). Reglas (también en `standards/formtech-c300.json` → `roles.fase1`):
+1. Layouts: solo `Model` y `C-300` (sin C-301).
+2. Sin diseño: ningún texto/MLeader con PROP/PROPOSED en Model, ninguna red a presión ni de gravedad con piezas, ninguna vista de perfil, ninguna alineación propuesta (`FH1`), ninguna StationOffsetLabel `SAN LAT` / `C.O` / `WATER SERVICE`, ninguna geometría propuesta dibujada a mano en `C-SAN` / `C-WATR-PIPE` / `V-SITE-FNCE` (laterales, C.O., servicio, cerca `PROP CLF`).
+3. Alineación con estilo `BCC - ALIGNMENT` (`civil3d_alignment set_style`) y label set "Major and Minor only".
+4. Si existe la superficie EG, su **borde** (el polígono verde alrededor del sitio, topografía) queda **oculto**: `acad_create_or_update_layer {name:"C-TINN-BNDY", frozen:true}` — nunca borrar la superficie ni congelar otras capas.
+5. Entregables: `<NOMBRE> FASE 1.dwg` y `_QC\C-300 FASE 1.pdf` (sin PDF de C-301; los PDFs viejos con propuestas se mueven a una carpeta `_backup_<fecha>`, no se borran).
+6. Decisiones abiertas con el usuario (no decidir solas): la línea `PROP ONE (1) 5,200 SF` del rótulo del sujeto (dato del POC) y las notas MD-WASD estándar que traen la palabra "PROPOSED" (texto de plantilla). El audit las marca FAIL/INFO hasta que el usuario decida.
+
+**Receta de limpieza (archivo que ya trae fases 2/3, p. ej. VILLA ONE 2026-09-28; ~10 llamadas en vez de ~250):**
+0. Respaldo del DWG **guardado** en `_backup_<fecha>_antes_limpieza_PROP\` (Copy-Item). Si Civil 3D tiene cambios sin guardar del usuario, avisar: no van en el respaldo.
+1. `node scripts/fase1-cleanup-plan.mjs --networks "<redes de gravedad>" --parts "<handles de tubos y luego estructuras>"` → plan ordenado (solo lectura). Los handles de las piezas de gravedad salen de `civil3d_pipe_network get_pipe/get_structure` por nombre (`list` puede fallar con "Retrieve attribute failed"; `connectedPipes` da los nombres de los tubos).
+2. Ejecutar el plan, un paso a la vez, con aprobación fresca: `acad_layout delete_layout` (C-301) → `civil3d_pressure_network_delete` → **un** `acad_erase_entities` con toda la lista (tubos antes que estructuras; vistas de perfil; rótulos; cotas; polilíneas; bloques) → `civil3d_alignment delete` (FH1) → `civil3d_pipe_network_delete` (cascarones vacíos) → congelar `C-TINN-BNDY` → `civil3d_alignment set_style`.
+3. `node scripts/fase1-audit.mjs` hasta 0 FAIL → `civil3d_drawing save` → `qc-plot.ps1 -Layouts C-300` → copiar el PDF a `_QC\C-300 FASE 1.pdf`.
+- La zona de perfiles del Model se detecta con `civil3d_profile_view_info` (ubicación + estaciones + elevaciones + márgenes de `roles.fase1.profileZoneMarginsFt`): todo lo que cae dentro es anotación de perfil (MLeaders `CL OF…`/`EXIST RW`, cotas, líneas CL/R-W, bloque del hidrante, `HORIZ:/VERT:`).
+- Identificar "la línea verde" cuando `get_selected_civil_objects_info` devuelve `[]` (no lee la selección): captura de la ventana de Civil 3D con `PrintWindow` sobre el HWND de `acad.exe` (ver `troubleshooting.md`) o pedir `LIST` al usuario.
+
 ### Receta Fase 2 (validada 2026-09-26 en VILLA ONE, FASE 1.dwg)
 Si ya existe un archivo hermano con el diseño construido y verificado (p. ej. el CREATOR de la fase 3), esa red **es** la fuente base para la fase 2 — no se re-deriva del paquete del ingeniero desde cero:
 1. Abrir el hermano como copia sin guardar: `civil3d_drawing new templatePath=<hermano.dwg>` (nunca guardarlo). `acad_set_active_document` entre ambos documentos según haga falta.
@@ -191,7 +208,7 @@ Comparar es solo comparar: nada sale de la guía. Segunda referencia = el plot d
 2. Plantilla: `c300-prep-template.ps1 -Source <C-300 anterior> -Out "<carpeta>\<NOMBRE> FASE 1.dwg" -DeleteLayouts 'C-301'`.
 3. Abrir (`civil3d_drawing new` + `save saveAs` mismo path) → **verificar documento activo** (la guía puede estar abierta).
 4. Xrefs overlay capa XREF: X-TOPO, X-UTIL, X-ARCH (los de la carpeta de entrega).
-5. Alineamiento del spec; `_cl` desde X-TOPO; `acad_create_entities` del spec (rótulo del sujeto: SF/GPD/unidades del **POC**, folio del **PA**).
+5. Alineamiento del spec **con el estilo de la firma** (`style:"BCC - ALIGNMENT"`, `labelSet:"Major and Minor only"`: el spec ya los trae de `roles.alignment`; si el alineamiento existe con otro estilo → `civil3d_alignment set_style`); `_cl` desde X-TOPO; `acad_create_entities` del spec (rótulo del sujeto: SF/GPD/unidades del **POC**, folio del **PA**).
 6. Giro viewport C-300 + vista Model (11 y 11b del §7).
 7. Title block: textos del **C-300 del paquete del ingeniero** (layout C-300 de una copia abierta con new-from-template, sin guardar): título, proyecto, fecha, dibujó/aprobó, AGR (= POC).
 8. Existentes: `c300-utility-labels.mjs` (as-built) + bloques `EXIST ARROW`/`FH` importados del **paquete** (`sourceFilePath`), capa `C-FH-EXIST` definida en `layers` (si no existe, la inserción cae en la capa actual `_NPLT`); cotas existentes del paquete (VILLA: 6.00' WM↔CL 118th, 8.00' WM↔SAN en 228th); U.E. (§8 easementLine). Todo en 1 `acad_create_entities`.
@@ -204,6 +221,12 @@ Comparar es solo comparar: nada sale de la guía. Segunda referencia = el plot d
 11. Guardar, plot Core Console sobre copia con xrefs, **comprobar alto de texto de cotas en el PDF** (pymupdf `get_text('words')`: las cotas BCC-1.0 deben medir ~0.13"; 0.007" = cota no anotativa).
 
 **Gotcha (encontrado 2026-09-25):** BCC-1.0 es un estilo de cota **anotativo**; el plugin anterior creaba las cotas sin la bandera anotativa → texto de 0.1 ft, invisible en 1"=20' (afectaba también a CREATOR: C-300 y 22 cotas de C-301). Corregido en `DimensionViewportCommands.ApplyStyleAnnotative` (cota anotativa + CANNOSCALE). Cotas ya creadas: borrar con Core Console (`(ssget "X" '((0 . "DIMENSION") (3 . "BCC-1.0")))` sin xdata AcadAnnotative → `entdel`) y recrearlas.
+
+### Marcado de SAN y WM existentes + estilo del alineamiento (estándar de la firma, usuario 2026-09-28: "vamos a marcar siempre así")
+- **Alineamiento** `BCC - ALIGNMENT` (amarillo discontinuo + ticks, etiquetas amarillas) — en VILLA ONE la FASE 1 quedó con `Intersection Basic` (morado sólido) y la guía con `BCC - ALIGNMENT`; se corrige con `civil3d_alignment set_style` (o a mano: Ctrl+1 → Style).
+- **SAN / WM existentes**: capas xref `X-UTIL|X-UTIL-SAN` (ACI 2, linetype complejo `SANITARY_LINE`, texto "SAN") y `X-UTIL|X-UTIL-WAT` (ACI 2, `WM`, texto "WM"); patrón 0.95 × lts 0.5, `LTSCALE=MSLTSCALE=PSLTSCALE=1`. Guía y FASE 1 los renderizan **idénticos** (comparado capa por capa, definición de linetype con `tblsearch "LTYPE"` y recortes del plot a 300 dpi): no se recolorean por proyecto. Si un proyecto nuevo los ve distintos, primero comparar capas/linetype/`CANNOSCALE` del Model (con `MSLTSCALE=1` el patrón escala con la escala de anotación) antes de tocar nada.
+- La guía además fuerza 169 capas `X-TOPO|*` a gris ACI 8 (overrides de capa xref, `EOP` con `DASHED2`); no se aplica sin que el usuario lo pida.
+- Valores en `standards/formtech-c300.json` → `roles.alignment` y `roles.utilityLines`.
 
 ### Pulido de Fase 1 contra el objetivo (2026-09-26, solo comparar; datos del paquete del ingeniero = fuente base)
 - **Cotas de R/W**: NO copiar las del survey (el X-TOPO ya las muestra; quedaban duplicadas y encimadas). Usar las cotas BCC-1.0 del C-300 del paquete (VILLA: 16, posiciones propias con p10 desplazado).

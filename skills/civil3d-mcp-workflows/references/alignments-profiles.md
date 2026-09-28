@@ -10,6 +10,7 @@
 
 ## Crear o editar una alineación
 1. `civil3d_alignment { action:"create", name, points:[{x,y},…], layer?, style?, labelSet? }`. Para "Alignment from Objects" sobre una línea existente, toma los vértices con `acad_list_polyline_entities`.
+1b. **Estilo de la firma:** toda alineación de C-300 lleva el estilo `BCC - ALIGNMENT` (amarillo discontinuo con ticks) y el label set "Major and Minor only". Pásalo en `create` (`style`, `labelSet`); si la alineación ya existe con otro estilo (p. ej. `Intersection Basic`, morado sólido), `civil3d_alignment { action:"set_style", name, style:"BCC - ALIGNMENT" }` (idempotente; el estilo tiene que existir en el dibujo). Valores en `standards/formtech-c300.json` → `roles.alignment`.
 2. Curvas: `add_curve { name, passThroughX, passThroughY, radius }`. Espirales: `civil3d_alignment_add_spiral`. Tangentes: `civil3d_alignment_add_tangent`.
 3. Ubicar 0+00: `civil3d_alignment_set_station_equation { name, rawStation, nominalStation }`. Se hace a propósito, para que los callouts queden en estaciones limpias.
 4. Offsets y ensanches: `civil3d_alignment_offset_create`, `civil3d_alignment_widen_transition`.

@@ -23,7 +23,7 @@ Las convenciones completas de la firma (colores, escalas, texto, flujo de proyec
 - Existente = ACI 8, gris y discontinuo. Propuesto = color saturado por disciplina (agua = verde en Goulds).
 - En la plot style de la firma, el color funciona como grosor de línea: rojo 0.15, amarillo 0.30, verde 0.35, azul 0.50, color 5 0.70, color 8 ≈ 70–80 % de gris.
 - Una capa por disciplina (`C-Watr`, `C-San`, `C-Align`): recolorear la capa recolorea todo lo que está en ella.
-- `linetype` se carga automáticamente desde `acad.lin` / `acadiso.lin` si no existe en el dibujo.
+- `linetype` se carga automáticamente desde `acad.lin` / `acadiso.lin` si no existe en el dibujo. Los linetypes complejos con texto (`SANITARY_LINE` "SAN", `WM` "WM") NO están en esos archivos: llegan con el xref X-UTIL (`X-UTIL|SANITARY_LINE`, `X-UTIL|WM`); no los recrees a mano. Marcado estándar de SAN/WM y del alineamiento: `c300-water-sewer-plan.md` §9 "Marcado de SAN y WM".
 
 ## Bloques (fittings, medidores)
 `acad_insert_block_reference { blockName, x, y, rotation(rad)?, layer?, sourceFilePath? }`. Con `sourceFilePath` importa **solo esa definición** desde la biblioteca, mediante WblockCloneObjects.

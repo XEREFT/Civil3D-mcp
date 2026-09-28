@@ -199,7 +199,7 @@ const usedLayers = [...new Set(entities.map((e) => e.layer))];
 const spec = {
   project: project.name,
   streets: streets.map((s) => ({ name: s.name, angleDeg: r4(s.deg), frontage: s === front })),
-  alignment: { name: alName, layer: S.alignment.layer, points: [P(alStart), P(alEnd)], lengthFt: alLen },
+  alignment: { name: alName, layer: S.alignment.layer, style: S.alignment.style, labelSet: S.alignment.labelSet, points: [P(alStart), P(alEnd)], lengthFt: alLen },
   twist: { layout: std.viewport.layout, streetAngleDegrees: r4(theta), centerX: r4(center[0]), centerY: r4(center[1]), resultingTwistDeg: r4(twistDeg) },
   createEntities: { layers: Object.fromEntries(usedLayers.map((n) => [n, std.layers[n]])), entities },
   report,

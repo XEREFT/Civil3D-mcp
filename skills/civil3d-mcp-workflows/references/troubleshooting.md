@@ -90,3 +90,16 @@ Del lado Node, los mensajes se clasifican por regex: /timed out/ → TIMEOUT; /f
 2. Ejecutar `civil3d_health` (o `c3d-health.ps1` si MCP no responde).
 3. Si hay operación colgada o sin conexión, explicar al usuario **qué revisar en su pantalla** y detenerse.
 4. Reintentar como máximo una vez, y solo después de un cambio de condición (diálogo cerrado, Civil 3D abierto, token nuevo).
+
+## Aprendido el 2026-09-28 (limpieza a Fase 1, VILLA ONE)
+| Síntoma | Causa | Qué hacer |
+|---|---|---|
+| `get_selected_civil_objects_info` / `civil3d_drawing selected_objects_info` devuelven `[]` aunque el usuario tiene el objeto seleccionado | `Editor.SelectImplied()` no ve la selección desde el hilo del plugin | Capturar solo la ventana de Civil 3D: `PrintWindow` (user32) sobre el `MainWindowHandle` de `acad.exe` → PNG en el scratchpad → `Read`. O pedir al usuario `LIST` + clic + Enter y que pegue el texto |
+| Una línea verde alrededor de todo el sitio | Borde del TIN de la superficie EG (capa `C-TINN-BNDY`, ACI 110) | Congelar la capa (`acad_create_or_update_layer frozen:true`); no borrar la superficie |
+| `civil3d_pipe list` / `get` → "The Civil 3D plugin encountered an unexpected error" (log: `Retrieve attribute failed`) | Redes de gravedad vacías o recién creadas | Nombres desde `get_structure`/`get_pipe` (`connectedPipes`); borrar la red con `civil3d_pipe_network_delete {name}` |
+| `acad_erase_entity` de un Pipe/Structure/ProfileView/StationOffsetLabel | Funciona (son `Entity`); un `Network` no es entidad (por eso existe `delete_pipe_network`) | Borrar tubos antes que estructuras; para listas grandes usar `acad_erase_entities` |
+| `acad_set_system_variable` "not on the list" (p. ej. `CTAB`) | Lista de permitidos: ANNOALLVISIBLE, ANNOAUTOSCALE, CANNOSCALE, HIGHLIGHT, LABELOVERRIDEGLYPHS, LTSCALE, LWDISPLAY, MSLTSCALE, PDMODE, PDSIZE, PSLTSCALE, SELECTIONPREVIEW | El cambio de pestaña (Model/C-300) lo hace el usuario; `CTAB` solo se lee |
+| `close-civil3d.ps1` se detiene con `STOP - dialog needs the user: … Save changes to <otro>.dwg?` | Otro documento abierto (p. ej. la guía) con "cambios" | No responder por el usuario: pedirle que conteste (normalmente No) y esperar a que `acad` termine (`Get-Process acad`) antes de instalar el DLL |
+| `Start-Process <dwg>` mientras Civil 3D arranca abre `Drawing1.dwg` y el puerto 8080 sigue cerrado | El plugin espera el diálogo "Unsigned Executable File" | El usuario lo aprueba; esperar el puerto 8080 y el `Autodesk Civil 3D … [<archivo>.dwg]` en el título |
+| `Database.GetObjectId(false, handle, 0)` lanza `eUnknownHandle` | El handle nunca existió en ese DWG | Envolver en try/catch (ya hecho en `eraseEntities`) |
+| Regex con `\b` metido por Python en un heredoc → carácter de retroceso (`^H`) en el archivo | `'\b'` sin raw string | Escribir los parches con la herramienta Write (archivo `.py`/`.mjs`) y verificar con `cat -A` |

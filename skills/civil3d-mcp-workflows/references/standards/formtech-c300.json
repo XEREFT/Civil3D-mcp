@@ -4,7 +4,9 @@
   "2026-09-25 extracted from VILLA ONE guide + Goulds C-300",
   "2026-09-25 utility-label rules (MLeader rotation/scale 20, EXIST ARROW rotation offset, MH/FH rules) from guide + package C-300 + as-builts",
   "2026-09-25 Formtech-1.0 confirmed annotative (scale from CANNOSCALE); verified created leaders = guide (40=20, 41=1.4, 42=1.5972)",
-  "2026-09-25 easement rule verified (survey+legal = guide within 0.09 ft)"
+  "2026-09-25 easement rule verified (survey+legal = guide within 0.09 ft)",
+  "2026-09-28 user: alignment style BCC - ALIGNMENT + SAN/WM marking are the firm standard on every project (recorded from VILLA ONE guide vs FASE 1 comparison)",
+  "2026-09-28 roles.fase1: definition of done + cleanup rules for Fase 1 files (no proposals), used by scripts/fase1-audit.mjs and fase1-cleanup-plan.mjs"
  ],
  "template": {
   "note": "Start from the previous project's C-300.dwg (styles, layouts, title block, seal). scripts/c300-prep-template.ps1 empties model space, detaches xrefs and renames layouts.",
@@ -92,7 +94,10 @@
    "startBeforeFarIntersectionFt": 20,
    "lengthRoundUpToFt": 10,
    "nameFormat": "SW {n}TH AVE|ST",
-   "example": "SW 118TH AVE, 440 ft, 859794.38,444503.97 -> 859782.78,444943.81"
+   "example": "SW 118TH AVE, 440 ft, 859794.38,444503.97 -> 859782.78,444943.81",
+   "style": "BCC - ALIGNMENT",
+   "styleNote": "Yellow dashed line with ticks (guide). FASE 1 was built with the default Intersection Basic (solid purple): fix with civil3d_alignment set_style {alignmentName, style:\"BCC - ALIGNMENT\"} (action added 2026-09-28) or pass style at create. Station labels: label set \"Major and Minor only\" (civil3d_label add label_set).",
+   "labelSet": "Major and Minor only"
   },
   "streetCenterlineExtension": {
    "kind": "polyline",
@@ -209,6 +214,76 @@
    "note": "dynamic block",
    "rotation": 1.5872,
    "source": "block definition imported from the engineer's package C-300.dwg if the template lacks it (never from the guide)"
+  },
+  "utilityLines": {
+   "_note": "Existing sanitary (SAN) and water main (WM) are marked with the survey/as-built X-UTIL xref layers below; the guide and FASE 1 render them identically (same layer props, same complex linetypes, pattern 0.95 x lts 0.5, LTSCALE/MSLTSCALE/PSLTSCALE = 1). Do not recolor them per project. Yellow (ACI 2) is the firm pen for 0.30 lineweight.",
+   "sanitary": {
+    "xrefLayer": "X-UTIL|X-UTIL-SAN",
+    "colorIndex": 2,
+    "linetype": "X-UTIL|SANITARY_LINE",
+    "text": "SAN"
+   },
+   "waterMain": {
+    "xrefLayer": "X-UTIL|X-UTIL-WAT",
+    "colorIndex": 2,
+    "linetype": "X-UTIL|WM",
+    "text": "WM"
+   },
+   "stormAndOverhead": "X-UTIL|X-UTIL-STRM (c=2, X-UTIL|STORM LINE) and X-UTIL|X-UTIL-OVHD (c=2, OVER_HEAD_LINE) follow the same rule.",
+   "xTopoOverride": "The guide forces 169 X-TOPO| xref layers to ACI 8 gray (EOP also DASHED2) through xref layer overrides (VISRETAIN=1). NOT applied to FASE 1 (not requested); ask the user before doing it on a new project.",
+   "verify": "dwg-dump.ps1 <dwg> prints LAYER|X-UTIL|... rows; compare with the guide."
+  },
+  "fase1": {
+   "_note": "FASE 1 = existing conditions only (user 2026-09-28: everything that says PROP is a proposed design item and must not be in Fase 1). Machine-readable counterpart of references/c300-water-sewer-plan.md section 9 'Fase 1: definicion de terminado'.",
+   "layouts": [
+    "Model",
+    "C-300"
+   ],
+   "forbidden": [
+    "pressure networks",
+    "gravity pipe networks with parts",
+    "profile views (C-301)",
+    "proposed alignments (FH1: tee -> hydrant)",
+    "Model text/MLeaders containing PROP or PROPOSED",
+    "StationOffsetLabels SAN LAT / C.O / WATER SERVICE",
+    "hand-drawn proposed geometry on C-SAN, C-WATR-PIPE, V-SITE-FNCE (laterals, C.O. symbols, service, PROP CLF fence)"
+   ],
+   "proposedLayers": [
+    "C-SAN",
+    "C-WATR-PIPE",
+    "V-SITE-FNCE",
+    "C-STRM-PROF",
+    "C-WATR-PROF"
+   ],
+   "proposedLabelStyles": [
+    "SAN LAT",
+    "C.O",
+    "WATER SERVICE"
+   ],
+   "profileZoneMarginsFt": {
+    "left": 60,
+    "right": 260,
+    "below": 80,
+    "above": 170
+   },
+   "surfaceBoundary": {
+    "layer": "C-TINN-BNDY",
+    "frozen": true,
+    "why": "the green polygon around the site is the EG TIN boundary (topography): hidden, never deleted"
+   },
+   "alignmentStyle": "BCC - ALIGNMENT",
+   "deliverables": [
+    "<NAME> FASE 1.dwg (Model + C-300 only)",
+    "_QC/C-300 FASE 1.pdf (no C-301 PDF)"
+   ],
+   "openDecisions": [
+    "subject-property label line 'PROP ONE (1) 5,200 SF' (POC data) - asked 2026-09-28, unanswered",
+    "MD-WASD standard notes that contain 'PROPOSED' / 'IF PROP.' (template text) - left as is"
+   ],
+   "tools": [
+    "scripts/fase1-audit.mjs (read-only checks)",
+    "scripts/fase1-cleanup-plan.mjs (read-only plan for an over-built file)"
+   ]
   }
  },
  "viewport": {

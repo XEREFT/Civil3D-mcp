@@ -76,7 +76,9 @@ Todo por **handle** (hex). Rotaciones en **radianes** (API AutoCAD).
 ## 3. Alineaciones
 | Herramienta | Cuándo |
 |---|---|
-| `civil3d_alignment` | `list`, `get`, `report`, `create`, `delete`, `add_tangent`, `add_spiral`, `delete_entity`, `offset_create`, `widen_transition`. |
+| `civil3d_alignment` | `list`, `get`, `report`, `create`, `delete`, `add_tangent`, `add_spiral`, `delete_entity`, `set_style`, `offset_create`, `widen_transition`. |
+| `acad_erase_entities` (geometry) | **Borrado masivo por handles**: 1 llamada, 1 transacción, **1 aprobación** (máx. 500). Para limpiezas tipo "volver a Fase 1" en vez de 100+ `acad_erase_entity`. |
+| `civil3d_pipe_network_delete` (pipe) | Borra una red de **gravedad** completa o su cascarón vacío (`PROP SAN SEWER`). Agua a presión: `civil3d_pressure_network_delete`. |
 | `…station_to_point` (acción) | **Estación/offset → XY.** `{ name, station: 1030.52, offset: -6.68 }`. Es la dirección que necesitas para ubicar un callout. |
 | `…point_to_station` / `civil3d_alignment_get_station_offset` | **XY → estación/offset.** Sirve para verificar lo que dice un texto contra la geometría. |
 | `civil3d_alignment_set_station_equation` | Mover 0+00 o ajustar la estación final a un número redondo. |
@@ -150,6 +152,22 @@ Cuando el plugin gane una herramienta o acción nueva, agrega **una fila** en la
 ```
 
 ### Registro de herramientas agregadas localmente
+### civil3d_alignment_set_style  (dominio: alignment, acción: set_style, plugin: alignmentSetStyle en AlignmentEditCommands.cs, agregado: 2026-09-28)
+- Cuándo: cambiar el estilo de una alineación YA creada (create solo lo fija al crear). Estándar de la firma: `BCC - ALIGNMENT` (amarillo discontinuo con ticks); ver `standards/formtech-c300.json` → `roles.alignment.style`.
+- Payload mínimo: `{ action:"set_style", name:"SW 118TH AVE", style:"BCC - ALIGNMENT" }` (alias: `civil3d_alignment_set_style { alignmentName, style }`)
+- Aprobación: sí · safeForRetry: no (idempotente: `changed:false` si ya lo tiene)
+- Gotcha: el estilo debe existir en el dibujo (`civil3d_style list objectType:alignment`); un nombre desconocido da error, nunca cae al primer estilo. No toca label set (usa `civil3d_label add label_set`), geometría, perfiles ni etiquetas. Necesita DLL desplegado + reinicio de Claude Desktop para verse en el registro MCP (probarlo antes con `scripts/plugin-rpc.mjs alignmentSetStyle` solo en un documento scratch).
+
+### acad_erase_entities  (dominio: geometry, acción: erase_entities, plugin: eraseEntities en AcadCommands.cs, agregado: 2026-09-28)
+- Cuándo: limpiezas masivas (Fase 1 pura, quitar un perfil completo). Reemplaza N x (`request_approval` + `acad_erase_entity`).
+- Payload mínimo: `{ handles:["12C0D","12C1A",…], ignoreMissing?:true }` (máx. 500). Aprobación: sí (el token cubre la lista exacta) · safeForRetry: no.
+- Gotcha: el orden importa en piezas Civil (tubos antes que estructuras); un handle ya borrado por cascada sale en `skipped`, no aborta (usa `ignoreMissing:false` para abortar). Lee los handles ANTES (`acad_list_*`, `civil3d_profile_view_info`, `civil3d_profile_view_annotations` para las StationOffsetLabel).
+
+### civil3d_pipe_network_delete  (dominio: pipe, acción: delete_pipe_network, plugin: deletePipeNetwork en PipeNetworkCommands.cs, agregado: 2026-09-28)
+- Cuándo: quitar una red de gravedad (sanitario/pluvial) o el cascarón vacío que queda tras borrar sus piezas.
+- Payload mínimo: `{ name:"PROP SAN SEWER" }`. Aprobación: sí.
+- Gotcha: `civil3d_pipe list/get` pueden fallar con "Retrieve attribute failed" en redes recién creadas o vacías; el nombre de la red se obtiene con `get_structure`/`get_pipe` (`connectedPipes`) o de la receta Fase 2.
+
 ### acad_list_text_entities / acad_update_text_content (geometry; listTextEntities/updateTextContent en AcadCommands.cs; 2026-07-18)
 - Cuándo: es el núcleo de toda corrección de notas y callouts.
 - Payload mínimo: `{ contains }` / `{ handle, text }`
