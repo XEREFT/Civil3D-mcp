@@ -177,7 +177,8 @@ function agents() {
     const tree = git("ls-tree", "-r", `fork/${forkBranch}`, "--", "skills/civil3d-mcp-workflows").split("\n").filter(Boolean).map((l) => {
       const [meta, path] = l.split("\t"); return { blob: meta.split(" ")[2], path: path.replace("skills/civil3d-mcp-workflows/", "") };
     });
-    const local = walk(skill).map((p) => relative(skill, p).replace(/\\/g, "/"));
+    const junk = /^scripts\/(ErrorReports\/|plot\.log$)/;   // Core Console runtime output, excluded by sync-skill-to-fork.sh too
+    const local = walk(skill).map((p) => relative(skill, p).replace(/\\/g, "/")).filter((p) => !junk.test(p));
     const localHash = new Map();
     const out = execFileSync("git", ["-C", repo, "hash-object", "--stdin-paths"], { input: local.map((p) => join(skill, p)).join("\n"), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).trim().split("\n");
     local.forEach((p, i) => localHash.set(p, out[i]));

@@ -28,6 +28,8 @@ if [ -d "$MEM_SRC" ]; then mkdir -p "$MEM_DST"; cp -f "$MEM_SRC"/*.md "$MEM_DST/
 mkdir -p "$TMP/skills"
 rm -rf "$TMP/skills/civil3d-mcp-workflows"
 cp -r "$SKILL" "$TMP/skills/civil3d-mcp-workflows"
+# runtime junk written by Core Console / plot runs (never part of the skill)
+rm -rf "$TMP/skills/civil3d-mcp-workflows/scripts/ErrorReports" "$TMP/skills/civil3d-mcp-workflows/scripts/plot.log"
 cd "$TMP"
 git add -A skills
 if git diff --cached --quiet; then echo "skill already up to date on the fork branch"; exit 0; fi
