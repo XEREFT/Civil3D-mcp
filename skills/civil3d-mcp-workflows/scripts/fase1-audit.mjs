@@ -11,6 +11,10 @@
 //   4. every alignment uses the firm style (default "BCC - ALIGNMENT")  -> fix: civil3d_alignment set_style
 //   5. EG surface boundary hidden: layer C-TINN-BNDY frozen. The plugin cannot read layer state, so pass --dump (dwg-dump.ps1 output
 //      of the SAVED file) to verify it; without --dump it is a WARN reminder when a surface exists.
+//   6. (WARN, not Fase-1-specific) dimension text detached from its own line: catches the acad_create_aligned_dimension
+//      short-dimension bug found 2026-09-28 (a 5' U.E./PL corner dim can get its text ejected several feet away by
+//      AutoCAD's own DIMFIT auto-placement -- fixed in the plugin for NEW dimensions, but replayed/legacy ones can still
+//      carry it). Flags any C-ANNO dimension whose text sits further from its own line than max(3 ft, line length).
 // Exit code 1 if any FAIL.
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -52,7 +56,8 @@ await withApplicationConnection(async (client) => {
     if (model.length) {
       add("FAIL", "PROP text in Model", `${model.length} item(s): ` + model.slice(0, 12).map((e) => `${e.handle}:${strip(e.text).slice(0, 40)}`).join(" | ") + (model.length > 12 ? " …" : ""));
     } else add("OK", "PROP text in Model", "none");
-    if (paper.length) add("FAIL", "PROP/PROPOSED wording in paper space", `${paper.length} note MText(s) (${paper.map((e) => e.layout + ":" + e.handle).join(", ")}) -> node scripts/fase1-strip-prop-notes.mjs on the MD-WASD notes + acad_update_text_content; erase off-sheet template notes that say PROP/PROPOSED`);
+    if (paper.length) add("FAIL", "PROP/PROPOSED in paper space", `${paper.length} note MText(s) (${paper.map((e) => e.layout + ":" + e.handle).join(", ")}) -> civil3d_workflow_fase1_build { expectedDocument: "<this DWG name>" } fixes both in one call (or by hand: node scripts/fase1-strip-prop-notes.mjs + acad_update_text_content; erase the off-sheet template notes)`);
+    else add("OK", "PROP/PROPOSED in paper space", "none");
   }
 
   // 3. design objects
@@ -102,6 +107,33 @@ await withApplicationConnection(async (client) => {
       else add("FAIL", "surface boundary", "C-TINN-BNDY not frozen: the green EG boundary shows -> acad_create_or_update_layer {name:\"C-TINN-BNDY\", frozen:true}");
     } else add("WARN", "surface boundary", `surface(s) ${sf.surfaces.map((s) => s.name).join(", ")} present: make sure layer C-TINN-BNDY is frozen (pass --dump <dwg-dump.ps1 output of the saved file> to check)`);
   } else add("OK", "surface boundary", "no surface in the drawing");
+
+  // 6. dimension text detached from its own line (see the short-dimension DIMFIT bug in the header comment)
+  const dims = await call(client, "listDimensions", { layer: "C-ANNO", space: "model", limit: 500 });
+  if (dims.__error) add("WARN", "dimension text position", dims.__error);
+  else {
+    const distToSegment = (px, py, ax, ay, bx, by) => {
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx * dx + dy * dy;
+      const t = len2 > 1e-9 ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / len2)) : 0;
+      const cx = ax + t * dx, cy = ay + t * dy;
+      return Math.hypot(px - cx, py - cy);
+    };
+    const detached = [];
+    for (const d of dims.entities ?? []) {
+      const [ax, ay] = d.xLine1Point ?? [];
+      const [bx, by] = d.xLine2Point ?? [];
+      if (ax == null || bx == null || d.textX == null || d.textY == null) continue;
+      const lineLen = Math.hypot(bx - ax, by - ay);
+      const dist = distToSegment(d.textX, d.textY, ax, ay, bx, by);
+      if (dist > Math.max(3, lineLen)) detached.push({ handle: d.handle, dist: dist.toFixed(2), lineLen: lineLen.toFixed(2) });
+    }
+    if (detached.length) {
+      add("WARN", "dimension text position", `${detached.length} dimension(s) with text far from their line: ` +
+        detached.map((x) => `${x.handle} (${x.dist} ft away, line ${x.lineLen} ft)`).join(", ") +
+        " -> recreate with acad_create_aligned_dimension passing explicit dimLineX/dimLineY (not just offset), or reposition in place with acad_update_text_content {handle, x, y} (Dimension support added 2026-09-28)");
+    } else add("OK", "dimension text position", `${(dims.entities ?? []).length} C-ANNO dimension(s), none detached`);
+  }
 });
 
 const order = { FAIL: 0, WARN: 1, INFO: 2, OK: 3 };

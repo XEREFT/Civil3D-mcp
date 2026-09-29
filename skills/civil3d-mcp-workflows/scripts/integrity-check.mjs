@@ -149,6 +149,20 @@ function docs(registry) {
   const badScripts = walk(join(skill, "scripts"), (p) => /\.(mjs|cjs)$/.test(p) && !/ErrorReports/.test(p)).filter((p) => spawnSync(process.execPath, ["--check", p], { encoding: "utf8" }).status !== 0);
   add(g, badScripts.length ? "FAIL" : "OK", "skill scripts pass node --check", badScripts.length ? badScripts.map((p) => relative(skill, p)).join(", ") : "all scripts parse");
 
+  // fase1-audit.mjs (script) <-> fase1Audit.ts (native tool) must check the same things -- found 2026-09-28
+  // when a 6th check (dimension text position) was added to only one of the two paths (the standalone
+  // script used by /fase1, and the native civil3d_workflow_fase1_audit tool subagents call directly).
+  const literalWhats = (text) => new Set([...text.matchAll(/\badd\(\s*(?:g,\s*)?"(?:OK|WARN|FAIL|INFO)",\s*"([^"]+)"/g)].map((m) => m[1]));
+  const scriptChecks = literalWhats(read(join(skill, "scripts/fase1-audit.mjs")));
+  const nativeChecks = literalWhats(read(join(repo, "src/tools/domains/fase1Audit.ts")));
+  const onlyScript = [...scriptChecks].filter((w) => !nativeChecks.has(w));
+  const onlyNative = [...nativeChecks].filter((w) => !scriptChecks.has(w));
+  const driftMsg = [
+    onlyScript.length ? `only in fase1-audit.mjs: ${onlyScript.join(", ")}` : null,
+    onlyNative.length ? `only in fase1Audit.ts: ${onlyNative.join(", ")}` : null,
+  ].filter(Boolean).join("; ");
+  add(g, driftMsg ? "WARN" : "OK", "fase1-audit.mjs == fase1Audit.ts checks", driftMsg || `${scriptChecks.size} checks match in both (script + native tool)`);
+
   // SKILL.md paths
   const skillMd = read(join(skill, "SKILL.md"));
   const paths = [...new Set([...skillMd.matchAll(/\b((?:references|scripts)\/[\w./-]+\.(?:md|mjs|ps1|py|cjs|json|sh|txt))/g)].map((m) => m[1]))];

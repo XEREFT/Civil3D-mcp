@@ -7,7 +7,8 @@
   "2026-09-25 easement rule verified (survey+legal = guide within 0.09 ft)",
   "2026-09-28 user: alignment style BCC - ALIGNMENT + SAN/WM marking are the firm standard on every project (recorded from VILLA ONE guide vs FASE 1 comparison)",
   "2026-09-28 roles.fase1: definition of done + cleanup rules for Fase 1 files (no proposals), used by scripts/fase1-audit.mjs and fase1-cleanup-plan.mjs",
-  "2026-09-28 user decision: Fase 1 has NO PROP/PROPOSED wording anywhere (subject label line 'PROP <units> <sf> SF' and every MD-WASD note that says PROP/PROPOSED removed); fase1-strip-prop-notes.mjs added"
+  "2026-09-28 user decision: Fase 1 has NO PROP/PROPOSED wording anywhere (subject label line 'PROP <units> <sf> SF' and every MD-WASD note that says PROP/PROPOSED removed); fase1-strip-prop-notes.mjs added",
+  "2026-09-28 late: found+fixed a plugin bug (not a data error) in the two 5.00' U.E./PL corner dimensions of VILLA ONE FASE 1 (handles 12235/12248) -> roles.easementCornerDimension + short-dimension rule below; acad_create_aligned_dimension now respects an explicit dimLineX/dimLineY instead of letting AutoCAD's own DIMFIT eject the text (see plugin-deployment-gotcha memory / DimensionViewportCommands.cs); fase1-audit.mjs gained a 'dimension text detached from its line' check"
  ],
  "template": {
   "note": "Start from the previous project's C-300.dwg (styles, layouts, title block, seal). scripts/c300-prep-template.ps1 empties model space, detaches xrefs and renames layouts.",
@@ -114,6 +115,17 @@
    "dimStyle": "BCC-1.0",
    "offset": 0,
    "source": "survey dims on layer DIM (style '1 IN 20'): CL -> each R/W line, one per side (25.00' + 25.00' for a 50' R/W)"
+  },
+  "easementCornerDimension": {
+   "kind": "aligned_dimension",
+   "layer": "C-ANNO",
+   "dimStyle": "BCC-1.0",
+   "textOffsetFromLineFt": 0.3,
+   "textAtLineMidpoint": true,
+   "dimTad": 4,
+   "dimTxtDirection": true,
+   "rule": "For a SHORT aligned dimension (typically a 5' U.E./PL corner callout, span < ~10 ft), always pass explicit dimLineX/dimLineY at the line's own midpoint offset ~0.3 ft to the side (never just 'offset') -- see the short-dimension bug below. Never copy this position from the guide: compute it from the project's own xLine1/xLine2 points.",
+   "shortDimensionBug": "Found 2026-09-28 in VILLA ONE FASE 1 (handles 12235/12248, fixed as 14562/14574): acad_create_aligned_dimension used to always call RecomputeDimensionBlock(true), which lets AutoCAD's own DIMFIT auto-placement override any caller-supplied text position whenever the dimension line is too short for the annotative text to fit inside the extension lines (5 ft at 1:20 with BCC-1.0/DIMTAD=4) -- it silently ejects the text several feet away instead of erroring. Fixed 2026-09-28 in DimensionViewportCommands.cs: when the caller passes BOTH dimLineX and dimLineY, the plugin now sets dimension.TextPosition explicitly and calls RecomputeDimensionBlock(false) so AutoCAD keeps the point given instead of recalculating a default. Same fix mirrored in AcadCommands.UpdateTextContentAsync (new Dimension case) so an EXISTING dimension's text can be repositioned the same way as MText/MLeader, without erase+recreate. A dimension created with only 'offset' (no explicit dimLineX/dimLineY) still uses the old auto-placement path -- fine for dimensions long enough to fit text (the 18 other C-ANNO dims in this file, 6-25 ft, were never affected), but pass explicit dimLineX/dimLineY for anything short."
   },
   "streetLabel": {
    "kind": "mtext",
@@ -284,13 +296,15 @@
    "tools": [
     "scripts/fase1-audit.mjs (read-only checks)",
     "scripts/fase1-cleanup-plan.mjs (read-only plan for an over-built file)",
-    "scripts/fase1-strip-prop-notes.mjs (raw MText transform for the MD-WASD notes)",
-    "scripts/fase1-notes-shift.py (dy for the orphaned '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs)"
+    "civil3d_workflow_fase1_build (step 'Fase 1 notes', default on; alone with {expectedDocument} it only cleans the notes and saves): rewrites the on-sheet MD-WASD notes, erases off-sheet PROP notes, shifts the orphaned glyphs by the measured dy",
+    "scripts/fase1-build-payload.mjs + /fase1-build (whole C-300 Fase 1 build in one call)",
+    "scripts/fase1-strip-prop-notes.mjs (manual path; imports the plugin's src/tools/domains/fase1PropNotes.ts rules from build/)",
+    "scripts/fase1-notes-shift.py (manual path: dy for the orphaned '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs from two plots)"
    ],
    "decisions": [
     "2026-09-28: nothing that says PROP or PROPOSED stays in a Fase 1 file: the subject label 'PROP ONE (1) 5,200 SF' line and every MD-WASD bullet/paragraph that says PROP/PROPOSED were removed (scripts/fase1-strip-prop-notes.mjs); template notes parked off-sheet that said PROP/PROPOSED were erased"
    ],
-   "mdWaspNotes": "MD-WASD NOTES MText on C-300: run scripts/fase1-strip-prop-notes.mjs on its raw text and write the result with acad_update_text_content. The 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block goes too (its only predicate says PROPOSED ACTIVITY)."
+   "mdWaspNotes": "MD-WASD NOTES MText on C-300: every bullet that says PROP/PROPOSED goes, and the 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block too (its only predicate says PROPOSED ACTIVITY); PROP notes parked off the ARCH D sheet (x > 36) are erased; whatever sat on the shortened note (the '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs, layer PDF_Geometry) moves up by the note's bottom shift. Done natively by civil3d_workflow_fase1_build (rules: src/tools/domains/fase1PropNotes.ts); manual path: scripts/fase1-strip-prop-notes.mjs + acad_update_text_content + scripts/fase1-notes-shift.py."
   }
  },
  "viewport": {

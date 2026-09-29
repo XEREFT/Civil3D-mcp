@@ -1,5 +1,43 @@
-# Prompt de continuación VIGENTE (2026-09-28, sesión 2 — Fase 1 de VILLA ONE CERRADA) — pegar tal cual en un chat nuevo
+# Prompt de continuación VIGENTE (2026-09-28, tarde noche — primera corrida en vivo de fase1_build endurecido) — pegar tal cual en un chat nuevo
+Antes de pegarlo (pasos del usuario): cerrar Civil 3D uno mismo (la guía está abierta; Claude nunca la cierra) → que Claude corra `pwsh scripts/deploy-all.ps1 -Go` (instala el DLL con la extensión de textos) → aprobar el diálogo "Unsigned Executable File" → salir del todo de Claude Desktop y abrir un chat nuevo.
 
+```
+Retomamos civil3d_workflow_fase1_build tras endurecerlo (commit local 0e85bd8, branch local/deploy-acad-plus-schema-fix, sin pushear): guardias de documento activo (expectedDocument), paso nativo de notas PROP con glifos huérfanos, spec con project.json schema 1 + window automático, script fase1-build-payload.mjs y comando /fase1-build. Ya desplegué el DLL y reinicié Claude Desktop. Responde en español.
+
+Contexto grabado (no lo rederives): memoria `fase1-build-tool-status`; skill `references/tool-index.md` (entrada civil3d_workflow_fase1_build) y `references/automation-backlog.md` §A.
+
+Pasos:
+1. Hook de integridad sin FAIL; `node scripts/integrity-check.mjs --only deploy` = 0 FAIL. ToolSearch `select:mcp__Civil_3D_MCP__civil3d_workflow_fase1_build`: su esquema debe traer `expectedDocument`, `stripPropNotes` y `sheet` (si no, el reinicio no llegó — avísame).
+2. Primera corrida en vivo sobre una COPIA de descarte de VILLA ONE: plantilla con `c300-prep-template.ps1 -Source <Goulds C-300> -Out "<carpeta VILLA ONE>\_template-BUILD-TEST.dwg" -DeleteLayouts C-301`, luego `node scripts/fase1-build-payload.mjs --dir "<carpeta VILLA ONE>" --template "<esa plantilla>" --dwg "VILLA ONE @XEREFT FASE1-BUILD-TEST.dwg"` (dilo antes de crear archivos; nunca sobre FASE 1.dwg real).
+3. Aprobación + `civil3d_workflow_fase1_build` con el payload idéntico. Esperado: check new drawing is active → save as → check active document → 9 pasos como la validación → "Fase 1 notes" = borra CF57/CF6E/CF75, reescribe CF80 y "moved N entit(ies) … up ~7.6" → check before save → save. Luego `civil3d_workflow_fase1_audit` = 0 FAIL.
+4. Plot de la copia (`qc-plot.ps1`) y compara el recorte de las notas con `_QC\C-300 FASE 1.pdf` (los glifos "(NOT PART OF M-WASD NOTES…)" deben quedar bajo "PROJECT SPECIFIC NOTES").
+5. Si algo falla: paso exacto y detalle; no reintentes el payload a ciegas. Si todo sale bien: archivos de prueba a la Papelera (la pestaña la cierro yo) y marca en `fase1-build-tool-status` que la corrida en vivo pasó.
+
+Reglas que ya rigen: nunca guardes ni cierres la guía; T25-06.212 fuera de alcance; confirma conmigo antes de guardar/borrar archivos reales; push al fork / sync de la skill solo si lo pido.
+```
+
+---
+# (anterior, 2026-09-28 noche — validar civil3d_workflow_fase1_build; YA EJECUTADO: 9/9 OK)
+
+```
+Retomamos la validación de `civil3d_workflow_fase1_build`, el tool nativo que se construyó en la sesión anterior (commit local `36e6c6a`, branch `local/deploy-acad-plus-schema-fix`, sin pushear) para dibujar un C-300 Fase 1 completo en una sola llamada. Reinicié Claude Desktop, así que debería aparecer ya en ToolSearch. Responde en español.
+
+Contexto ya grabado (no lo rederives): memoria `villa-one-c300-status` (última sección, "2026-09-28 noche, propuesta A construida"), skill `references/automation-backlog.md` (sección "A — construido") y `references/tool-index.md` (entrada `civil3d_workflow_fase1_build`). Código: `src/tools/domains/fase1Build.ts` + `tests/fase1_build.test.ts` (7 pruebas con cliente falso, ya pasan; 446 pruebas totales en el repo).
+
+Pasos:
+1. Confirma que el hook de integridad al arrancar no muestra FAIL. Con `ToolSearch` (`select:mcp__Civil_3D_MCP__civil3d_workflow_fase1_build`), confirma que el tool nuevo carga (si no aparece, el reinicio no llegó a tiempo — avísame, no insistas).
+2. Genera el spec de VILLA ONE de nuevo, para tener un caso con respuesta ya conocida: `dwg-dump.ps1` sobre `X-TOPO.dwg` de `C:\Users\camil\OneDrive\Documents\AUTOCAD @XEREFT\VILLA ONE @XEREFT\`, luego `c300-build-spec.mjs --topo <dump> --project "...\VILLA ONE @XEREFT\project.json" --out spec.json` (usa el scratchpad de la sesión, no la carpeta del proyecto).
+3. Prepara una plantilla de descarte con `c300-prep-template.ps1` y ábrela con `civil3d_drawing new` en una ruta de PRUEBA, nunca sobre `VILLA ONE @XEREFT FASE 1.dwg` ni sus archivos reales — usa un nombre tipo `VILLA ONE @XEREFT FASE1-BUILD-TEST.dwg` y dilo explícitamente antes de crear el archivo.
+4. Llama `civil3d_workflow_fase1_build` con los xrefs (X-TOPO/X-UTIL/X-ARCH), `spec.alignment`, `spec.twist` (y el giro de Model, §7.11b de `c300-water-sewer-plan.md`), `spec.createEntities` como `entities`/`layers`, y `clImport` para el bloque `_cl` (blockName `_cl`, sourceFilePath = X-TOPO.dwg). Sin `titleBlock` en esta primera prueba. `save:true`.
+5. Compara el resultado (`outputs.steps[]`) contra los datos ya conocidos de VILLA ONE en la memoria (alineamiento 440 ft, giro 268.49°, etc.) y, si quieres, contra el propio `VILLA ONE @XEREFT FASE 1.dwg` real (solo lectura).
+6. Si algo falla: reporta el paso exacto, no reintentes el payload completo a ciegas — decide conmigo si es un bug del tool nuevo o un dato mal armado en el spec.
+7. Si todo sale bien: borra el archivo de prueba (a la Papelera, nunca borrado permanente) y actualiza `villa-one-c300-status` + `automation-backlog.md` marcando la propuesta A como validada.
+
+Reglas que ya rigen, no las repitas ni las preguntes: nunca guardes ni cierres `C-300_GUIA_COMO_DEBE_QUEDAR.dwg` (guía, solo comparación); T25-06.212 sigue fuera de alcance salvo que yo lo pida explícitamente; confirma conmigo antes de guardar/borrar sobre archivos reales del proyecto.
+```
+
+---
+# (anterior, 2026-09-28 sesión 2 — Fase 1 de VILLA ONE CERRADA)
 ```
 Continuamos VILLA ONE (26-04.047), entregable "VILLA ONE @XEREFT FASE 1.dwg" (carpeta C:\Users\camil\OneDrive\Documents\AUTOCAD @XEREFT\VILLA ONE @XEREFT\). Responde en español.
 Estado (2026-09-28, tarde): Fase 1 pura TERMINADA, guardada y con PDF _QC\C-300 FASE 1.pdf regenerado: alineación SW 118TH AVE = BCC - ALIGNMENT, cascarones PROP SAN SEWER y EXIST WM CROSSING borrados, fase1-audit.mjs con --dump = 0 FAIL, 0 palabras PROP/PROPOSED (solo "SUBJECT PROPERTY", legítimo).

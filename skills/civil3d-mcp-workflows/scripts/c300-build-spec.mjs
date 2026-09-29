@@ -6,23 +6,36 @@
 // Rules and properties come from references/standards/formtech-c300.json; geometry comes from the
 // X-TOPO dump (scripts/dwg-dump.ps1). Node 18, no deps.
 //
-//   node c300-build-spec.mjs --topo X-TOPO_dump.txt --project project.json [--standard formtech-c300.json] --out spec.json
+//   node c300-build-spec.mjs --topo X-TOPO_dump.txt --project "<project folder>/project.json" [--standard formtech-c300.json] --out spec.json
 //
-// project.json:
+// --project accepts the project's own project.json (schema 1, scripts/project-state.mjs: subject.* + site.lotPoint [+ site.window])
+// directly, or the flat input below (what `project-state.mjs spec <dir>` prints):
 // { "name": "VILLA ONE", "address": "227XX SW 118TH AVENUE",
-//   "window": [xmin, ymin, xmax, ymax],        // survey area of THIS site (X-TOPO may hold other sites)
-//   "lotPoint": [x, y],                        // inside the lot; property label goes here
+//   "window": [xmin, ymin, xmax, ymax],        // OPTIONAL survey area of THIS site (X-TOPO may hold other sites); when missing it is
+//                                              // derived from the dump: the cluster of survey entities around lotPoint (100 ft grid,
+//                                              // gaps up to 1 cell) -> printed so it can be saved with project-state.mjs set site.window
+//   "lotPoint": [x, y],                        // REQUIRED, inside the lot (PA centroid, pa-lookup.mjs); property label goes here
 //   "pa": { "folio": "30-6913-003-0830", "plat": "P.B. 46 PG-94" },   // from pa-lookup.mjs
 //   "property": { "units": "ONE (1)", "sf": "5,200", "use": "SINGLE FAMILY RESIDENCE", "gpd": "510" } }
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { c300Input } from './project-state.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) => (v.startsWith('--') ? a.concat([[v.slice(2), arr[i + 1]]]) : a), []));
 const here = path.dirname(fileURLToPath(import.meta.url));
 const std = JSON.parse(fs.readFileSync(args.standard || path.join(here, '../references/standards/formtech-c300.json'), 'utf8'));
-const project = JSON.parse(fs.readFileSync(args.project, 'utf8'));
 if (!args.topo || !args.project) { console.error('usage: --topo dump --project project.json [--standard json] [--out spec.json]'); process.exit(2); }
+const rawProject = JSON.parse(fs.readFileSync(args.project, 'utf8'));
+// schema-1 project.json (project-state.mjs) -> the flat input this script works on
+const project = rawProject.schema || rawProject.subject ? c300Input(rawProject) : rawProject;
+const missing = ['address', 'lotPoint'].filter((k) => !project[k])
+  .concat(['pa.folio', 'pa.plat', 'property.use', 'property.gpd'].filter((k) => !k.split('.').reduce((o, x) => o?.[x], project)));
+if (missing.length) {
+  console.error(`project is missing: ${missing.join(', ')} -- set them with node scripts/project-state.mjs set <dir> site.lotPoint=[x,y] ` +
+    '(lotPoint = PA centroid: node scripts/pa-lookup.mjs --xy X,Y)');
+  process.exit(2);
+}
 
 // ---------- geometry helpers ----------
 const D2R = Math.PI / 180;
@@ -41,14 +54,54 @@ const intersect = (p, u, q, v) => { const den = u[0] * v[1] - u[1] * v[0]; const
 
 // ---------- parse survey dump ----------
 const pt = (s) => { const m = /\(([-\d.e+]+) ([-\d.e+]+)/.exec(s || ''); return m ? [+m[1], +m[2]] : null; };
-const win = project.window;
-const inWin = (p) => !win || (p[0] >= win[0] && p[1] >= win[1] && p[0] <= win[2] && p[1] <= win[3]);
-const ents = fs.readFileSync(args.topo, 'utf8').split(/\r?\n/).filter((l) => l.startsWith('ENT|')).map((l) => {
+const allEnts = fs.readFileSync(args.topo, 'utf8').split(/\r?\n/).filter((l) => l.startsWith('ENT|')).map((l) => {
   const i = l.indexOf('|txt=');
   const [, type, handle, layer, ...p] = (i >= 0 ? l.slice(0, i) : l).split('|');
   const o = Object.fromEntries(p.map((kv) => [kv.slice(0, kv.indexOf('=')), kv.slice(kv.indexOf('=') + 1)]));
   return { type, handle, layer, ...o, p: [+o.x, +o.y], txt: i >= 0 ? l.slice(i + 5) : '' };
-}).filter((e) => inWin(e.p));
+});
+
+// Survey area of THIS site: X-TOPO often carries other jobs (VILLA ONE: another site 4,000 ft west, stray entities at 0,0).
+// Without project.window, take the cluster of entities around lotPoint on a 100 ft grid (8-neighbour flood fill that jumps
+// gaps of up to 1 empty cell). Validated on VILLA ONE 2026-09-28: same spec as the hand-picked window.
+function deriveWindow(points, lotPoint, cell = 100) {
+  const key = (cx, cy) => `${cx},${cy}`;
+  const cells = new Map();
+  for (const [x, y] of points) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || (Math.abs(x) < 1 && Math.abs(y) < 1)) continue;
+    const cx = Math.floor(x / cell), cy = Math.floor(y / cell);
+    cells.set(key(cx, cy), [cx, cy]);
+  }
+  let start = [Math.floor(lotPoint[0] / cell), Math.floor(lotPoint[1] / cell)];
+  if (!cells.has(key(...start))) {
+    const near = [...cells.values()].filter(([cx, cy]) => Math.max(Math.abs(cx - start[0]), Math.abs(cy - start[1])) <= 3);
+    if (!near.length) return null;
+    const d = (c) => Math.hypot(c[0] - start[0], c[1] - start[1]);
+    start = near.sort((a, b) => d(a) - d(b))[0];
+  }
+  const seen = new Set([key(...start)]);
+  const queue = [start];
+  while (queue.length) {
+    const [cx, cy] = queue.shift();
+    for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) {
+      const k = key(cx + dx, cy + dy);
+      if (cells.has(k) && !seen.has(k)) { seen.add(k); queue.push(cells.get(k)); }
+    }
+  }
+  const visited = [...seen].map((k) => cells.get(k));
+  const xs = visited.map((c) => c[0]), ys = visited.map((c) => c[1]);
+  return [Math.min(...xs) * cell, Math.min(...ys) * cell, (Math.max(...xs) + 1) * cell, (Math.max(...ys) + 1) * cell];
+}
+
+let win = project.window;
+let windowNote = win ? `window (project): [${win.join(', ')}]` : '';
+if (!win) {
+  win = deriveWindow(allEnts.map((e) => e.p), project.lotPoint);
+  if (!win) throw new Error(`no survey entities within 300 ft of lotPoint ${project.lotPoint}: check site.lotPoint (PA centroid) and the X-TOPO dump`);
+  windowNote = `window (auto, cluster around lotPoint): [${win.join(', ')}] -- keep it with: node scripts/project-state.mjs set <dir> site.window=[${win.join(',')}]`;
+}
+const inWin = (p) => p[0] >= win[0] && p[1] >= win[1] && p[0] <= win[2] && p[1] <= win[3];
+const ents = allEnts.filter((e) => inWin(e.p));
 
 // Street centerline segments
 const segs = ents.filter((e) => e.type === 'LINE' && e.layer === 'CENTER_LINE').map((e) => {
@@ -202,8 +255,9 @@ const spec = {
   alignment: { name: alName, layer: S.alignment.layer, style: S.alignment.style, labelSet: S.alignment.labelSet, points: [P(alStart), P(alEnd)], lengthFt: alLen },
   twist: { layout: std.viewport.layout, streetAngleDegrees: r4(theta), centerX: r4(center[0]), centerY: r4(center[1]), resultingTwistDeg: r4(twistDeg) },
   createEntities: { layers: Object.fromEntries(usedLayers.map((n) => [n, std.layers[n]])), entities },
-  report,
+  window: win,
+  report: [windowNote, ...report],
 };
 const out = JSON.stringify(spec, null, 1);
 if (args.out) fs.writeFileSync(args.out, out);
-console.log(args.out ? `${entities.length} entities -> ${args.out}\n${report.join('\n')}\nstreets: ${spec.streets.map((s) => `${s.name}${s.frontage ? ' (frontage)' : ''} ${s.angleDeg}°`).join(' | ')}\ntwist ${spec.twist.resultingTwistDeg}° center ${spec.twist.centerX}, ${spec.twist.centerY}` : out);
+console.log(args.out ? `${entities.length} entities -> ${args.out}\n${spec.report.join('\n')}\nstreets: ${spec.streets.map((s) => `${s.name}${s.frontage ? ' (frontage)' : ''} ${s.angleDeg}°`).join(' | ')}\ntwist ${spec.twist.resultingTwistDeg}° center ${spec.twist.centerX}, ${spec.twist.centerY}` : out);

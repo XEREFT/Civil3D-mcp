@@ -40,8 +40,8 @@ for (const [key, target] of [["topo", "X-TOPO.dwg"], ["util", "X-UTIL.dwg"], ["a
 const templateFrom = flag("template-from");
 if (templateFrom) {
   if (!existsSync(templateFrom)) console.error(`WARN --template-from not found: ${templateFrom}`);
-  else doStep("build _template.dwg (c300-prep-template.ps1 on a copy: model space emptied, xrefs detached, layouts renamed)", () => {
-    const r = spawnSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(here, "c300-prep-template.ps1"), "-Source", templateFrom, "-Out", join(dir, "_template.dwg")], { encoding: "utf8", timeout: 600000 });
+  else doStep("build _template.dwg (c300-prep-template.ps1 on a copy: model space emptied, xrefs detached, layouts renamed, C-301 deleted = Fase 1)", () => {
+    const r = spawnSync("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(here, "c300-prep-template.ps1"), "-Source", templateFrom, "-Out", join(dir, "_template.dwg"), "-DeleteLayouts", "C-301"], { encoding: "utf8", timeout: 600000 });
     if (r.status !== 0 || !existsSync(join(dir, "_template.dwg"))) throw new Error("c300-prep-template.ps1 failed: " + ((r.stdout ?? "") + (r.stderr ?? "")).slice(-300));
   });
 }
@@ -77,11 +77,12 @@ if (flag("xy") && !dry) {
 
 const rel = (f) => `${dir}/${f}`;
 console.log(`
-NEXT (needs the live Civil 3D session; recipe = skill references/c300-water-sewer-plan.md section 9 "Receta Fase 1"):
- 1. civil3d_drawing new templatePath=${existsSync(join(dir, "_template.dwg")) ? rel("_template.dwg") : "<firm template>"}  then saveAs "${rel(`${folderName} FASE 1.dwg`)}"
- 2. acad_attach_xref (overlay) X-TOPO / X-UTIL / X-ARCH from ${dir}; SAN/WM = X-UTIL layers as delivered (yellow SANITARY_LINE / WM)
- 3. node scripts/dwg-dump.ps1 X-TOPO.dwg -> node scripts/project-state.mjs set "${dir}" site.window=[xmin,ymin,xmax,ymax] site.lotPoint=[x,y]
- 4. node scripts/project-state.mjs spec "${dir}" > c300-input.json ; node scripts/c300-build-spec.mjs --topo <dump> --project c300-input.json --out spec.json
- 5. build the sheet with the spec (acad_create_entities, civil3d_alignment create style "BCC - ALIGNMENT", acad_set_viewport_twist, title block)
- 6. /fase1 (or: save, then node scripts/fase1-finish.mjs) -> READY
+NEXT (recipe = skill references/c300-water-sewer-plan.md section 7 + 9 "Receta Fase 1"; shortcut: /fase1-build):
+ 1. site.lotPoint (PA centroid; --xy above or node scripts/pa-lookup.mjs --xy X,Y): node scripts/project-state.mjs set "${dir}" site.lotPoint=[x,y]
+    (site.window is optional: c300-build-spec.mjs derives it from the X-TOPO cluster around lotPoint and prints it)
+ 2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + payload for "${folderName} FASE 1.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
+ 3. Claude: civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<payload>}
+    -> civil3d_workflow_fase1_build {<payload>, approvalToken}: template, xrefs, alignment BCC, _cl, entities, twists, no-PROP notes, save
+ 4. still by hand (other scripts): utility labels (c300-utility-labels.mjs), PL symbols (c300-pl-symbols.mjs), U.E., package replay, title block
+ 5. /fase1 (civil3d_workflow_fase1_audit, then node scripts/fase1-finish.mjs) -> READY
  Then: node scripts/project-state.mjs log "${dir}" "<what you did>" and keep decisions with 'decide'.`);

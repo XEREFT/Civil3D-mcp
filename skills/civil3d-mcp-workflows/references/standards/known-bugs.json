@@ -1,977 +1,1147 @@
 {
-  "_doc": "Registro EJECUTABLE de bugs/gotchas conocidos (el 'segundo cerebro'). Lo lee scripts/integrity-check.mjs. Cada entrada: id, since (fecha), area, status (fixed|open|process|info), match (subcadena que DEBE seguir apareciendo en references/troubleshooting.md — lo mantiene sincronizado con la tabla), symptom/cause/fix (resumen), checks (lista; vacía = solo documentado, cuenta como 'manual'). Tipos de check: repo-grep {file, pattern} (regex sobre un archivo del repo), skill-grep {file, pattern} (regex sobre un archivo de la skill), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (SOLO entradas falsas o lecturas: pasa por el plugin en vivo sin token de aprobación), node-version {min}. Al aprender un bug nuevo: agrega la fila a troubleshooting.md Y una entrada aquí (integrity-check avisa si falta).",
-  "bugs": [
+ "_doc": "Registro EJECUTABLE de bugs/gotchas conocidos (el 'segundo cerebro'). Lo lee scripts/integrity-check.mjs. Cada entrada: id, since (fecha), area, status (fixed|open|process|info), match (subcadena que DEBE seguir apareciendo en references/troubleshooting.md — lo mantiene sincronizado con la tabla), symptom/cause/fix (resumen), checks (lista; vacía = solo documentado, cuenta como 'manual'). Tipos de check: repo-grep {file, pattern} (regex sobre un archivo del repo), skill-grep {file, pattern} (regex sobre un archivo de la skill), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (SOLO entradas falsas o lecturas: pasa por el plugin en vivo sin token de aprobación), node-version {min}. Al aprender un bug nuevo: agrega la fila a troubleshooting.md Y una entrada aquí (integrity-check avisa si falta).",
+ "bugs": [
+  {
+   "id": "layer-silent-fallback",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "open",
+   "match": "devuelve `layer` distinto al pedido",
+   "symptom": "acad_create_* devuelve layer distinto (p. ej. _NPLT)",
+   "cause": "LookupUtils.GetLayerId cae en silencio a la capa actual si la pedida no existe",
+   "fix": "Comparar layer devuelto; crear la capa antes o usar create_entities con layers",
+   "checks": []
+  },
+  {
+   "id": "drawing-changed-after-approval",
+   "since": "2026-07",
+   "area": "node",
+   "status": "fixed",
+   "match": "The active drawing changed after approval",
+   "symptom": "token con fingerprint de otro documento",
+   "cause": "el usuario cambió de pestaña",
+   "fix": "get_drawing_info + acad_set_active_document + token nuevo",
+   "checks": [
     {
-      "id": "layer-silent-fallback",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "open",
-      "match": "devuelve `layer` distinto al pedido",
-      "symptom": "acad_create_* devuelve layer distinto (p. ej. _NPLT)",
-      "cause": "LookupUtils.GetLayerId cae en silencio a la capa actual si la pedida no existe",
-      "fix": "Comparar layer devuelto; crear la capa antes o usar create_entities con layers",
-      "checks": []
+     "type": "repo-grep",
+     "file": "src/tools/approvalPolicy.ts",
+     "pattern": "drawing changed after approval"
     },
     {
-      "id": "drawing-changed-after-approval",
-      "since": "2026-07",
-      "area": "node",
-      "status": "fixed",
-      "match": "The active drawing changed after approval",
-      "symptom": "token con fingerprint de otro documento",
-      "cause": "el usuario cambió de pestaña",
-      "fix": "get_drawing_info + acad_set_active_document + token nuevo",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/approvalPolicy.ts",
-          "pattern": "drawing changed after approval"
-        },
-        {
-          "type": "vitest",
-          "file": "tests/approval_policy.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "connect-failed",
-      "since": "2026-07",
-      "area": "deploy",
-      "status": "process",
-      "match": "Failed to connect to Civil 3D plugin",
-      "symptom": "CIVIL3D.UNAVAILABLE",
-      "cause": "nadie escucha en 8080",
-      "fix": "c3d-health.ps1; C3DMCPSTART",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "getCivil3DHealth",
-          "params": {},
-          "contains": [
-            "connected"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "connect-timeout",
-      "since": "2026-07",
-      "area": "deploy",
-      "status": "process",
-      "match": "timed out after 5000ms",
-      "symptom": "conexión no acepta",
-      "cause": "acad saturado/arrancando",
-      "fix": "esperar y reintentar una vez",
-      "checks": []
-    },
-    {
-      "id": "command-timeout",
-      "since": "2026-07",
-      "area": "process",
-      "status": "process",
-      "match": "Command timed out after 120000ms",
-      "symptom": "TIMEOUT del comando",
-      "cause": "diálogo modal o comando pesado",
-      "fix": "NO reintentar; civil3d_health; pedir mirar la ventana",
-      "checks": []
-    },
-    {
-      "id": "modal-dialog-30s",
-      "since": "2026-07",
-      "area": "process",
-      "status": "process",
-      "match": "una operación lleva más de 30 s",
-      "symptom": "operación >30 s",
-      "cause": "diálogo modal",
-      "fix": "el usuario lo cierra",
-      "checks": []
-    },
-    {
-      "id": "host-busy",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "host queue is full",
-      "symptom": "HOST_BUSY",
-      "cause": "cola llena",
-      "fix": "esperar",
-      "checks": []
-    },
-    {
-      "id": "no-drawing",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "CIVIL3D.NO_DRAWING",
-      "symptom": "sin documento activo",
-      "cause": "Start tab / sin dibujo",
-      "fix": "abrir un DWG; plugin >= 8ef4fc2 responde NO_DRAWING sin colgarse",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
-          "pattern": "NO_DRAWING"
-        }
-      ]
-    },
-    {
-      "id": "schema-dialect",
-      "since": "2026-09-25",
-      "area": "node",
-      "status": "fixed",
-      "match": "unsupported dialect",
-      "symptom": "todas las herramientas: outputSchema con dialecto no soportado",
-      "cause": "draft-07 vs 2020-12",
-      "fix": "src/utils/schemaDialect.ts quita $schema en tools/list",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/utils/schemaDialect.ts",
-          "pattern": "\\$schema"
-        },
-        {
-          "type": "vitest",
-          "file": "tests/schema_dialect.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "drawing-changed-queued",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "while the operation was queued",
-      "symptom": "cambio de pestaña con operación en cola",
-      "cause": "el usuario cambió de documento",
-      "fix": "reenfocar y repetir",
-      "checks": []
-    },
-    {
-      "id": "object-not-found",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "CIVIL3D.OBJECT_NOT_FOUND",
-      "symptom": "handle/nombre inexistente o documento equivocado",
-      "cause": "otro documento o nombre mal",
-      "fix": "relistar",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "deletePipeNetwork",
-          "params": {
-            "name": "__integrity_no_such_network__"
-          },
-          "expectError": "was not found"
-        }
-      ]
-    },
-    {
-      "id": "invalid-input",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "`CIVIL3D.INVALID_INPUT`",
-      "symptom": "parámetro inválido",
-      "cause": "handle no hex, etc.",
-      "fix": "corregir payload",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "eraseEntities",
-          "params": {
-            "handles": [
-              "ZZZ"
-            ]
-          },
-          "expectError": "not a valid hexadecimal"
-        }
-      ]
-    },
-    {
-      "id": "path-not-allowed",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "`CIVIL3D.PATH_NOT_ALLOWED`",
-      "symptom": "ruta fuera de las raíces permitidas",
-      "cause": "CIVIL3D_FILE_ROOTS",
-      "fix": "ruta permitida",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/FileBoundary.cs",
-          "pattern": "PATH_NOT_ALLOWED"
-        }
-      ]
-    },
-    {
-      "id": "approval-required",
-      "since": "2026-07",
-      "area": "node",
-      "status": "info",
-      "match": "| `Approval required` |",
-      "symptom": "mutación sin token",
-      "cause": "falta approvalToken",
-      "fix": "civil3d_request_approval",
-      "checks": [
-        {
-          "type": "vitest",
-          "file": "tests/approval_policy.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "approval-token-mismatch",
-      "since": "2026-07",
-      "area": "node",
-      "status": "info",
-      "match": "byte-idénticos",
-      "symptom": "Approval token does not match",
-      "cause": "parámetros distintos / dibujo cambió / >5 min",
-      "fix": "token nuevo inmediatamente antes",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/approvalPolicy.ts",
-          "pattern": "does not match this tool action"
-        }
-      ]
-    },
-    {
-      "id": "approval-single-action",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "herramienta de UNA acción",
-      "symptom": "token no coincide en herramientas de una acción aunque el payload es igual",
-      "cause": "action dentro de parameters, o action = nombre de la herramienta; el token se consume",
-      "fix": "action = acción interna (delete_pipe_network), parameters = solo args",
-      "checks": [
-        {
-          "type": "skill-grep",
-          "file": "SKILL.md",
-          "pattern": "Regla general \\(validada 2026-09-28\\)"
-        },
-        {
-          "type": "repo-grep",
-          "file": "src/tools/domains/pipeDomain.ts",
-          "pattern": "supportedActions: \\[\"delete_pipe_network\"\\]"
-        }
-      ]
-    },
-    {
-      "id": "label-list-limited",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "open",
-      "match": "solo devuelve `ALGN START`",
-      "symptom": "civil3d_label list no lista labels de estación mayor/menor",
-      "cause": "el handler solo ve StationOffsetLabels",
-      "fix": "verificar en plot / LIST del usuario",
-      "checks": []
-    },
-    {
-      "id": "classifier-blocked",
-      "since": "2026-08-05",
-      "area": "process",
-      "status": "process",
-      "match": "Blocked by classifier",
-      "symptom": "auto-mode bloquea",
-      "cause": "clasificador de Claude Code",
-      "fix": "permisos/autoMode.allow por el usuario",
-      "checks": []
-    },
-    {
-      "id": "response-shape",
-      "since": "2026-07-18",
-      "area": "plugin",
-      "status": "info",
-      "match": "expected object, received array",
-      "symptom": "respuesta inválida del handler",
-      "cause": "forma distinta del responseSchema",
-      "fix": "arreglar el C# y redesplegar capa 1",
-      "checks": []
-    },
-    {
-      "id": "method-not-found",
-      "since": "2026-07",
-      "area": "deploy",
-      "status": "process",
-      "match": "`CIVIL3D.METHOD_NOT_FOUND`",
-      "symptom": "método no implementado",
-      "cause": "DLL viejo o falta case en el dispatcher",
-      "fix": "redesplegar capa 1",
-      "checks": [],
-      "note": "cubierto por el chequeo integrado deploy:dll-methods"
-    },
-    {
-      "id": "tool-missing-toolsearch",
-      "since": "2026-07-19",
-      "area": "deploy",
-      "status": "process",
-      "match": "Herramienta nueva ausente en `ToolSearch`",
-      "symptom": "tool nueva no aparece",
-      "cause": "falta una de las 3 capas",
-      "fix": "verify-deploy + reiniciar Claude Desktop",
-      "checks": [],
-      "note": "cubierto por deploy:extension-mirror y deploy:claude-restart"
-    },
-    {
-      "id": "plugin-not-loading",
-      "since": "2026-07",
-      "area": "deploy",
-      "status": "process",
-      "match": "el plugin no carga",
-      "symptom": "Civil 3D arranca sin plugin",
-      "cause": "bundle mal nombrado / DLL bloqueado / diálogo",
-      "fix": "PackageContents.xml correcto",
-      "checks": [
-        {
-          "type": "file-exists",
-          "path": "C:\\ProgramData\\Autodesk\\ApplicationPlugins\\Civil3DMcpPlugin.bundle\\PackageContents.xml"
-        }
-      ]
-    },
-    {
-      "id": "idle-socket-warn",
-      "since": "2026-07",
-      "area": "plugin",
-      "status": "info",
-      "match": "did not send a complete request",
-      "symptom": "warning RpcTcpServer",
-      "cause": "socket ocioso",
-      "fix": "inofensivo",
-      "checks": []
-    },
-    {
-      "id": "npm-test-node",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "fixed",
-      "match": "`styleText`",
-      "symptom": "npm test falla",
-      "cause": "Node viejo / falta binario rolldown",
-      "fix": "Node >= 20 + @rolldown/binding-win32-x64-msvc",
-      "checks": [
-        {
-          "type": "node-version",
-          "min": 20
-        }
-      ]
-    },
-    {
-      "id": "structure-junction",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "The structure's type should be junction",
-      "symptom": "add_structure falla",
-      "cause": "partName no es cilíndrica",
-      "fix": "Concentric/Eccentric Cylindrical Structure",
-      "checks": []
-    },
-    {
-      "id": "retrieve-attribute",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "info",
-      "match": "`civil3d_pipe action:list`",
-      "symptom": "Retrieve attribute failed en red vacía",
-      "cause": "red de gravedad sin partes",
-      "fix": "seguir agregando partes",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/domains/pipeDomain.ts",
-          "pattern": "Retrieve attribute failed"
-        }
-      ]
-    },
-    {
-      "id": "appurtenance-onpipe",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "open",
-      "match": "coloca la válvula en el **punto medio**",
-      "symptom": "onPipeName ignora position",
-      "cause": "inserción sobre el tubo",
-      "fix": "omitir onPipeName",
-      "checks": []
-    },
-    {
-      "id": "corec-onedrive-hang",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "`accoreconsole.exe`) se cuelga",
-      "symptom": "Core Console tarda 6-8+ min",
-      "cause": "DWG en OneDrive",
-      "fix": "copiar a %TEMP% (qc-plot.ps1 lo hace)",
-      "checks": [
-        {
-          "type": "skill-grep",
-          "file": "scripts/qc-plot.ps1",
-          "pattern": "\\$env:TEMP"
-        }
-      ]
-    },
-    {
-      "id": "dim-invisible",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "Cotas BCC-1.0 invisibles",
-      "symptom": "cotas 0.007\" en el PDF",
-      "cause": "cota no anotativa o escala extra 1\"=1'",
-      "fix": "plugin >= 5d395e1",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
-          "pattern": "annotationScale"
-        }
-      ]
-    },
-    {
-      "id": "dim-upside-down",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "Texto de cota al revés",
-      "symptom": "texto de cota invertido",
-      "cause": "faltan overrides",
-      "fix": "dimTad:4, dimTxtDirection:true",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/domains/geometryDomain.ts",
-          "pattern": "dimTxtDirection"
-        }
-      ]
-    },
-    {
-      "id": "mleader-triangle",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "MLeader con \"triángulo\"",
-      "symptom": "guía vuelve sobre el texto",
-      "cause": "plugin viejo",
-      "fix": "plugin >= 1ba92c3 + width",
-      "checks": []
-    },
-    {
-      "id": "mtext-mask",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "Rótulo MText tapado",
-      "symptom": "rótulo tapado por el asfalto",
-      "cause": "sin máscara",
-      "fix": "backgroundMask en create_mtext/update_text_content",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-          "pattern": "backgroundMask"
-        }
-      ]
-    },
-    {
-      "id": "secureload",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "File load canceled",
-      "symptom": "no carga .lsp en Core Console",
-      "cause": "SECURELOAD",
-      "fix": "pegar el LSP dentro del .scr",
-      "checks": []
-    },
-    {
-      "id": "model-space-only",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "Command only valid in Model space",
-      "symptom": "Core Console colgado",
-      "cause": "DWG guardado en un layout",
-      "fix": "TILEMODE 1",
-      "checks": []
-    },
-    {
-      "id": "close-civil3d-invisible-dialog",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "invisible o de fondo",
-      "symptom": "Civil 3D no cierra",
-      "cause": "flag sucio fantasma",
-      "fix": "close-civil3d.ps1 -AllowSave",
-      "checks": [
-        {
-          "type": "skill-grep",
-          "file": "scripts/close-civil3d.ps1",
-          "pattern": "AllowSave"
-        }
-      ]
-    },
-    {
-      "id": "start-tab-hang",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "pestaña **Start**",
-      "symptom": "llamadas vencen en la pestaña Start",
-      "cause": "plugin viejo",
-      "fix": "plugin >= 8ef4fc2",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
-          "pattern": "NO_DRAWING"
-        }
-      ]
-    },
-    {
-      "id": "zod-drops-fields",
-      "since": "2026-09-26",
-      "area": "deploy",
-      "status": "process",
-      "match": "Campo nuevo del esquema TS ignorado",
-      "symptom": "campo nuevo no llega",
-      "cause": "servidor Node en memoria viejo",
-      "fix": "copiar build a la extensión + reiniciar Claude",
-      "checks": [],
-      "note": "cubierto por deploy:extension-mirror"
-    },
-    {
-      "id": "powershell-blocks-replace",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "PowerShell se niega a correr",
-      "symptom": "shell bloquea -replace/del",
-      "cause": "chequeo de seguridad",
-      "fix": "escribir el script con Write",
-      "checks": []
-    },
-    {
-      "id": "backslash-node-e",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "pierde barras",
-      "symptom": "\\P se pierde",
-      "cause": "doble escape",
-      "fix": "script en archivo",
-      "checks": []
-    },
-    {
-      "id": "stacked-labels",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "apiladas sobre la calle",
-      "symptom": "labels apiladas",
-      "cause": "labelLocation sin dragged:true",
-      "fix": "build >= 2026-09-26 16:14 (dragged por defecto)",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
-          "pattern": "dragged"
-        }
-      ]
-    },
-    {
-      "id": "mleader-oneline",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "una sola línea larga cruzando textos",
-      "symptom": "MLeader sin width",
-      "cause": "creado sin width",
-      "fix": "recrear con width del paquete",
-      "checks": []
-    },
-    {
-      "id": "mleader-rotation-scale",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "sale de lado / 1.4× más grande",
-      "symptom": "MLeader mal orientado/escala",
-      "cause": "rotation 0 / height 2",
-      "fix": "usar el rol del estándar",
-      "checks": [
-        {
-          "type": "skill-grep",
-          "file": "references/standards/formtech-c300.json",
-          "pattern": "existingUtilityLeader"
-        }
-      ]
-    },
-    {
-      "id": "mleader-clipped",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "cortado por el borde del viewport",
-      "symptom": "texto fuera del viewport",
-      "cause": "posición del paquete",
-      "fix": "update_text_content x/y/rotation",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-          "pattern": "leaderX"
-        }
-      ]
-    },
-    {
-      "id": "off-0-R",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "`OFF: 0.00'R`",
-      "symptom": "OFF con sufijo R",
-      "cause": "estructura 1e-4 ft a la derecha",
-      "fix": "override sin Structure Offset Side",
-      "checks": []
-    },
-    {
-      "id": "viewport-annoscale",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "`acad_list_viewports` → `annotationScale",
-      "symptom": "viewport con escala 1\"=1'",
-      "cause": "creado con build viejo",
-      "fix": "acad_layout set_viewport_scale",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/domains/geometryDomain.ts",
-          "pattern": "set_viewport_scale"
-        },
-        {
-          "type": "rpc",
-          "method": "listViewports",
-          "params": {
-            "layout": "C-300"
-          },
-          "contains": [
-            "annotationScale"
-          ],
-          "skipIfError": true
-        }
-      ]
-    },
-    {
-      "id": "close-civil3d-discard",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "un solo fragmento por parámetro",
-      "symptom": "close-civil3d se detiene con STOP",
-      "cause": "otro documento pregunta guardar",
-      "fix": "-Discard '<fragmento>'",
-      "checks": []
-    },
-    {
-      "id": "unsigned-dialog",
-      "since": "2026-09-26",
-      "area": "process",
-      "status": "process",
-      "match": "Unsigned Executable File` (cambia con cada DLL)",
-      "symptom": "puerto 8080 cerrado tras instalar DLL",
-      "cause": "diálogo de seguridad",
-      "fix": "lo aprueba el usuario",
-      "checks": []
-    },
-    {
-      "id": "selected-objects-empty",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "open",
-      "match": "devuelven `[]` aunque",
-      "symptom": "selección implícita vacía",
-      "cause": "SelectImplied no ve la selección desde el hilo del plugin",
-      "fix": "PrintWindow o LIST del usuario",
-      "checks": []
-    },
-    {
-      "id": "eg-boundary-green-line",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "Una línea verde alrededor",
-      "symptom": "línea verde alrededor del sitio",
-      "cause": "borde del TIN EG (C-TINN-BNDY)",
-      "fix": "congelar la capa",
-      "checks": []
-    },
-    {
-      "id": "pipe-list-unexpected-error",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "The Civil 3D plugin encountered an unexpected error",
-      "symptom": "pipe list/get falla en redes vacías",
-      "cause": "Retrieve attribute failed",
-      "fix": "civil3d_pipe_network_delete {name}",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/domains/pipeDomain.ts",
-          "pattern": "delete_pipe_network"
-        },
-        {
-          "type": "rpc",
-          "method": "deletePipeNetwork",
-          "params": {
-            "name": "__integrity_no_such_network__"
-          },
-          "expectError": "was not found"
-        }
-      ]
-    },
-    {
-      "id": "erase-entity-kinds",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "`acad_erase_entity` de un Pipe",
-      "symptom": "borrado de piezas Civil",
-      "cause": "Network no es Entity",
-      "fix": "erase_entities / delete_pipe_network",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "eraseEntities",
-          "params": {
-            "handles": [
-              "FFFFFFFFFF"
-            ]
-          },
-          "contains": [
-            "skippedCount"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "sysvar-allowlist",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "info",
-      "match": "\"not on the list\"",
-      "symptom": "set_system_variable rechaza CTAB",
-      "cause": "lista de permitidos",
-      "fix": "el usuario cambia de pestaña",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "setSystemVariable",
-          "params": {
-            "name": "CTAB",
-            "value": "Model"
-          },
-          "expectError": "not on the list"
-        }
-      ]
-    },
-    {
-      "id": "close-civil3d-other-doc",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "documento abierto (p. ej. la guía)",
-      "symptom": "close-civil3d se detiene",
-      "cause": "la guía tiene 'cambios'",
-      "fix": "que el usuario responda",
-      "checks": []
-    },
-    {
-      "id": "start-process-drawing1",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "abre `Drawing1.dwg` y el puerto 8080 sigue cerrado",
-      "symptom": "Drawing1 en vez del DWG",
-      "cause": "esperando el diálogo Unsigned",
-      "fix": "aprobar y relanzar",
-      "checks": []
-    },
-    {
-      "id": "unknown-handle",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "`eUnknownHandle`",
-      "symptom": "GetObjectId lanza eUnknownHandle",
-      "cause": "handle inexistente",
-      "fix": "try/catch en eraseEntities",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-          "pattern": "eUnknownHandle"
-        },
-        {
-          "type": "rpc",
-          "method": "eraseEntities",
-          "params": {
-            "handles": [
-              "FFFFFFFFFF"
-            ]
-          },
-          "contains": [
-            "not found or already erased"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "python-backspace",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "carácter de retroceso",
-      "symptom": "\\b en heredoc → ^H",
-      "cause": "cadena sin raw",
-      "fix": "escribir parches con Write",
-      "checks": []
-    },
-    {
-      "id": "label-override-glyphs",
-      "since": "2026-09-26",
-      "area": "plugin",
-      "status": "fixed",
-      "match": "Íconos amarillos grandes",
-      "symptom": "íconos 'i' en Model",
-      "cause": "glifo de override de etiqueta (solo pantalla)",
-      "fix": "set_system_variable LABELOVERRIDEGLYPHS 0",
-      "checks": [
-        {
-          "type": "rpc",
-          "method": "getSystemVariable",
-          "params": {
-            "name": "LABELOVERRIDEGLYPHS"
-          },
-          "contains": [
-            "value"
-          ],
-          "warnIfContains": [
-            "\"value\": 1"
-          ]
-        }
-      ]
-    },
-    {
-      "id": "toolsearch-required-hidden",
-      "since": "2026-09-27",
-      "area": "process",
-      "status": "info",
-      "match": "muestra campos obligatorios como opcionales",
-      "symptom": "ToolSearch oculta required",
-      "cause": "recorte de la vista del cliente",
-      "fix": "no arreglar el esquema TS",
-      "checks": []
-    },
-    {
-      "id": "unsaved-flag-phantom",
-      "since": "2026-09-28",
-      "area": "plugin",
-      "status": "open",
-      "match": "aunque acabas de guardar",
-      "symptom": "get_drawing_info dice unsavedChanges true tras guardar",
-      "cause": "flag sucio fantasma tras cualquier transacción",
-      "fix": "no fiarse del flag; guardar tras la última edición y comprobar la hora del DWG",
-      "checks": []
-    },
-    {
-      "id": "python-heredoc-js-escapes",
-      "since": "2026-09-28",
-      "area": "process",
-      "status": "process",
-      "match": "parcheado desde un heredoc de Python",
-      "symptom": "SyntaxError en .mjs parcheado con Python",
-      "cause": "Python interpreta los escapes dentro de la cadena",
-      "fix": "Edit/Write + node --check",
-      "checks": []
-    },
-    {
-      "id": "nondeterministic-build",
-      "since": "2026-09-28",
-      "area": "deploy",
-      "status": "info",
-      "match": "aunque no cambiaste código",
-      "symptom": "hash distinto entre bin/Release y ProgramData",
-      "cause": "build no determinista",
-      "fix": "comparar mtime de .cs vs DLL instalado (integrity-check y deploy-all)",
-      "checks": [
-        {
-          "type": "skill-grep",
-          "file": "scripts/deploy-all.ps1",
-          "pattern": "not byte-deterministic"
-        }
-      ]
-    },
-    {
-      "id": "plan-approval-order",
-      "since": "2026-09-28",
-      "area": "node",
-      "status": "fixed",
-      "match": "Plan steps must run in order",
-      "symptom": "paso de un plan rechazado",
-      "cause": "orden/documento/parámetros/expiración",
-      "fix": "pedir un plan nuevo",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "src/tools/approvalPolicy.ts",
-          "pattern": "requestPlan"
-        },
-        {
-          "type": "vitest",
-          "file": "tests/approval_policy.test.ts"
-        }
-      ]
-    },
-    {
-      "id": "fase1-audit-layer-reader",
-      "since": "2026-09-28",
-      "area": "deploy",
-      "status": "fixed",
-      "match": "layer reader is unavailable",
-      "symptom": "audit sin estado de capas en vivo",
-      "cause": "DLL anterior a listLayers",
-      "fix": "deploy-all.ps1 -Go",
-      "checks": [
-        {
-          "type": "repo-grep",
-          "file": "Civil3D-MCP-Plugin/LayerXrefCommands.cs",
-          "pattern": "ListLayersAsync"
-        },
-        {
-          "type": "vitest",
-          "file": "tests/fase1_audit.test.ts"
-        },
-        {
-          "type": "rpc",
-          "method": "listLayers",
-          "params": {
-            "name": "C-TINN-BNDY",
-            "includeXref": false
-          },
-          "contains": [
-            "layers"
-          ]
-        }
-      ]
+     "type": "vitest",
+     "file": "tests/approval_policy.test.ts"
     }
-  ]
+   ]
+  },
+  {
+   "id": "connect-failed",
+   "since": "2026-07",
+   "area": "deploy",
+   "status": "process",
+   "match": "Failed to connect to Civil 3D plugin",
+   "symptom": "CIVIL3D.UNAVAILABLE",
+   "cause": "nadie escucha en 8080",
+   "fix": "c3d-health.ps1; C3DMCPSTART",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "getCivil3DHealth",
+     "params": {},
+     "contains": [
+      "connected"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "connect-timeout",
+   "since": "2026-07",
+   "area": "deploy",
+   "status": "process",
+   "match": "timed out after 5000ms",
+   "symptom": "conexión no acepta",
+   "cause": "acad saturado/arrancando",
+   "fix": "esperar y reintentar una vez",
+   "checks": []
+  },
+  {
+   "id": "command-timeout",
+   "since": "2026-07",
+   "area": "process",
+   "status": "process",
+   "match": "Command timed out after 120000ms",
+   "symptom": "TIMEOUT del comando",
+   "cause": "diálogo modal o comando pesado",
+   "fix": "NO reintentar; civil3d_health; pedir mirar la ventana",
+   "checks": []
+  },
+  {
+   "id": "modal-dialog-30s",
+   "since": "2026-07",
+   "area": "process",
+   "status": "process",
+   "match": "una operación lleva más de 30 s",
+   "symptom": "operación >30 s",
+   "cause": "diálogo modal",
+   "fix": "el usuario lo cierra",
+   "checks": []
+  },
+  {
+   "id": "host-busy",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "host queue is full",
+   "symptom": "HOST_BUSY",
+   "cause": "cola llena",
+   "fix": "esperar",
+   "checks": []
+  },
+  {
+   "id": "no-drawing",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "CIVIL3D.NO_DRAWING",
+   "symptom": "sin documento activo",
+   "cause": "Start tab / sin dibujo",
+   "fix": "abrir un DWG; plugin >= 8ef4fc2 responde NO_DRAWING sin colgarse",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
+     "pattern": "NO_DRAWING"
+    }
+   ]
+  },
+  {
+   "id": "schema-dialect",
+   "since": "2026-09-25",
+   "area": "node",
+   "status": "fixed",
+   "match": "unsupported dialect",
+   "symptom": "todas las herramientas: outputSchema con dialecto no soportado",
+   "cause": "draft-07 vs 2020-12",
+   "fix": "src/utils/schemaDialect.ts quita $schema en tools/list",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/utils/schemaDialect.ts",
+     "pattern": "\\$schema"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/schema_dialect.test.ts"
+    }
+   ]
+  },
+  {
+   "id": "drawing-changed-queued",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "while the operation was queued",
+   "symptom": "cambio de pestaña con operación en cola",
+   "cause": "el usuario cambió de documento",
+   "fix": "reenfocar y repetir",
+   "checks": []
+  },
+  {
+   "id": "object-not-found",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "CIVIL3D.OBJECT_NOT_FOUND",
+   "symptom": "handle/nombre inexistente o documento equivocado",
+   "cause": "otro documento o nombre mal",
+   "fix": "relistar",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "deletePipeNetwork",
+     "params": {
+      "name": "__integrity_no_such_network__"
+     },
+     "expectError": "was not found"
+    }
+   ]
+  },
+  {
+   "id": "invalid-input",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "`CIVIL3D.INVALID_INPUT`",
+   "symptom": "parámetro inválido",
+   "cause": "handle no hex, etc.",
+   "fix": "corregir payload",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "eraseEntities",
+     "params": {
+      "handles": [
+       "ZZZ"
+      ]
+     },
+     "expectError": "not a valid hexadecimal"
+    }
+   ]
+  },
+  {
+   "id": "path-not-allowed",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "`CIVIL3D.PATH_NOT_ALLOWED`",
+   "symptom": "ruta fuera de las raíces permitidas",
+   "cause": "CIVIL3D_FILE_ROOTS",
+   "fix": "ruta permitida",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/FileBoundary.cs",
+     "pattern": "PATH_NOT_ALLOWED"
+    }
+   ]
+  },
+  {
+   "id": "approval-required",
+   "since": "2026-07",
+   "area": "node",
+   "status": "info",
+   "match": "| `Approval required` |",
+   "symptom": "mutación sin token",
+   "cause": "falta approvalToken",
+   "fix": "civil3d_request_approval",
+   "checks": [
+    {
+     "type": "vitest",
+     "file": "tests/approval_policy.test.ts"
+    }
+   ]
+  },
+  {
+   "id": "approval-token-mismatch",
+   "since": "2026-07",
+   "area": "node",
+   "status": "info",
+   "match": "byte-idénticos",
+   "symptom": "Approval token does not match",
+   "cause": "parámetros distintos / dibujo cambió / >5 min",
+   "fix": "token nuevo inmediatamente antes",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/approvalPolicy.ts",
+     "pattern": "does not match this tool action"
+    }
+   ]
+  },
+  {
+   "id": "approval-single-action",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "herramienta de UNA acción",
+   "symptom": "token no coincide en herramientas de una acción aunque el payload es igual",
+   "cause": "action dentro de parameters, o action = nombre de la herramienta; el token se consume",
+   "fix": "action = acción interna (delete_pipe_network), parameters = solo args",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "SKILL.md",
+     "pattern": "Regla general \\(validada 2026-09-28\\)"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/pipeDomain.ts",
+     "pattern": "supportedActions: \\[\"delete_pipe_network\"\\]"
+    }
+   ]
+  },
+  {
+   "id": "label-list-limited",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "open",
+   "match": "solo devuelve `ALGN START`",
+   "symptom": "civil3d_label list no lista labels de estación mayor/menor",
+   "cause": "el handler solo ve StationOffsetLabels",
+   "fix": "verificar en plot / LIST del usuario",
+   "checks": []
+  },
+  {
+   "id": "classifier-blocked",
+   "since": "2026-08-05",
+   "area": "process",
+   "status": "process",
+   "match": "Blocked by classifier",
+   "symptom": "auto-mode bloquea",
+   "cause": "clasificador de Claude Code",
+   "fix": "permisos/autoMode.allow por el usuario",
+   "checks": []
+  },
+  {
+   "id": "response-shape",
+   "since": "2026-07-18",
+   "area": "plugin",
+   "status": "info",
+   "match": "expected object, received array",
+   "symptom": "respuesta inválida del handler",
+   "cause": "forma distinta del responseSchema",
+   "fix": "arreglar el C# y redesplegar capa 1",
+   "checks": []
+  },
+  {
+   "id": "method-not-found",
+   "since": "2026-07",
+   "area": "deploy",
+   "status": "process",
+   "match": "`CIVIL3D.METHOD_NOT_FOUND`",
+   "symptom": "método no implementado",
+   "cause": "DLL viejo o falta case en el dispatcher",
+   "fix": "redesplegar capa 1",
+   "checks": [],
+   "note": "cubierto por el chequeo integrado deploy:dll-methods"
+  },
+  {
+   "id": "tool-missing-toolsearch",
+   "since": "2026-07-19",
+   "area": "deploy",
+   "status": "process",
+   "match": "Herramienta nueva ausente en `ToolSearch`",
+   "symptom": "tool nueva no aparece",
+   "cause": "falta una de las 3 capas",
+   "fix": "verify-deploy + reiniciar Claude Desktop",
+   "checks": [],
+   "note": "cubierto por deploy:extension-mirror y deploy:claude-restart"
+  },
+  {
+   "id": "plugin-not-loading",
+   "since": "2026-07",
+   "area": "deploy",
+   "status": "process",
+   "match": "el plugin no carga",
+   "symptom": "Civil 3D arranca sin plugin",
+   "cause": "bundle mal nombrado / DLL bloqueado / diálogo",
+   "fix": "PackageContents.xml correcto",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "C:\\ProgramData\\Autodesk\\ApplicationPlugins\\Civil3DMcpPlugin.bundle\\PackageContents.xml"
+    }
+   ]
+  },
+  {
+   "id": "idle-socket-warn",
+   "since": "2026-07",
+   "area": "plugin",
+   "status": "info",
+   "match": "did not send a complete request",
+   "symptom": "warning RpcTcpServer",
+   "cause": "socket ocioso",
+   "fix": "inofensivo",
+   "checks": []
+  },
+  {
+   "id": "npm-test-node",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "fixed",
+   "match": "`styleText`",
+   "symptom": "npm test falla",
+   "cause": "Node viejo / falta binario rolldown",
+   "fix": "Node >= 20 + @rolldown/binding-win32-x64-msvc",
+   "checks": [
+    {
+     "type": "node-version",
+     "min": 20
+    }
+   ]
+  },
+  {
+   "id": "structure-junction",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "The structure's type should be junction",
+   "symptom": "add_structure falla",
+   "cause": "partName no es cilíndrica",
+   "fix": "Concentric/Eccentric Cylindrical Structure",
+   "checks": []
+  },
+  {
+   "id": "retrieve-attribute",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "info",
+   "match": "`civil3d_pipe action:list`",
+   "symptom": "Retrieve attribute failed en red vacía",
+   "cause": "red de gravedad sin partes",
+   "fix": "seguir agregando partes",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/pipeDomain.ts",
+     "pattern": "Retrieve attribute failed"
+    }
+   ]
+  },
+  {
+   "id": "appurtenance-onpipe",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "open",
+   "match": "coloca la válvula en el **punto medio**",
+   "symptom": "onPipeName ignora position",
+   "cause": "inserción sobre el tubo",
+   "fix": "omitir onPipeName",
+   "checks": []
+  },
+  {
+   "id": "corec-onedrive-hang",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "`accoreconsole.exe`) se cuelga",
+   "symptom": "Core Console tarda 6-8+ min",
+   "cause": "DWG en OneDrive",
+   "fix": "copiar a %TEMP% (qc-plot.ps1 lo hace)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/qc-plot.ps1",
+     "pattern": "\\$env:TEMP"
+    }
+   ]
+  },
+  {
+   "id": "dim-invisible",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "Cotas BCC-1.0 invisibles",
+   "symptom": "cotas 0.007\" en el PDF",
+   "cause": "cota no anotativa o escala extra 1\"=1'",
+   "fix": "plugin >= 5d395e1",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
+     "pattern": "annotationScale"
+    }
+   ]
+  },
+  {
+   "id": "dim-upside-down",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "Texto de cota al revés",
+   "symptom": "texto de cota invertido",
+   "cause": "faltan overrides",
+   "fix": "dimTad:4, dimTxtDirection:true",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/geometryDomain.ts",
+     "pattern": "dimTxtDirection"
+    }
+   ]
+  },
+  {
+   "id": "dim-text-ejected",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "Texto de cota corta amontonado o lejos de su línea",
+   "symptom": "una cota corta (p. ej. 5' U.E./PL a escala 1:20) tiene el texto varios pies fuera de su línea, aunque la medida es correcta",
+   "cause": "RecomputeDimensionBlock(true) deja que AutoCAD recalcule la posición del texto con su propio DIMFIT, que puede expulsarlo cuando el texto anotativo no cabe entre las líneas de extensión",
+   "fix": "pasar dimLineX/dimLineY explícitos al crear (plugin respeta el punto, RecomputeDimensionBlock(false)); en una cota ya dibujada, acad_update_text_content {handle,x,y} (case Dimension). Detectado automáticamente por scripts/fase1-audit.mjs check 6.",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
+     "pattern": "hasExplicitDimLine"
+    },
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "case Dimension dim:"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-audit.mjs",
+     "pattern": "dimension text position"
+    }
+   ]
+  },
+  {
+   "id": "mleader-triangle",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "MLeader con \"triángulo\"",
+   "symptom": "guía vuelve sobre el texto",
+   "cause": "plugin viejo",
+   "fix": "plugin >= 1ba92c3 + width",
+   "checks": []
+  },
+  {
+   "id": "mtext-mask",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "Rótulo MText tapado",
+   "symptom": "rótulo tapado por el asfalto",
+   "cause": "sin máscara",
+   "fix": "backgroundMask en create_mtext/update_text_content",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "backgroundMask"
+    }
+   ]
+  },
+  {
+   "id": "secureload",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "File load canceled",
+   "symptom": "no carga .lsp en Core Console",
+   "cause": "SECURELOAD",
+   "fix": "pegar el LSP dentro del .scr",
+   "checks": []
+  },
+  {
+   "id": "model-space-only",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "Command only valid in Model space",
+   "symptom": "Core Console colgado",
+   "cause": "DWG guardado en un layout",
+   "fix": "TILEMODE 1",
+   "checks": []
+  },
+  {
+   "id": "close-civil3d-invisible-dialog",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "invisible o de fondo",
+   "symptom": "Civil 3D no cierra",
+   "cause": "flag sucio fantasma",
+   "fix": "close-civil3d.ps1 -AllowSave",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/close-civil3d.ps1",
+     "pattern": "AllowSave"
+    }
+   ]
+  },
+  {
+   "id": "start-tab-hang",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "pestaña **Start**",
+   "symptom": "llamadas vencen en la pestaña Start",
+   "cause": "plugin viejo",
+   "fix": "plugin >= 8ef4fc2",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
+     "pattern": "NO_DRAWING"
+    }
+   ]
+  },
+  {
+   "id": "zod-drops-fields",
+   "since": "2026-09-26",
+   "area": "deploy",
+   "status": "process",
+   "match": "Campo nuevo del esquema TS ignorado",
+   "symptom": "campo nuevo no llega",
+   "cause": "servidor Node en memoria viejo",
+   "fix": "copiar build a la extensión + reiniciar Claude",
+   "checks": [],
+   "note": "cubierto por deploy:extension-mirror"
+  },
+  {
+   "id": "powershell-blocks-replace",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "PowerShell se niega a correr",
+   "symptom": "shell bloquea -replace/del",
+   "cause": "chequeo de seguridad",
+   "fix": "escribir el script con Write",
+   "checks": []
+  },
+  {
+   "id": "backslash-node-e",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "pierde barras",
+   "symptom": "\\P se pierde",
+   "cause": "doble escape",
+   "fix": "script en archivo",
+   "checks": []
+  },
+  {
+   "id": "stacked-labels",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "apiladas sobre la calle",
+   "symptom": "labels apiladas",
+   "cause": "labelLocation sin dragged:true",
+   "fix": "build >= 2026-09-26 16:14 (dragged por defecto)",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
+     "pattern": "dragged"
+    }
+   ]
+  },
+  {
+   "id": "mleader-oneline",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "una sola línea larga cruzando textos",
+   "symptom": "MLeader sin width",
+   "cause": "creado sin width",
+   "fix": "recrear con width del paquete",
+   "checks": []
+  },
+  {
+   "id": "mleader-rotation-scale",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "sale de lado / 1.4× más grande",
+   "symptom": "MLeader mal orientado/escala",
+   "cause": "rotation 0 / height 2",
+   "fix": "usar el rol del estándar",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "references/standards/formtech-c300.json",
+     "pattern": "existingUtilityLeader"
+    }
+   ]
+  },
+  {
+   "id": "mleader-clipped",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "cortado por el borde del viewport",
+   "symptom": "texto fuera del viewport",
+   "cause": "posición del paquete",
+   "fix": "update_text_content x/y/rotation",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "leaderX"
+    }
+   ]
+  },
+  {
+   "id": "off-0-R",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "`OFF: 0.00'R`",
+   "symptom": "OFF con sufijo R",
+   "cause": "estructura 1e-4 ft a la derecha",
+   "fix": "override sin Structure Offset Side",
+   "checks": []
+  },
+  {
+   "id": "viewport-annoscale",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "`acad_list_viewports` → `annotationScale",
+   "symptom": "viewport con escala 1\"=1'",
+   "cause": "creado con build viejo",
+   "fix": "acad_layout set_viewport_scale",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/geometryDomain.ts",
+     "pattern": "set_viewport_scale"
+    },
+    {
+     "type": "rpc",
+     "method": "listViewports",
+     "params": {
+      "layout": "C-300"
+     },
+     "contains": [
+      "annotationScale"
+     ],
+     "skipIfError": true
+    }
+   ]
+  },
+  {
+   "id": "close-civil3d-discard",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "un solo fragmento por parámetro",
+   "symptom": "close-civil3d se detiene con STOP",
+   "cause": "otro documento pregunta guardar",
+   "fix": "-Discard '<fragmento>'",
+   "checks": []
+  },
+  {
+   "id": "unsigned-dialog",
+   "since": "2026-09-26",
+   "area": "process",
+   "status": "process",
+   "match": "Unsigned Executable File` (cambia con cada DLL)",
+   "symptom": "puerto 8080 cerrado tras instalar DLL",
+   "cause": "diálogo de seguridad",
+   "fix": "lo aprueba el usuario",
+   "checks": []
+  },
+  {
+   "id": "selected-objects-empty",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "open",
+   "match": "devuelven `[]` aunque",
+   "symptom": "selección implícita vacía",
+   "cause": "SelectImplied no ve la selección desde el hilo del plugin",
+   "fix": "PrintWindow o LIST del usuario",
+   "checks": []
+  },
+  {
+   "id": "eg-boundary-green-line",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "Una línea verde alrededor",
+   "symptom": "línea verde alrededor del sitio",
+   "cause": "borde del TIN EG (C-TINN-BNDY)",
+   "fix": "congelar la capa",
+   "checks": []
+  },
+  {
+   "id": "pipe-list-unexpected-error",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "The Civil 3D plugin encountered an unexpected error",
+   "symptom": "pipe list/get falla en redes vacías",
+   "cause": "Retrieve attribute failed",
+   "fix": "civil3d_pipe_network_delete {name}",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/pipeDomain.ts",
+     "pattern": "delete_pipe_network"
+    },
+    {
+     "type": "rpc",
+     "method": "deletePipeNetwork",
+     "params": {
+      "name": "__integrity_no_such_network__"
+     },
+     "expectError": "was not found"
+    }
+   ]
+  },
+  {
+   "id": "erase-entity-kinds",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "`acad_erase_entity` de un Pipe",
+   "symptom": "borrado de piezas Civil",
+   "cause": "Network no es Entity",
+   "fix": "erase_entities / delete_pipe_network",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "eraseEntities",
+     "params": {
+      "handles": [
+       "FFFFFFFFFF"
+      ]
+     },
+     "contains": [
+      "skippedCount"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sysvar-allowlist",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "info",
+   "match": "\"not on the list\"",
+   "symptom": "set_system_variable rechaza CTAB",
+   "cause": "lista de permitidos",
+   "fix": "el usuario cambia de pestaña",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "setSystemVariable",
+     "params": {
+      "name": "CTAB",
+      "value": "Model"
+     },
+     "expectError": "not on the list"
+    }
+   ]
+  },
+  {
+   "id": "close-civil3d-other-doc",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "documento abierto (p. ej. la guía)",
+   "symptom": "close-civil3d se detiene",
+   "cause": "la guía tiene 'cambios'",
+   "fix": "que el usuario responda",
+   "checks": []
+  },
+  {
+   "id": "start-process-drawing1",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "abre `Drawing1.dwg` y el puerto 8080 sigue cerrado",
+   "symptom": "Drawing1 en vez del DWG",
+   "cause": "esperando el diálogo Unsigned",
+   "fix": "aprobar y relanzar",
+   "checks": []
+  },
+  {
+   "id": "unknown-handle",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "`eUnknownHandle`",
+   "symptom": "GetObjectId lanza eUnknownHandle",
+   "cause": "handle inexistente",
+   "fix": "try/catch en eraseEntities",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "eUnknownHandle"
+    },
+    {
+     "type": "rpc",
+     "method": "eraseEntities",
+     "params": {
+      "handles": [
+       "FFFFFFFFFF"
+      ]
+     },
+     "contains": [
+      "not found or already erased"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "python-backspace",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "carácter de retroceso",
+   "symptom": "\\b en heredoc → ^H",
+   "cause": "cadena sin raw",
+   "fix": "escribir parches con Write",
+   "checks": []
+  },
+  {
+   "id": "label-override-glyphs",
+   "since": "2026-09-26",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "Íconos amarillos grandes",
+   "symptom": "íconos 'i' en Model",
+   "cause": "glifo de override de etiqueta (solo pantalla)",
+   "fix": "set_system_variable LABELOVERRIDEGLYPHS 0",
+   "checks": [
+    {
+     "type": "rpc",
+     "method": "getSystemVariable",
+     "params": {
+      "name": "LABELOVERRIDEGLYPHS"
+     },
+     "contains": [
+      "value"
+     ],
+     "warnIfContains": [
+      "\"value\": 1"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "toolsearch-required-hidden",
+   "since": "2026-09-27",
+   "area": "process",
+   "status": "info",
+   "match": "muestra campos obligatorios como opcionales",
+   "symptom": "ToolSearch oculta required",
+   "cause": "recorte de la vista del cliente",
+   "fix": "no arreglar el esquema TS",
+   "checks": []
+  },
+  {
+   "id": "unsaved-flag-phantom",
+   "since": "2026-09-28",
+   "area": "plugin",
+   "status": "open",
+   "match": "aunque acabas de guardar",
+   "symptom": "get_drawing_info dice unsavedChanges true tras guardar",
+   "cause": "flag sucio fantasma tras cualquier transacción",
+   "fix": "no fiarse del flag; guardar tras la última edición y comprobar la hora del DWG",
+   "checks": []
+  },
+  {
+   "id": "python-heredoc-js-escapes",
+   "since": "2026-09-28",
+   "area": "process",
+   "status": "process",
+   "match": "parcheado desde un heredoc de Python",
+   "symptom": "SyntaxError en .mjs parcheado con Python",
+   "cause": "Python interpreta los escapes dentro de la cadena",
+   "fix": "Edit/Write + node --check",
+   "checks": []
+  },
+  {
+   "id": "nondeterministic-build",
+   "since": "2026-09-28",
+   "area": "deploy",
+   "status": "info",
+   "match": "aunque no cambiaste código",
+   "symptom": "hash distinto entre bin/Release y ProgramData",
+   "cause": "build no determinista",
+   "fix": "comparar mtime de .cs vs DLL instalado (integrity-check y deploy-all)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/deploy-all.ps1",
+     "pattern": "not byte-deterministic"
+    }
+   ]
+  },
+  {
+   "id": "plan-approval-order",
+   "since": "2026-09-28",
+   "area": "node",
+   "status": "fixed",
+   "match": "Plan steps must run in order",
+   "symptom": "paso de un plan rechazado",
+   "cause": "orden/documento/parámetros/expiración",
+   "fix": "pedir un plan nuevo",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/approvalPolicy.ts",
+     "pattern": "requestPlan"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/approval_policy.test.ts"
+    }
+   ]
+  },
+  {
+   "id": "fase1-audit-layer-reader",
+   "since": "2026-09-28",
+   "area": "deploy",
+   "status": "fixed",
+   "match": "layer reader is unavailable",
+   "symptom": "audit sin estado de capas en vivo",
+   "cause": "DLL anterior a listLayers",
+   "fix": "deploy-all.ps1 -Go",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/LayerXrefCommands.cs",
+     "pattern": "ListLayersAsync"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_audit.test.ts"
+    },
+    {
+     "type": "rpc",
+     "method": "listLayers",
+     "params": {
+      "name": "C-TINN-BNDY",
+      "includeXref": false
+     },
+     "contains": [
+      "layers"
+     ]
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "fase1-build-active-document",
+   "area": "node",
+   "status": "fixed",
+   "match": "falla en `check active document`",
+   "symptom": "fase1_build escribiría/guardaría en otro documento abierto",
+   "cause": "todo RPC actúa sobre el documento activo",
+   "fix": "expectedDocument/saveAs + guardias antes de escribir y de guardar",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "check active document before save"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "check new drawing is active"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_build.test.ts"
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "fase1-build-titleblock-layout",
+   "area": "node",
+   "status": "fixed",
+   "match": "`titleBlock` edita un texto de OTRO layout",
+   "symptom": "titleBlock edita un texto de otro layout",
+   "cause": "listTextEntities ignora el layout",
+   "fix": "filtro por layout en TS + ambigüedad = FAIL",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "listTextEntities has no layout filter of its own"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_build.test.ts"
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "template-outside-roots",
+   "area": "process",
+   "status": "fixed",
+   "match": "The import path is outside the configured roots",
+   "symptom": "civil3d_drawing new rechaza la plantilla",
+   "cause": "plantilla fuera de las raíces del plugin (Documentos)",
+   "fix": "plantilla en la carpeta del proyecto; los scripts lo rechazan antes",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-prep-template.ps1",
+     "pattern": "AllowOutsideRoots"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-build-payload.mjs",
+     "pattern": "outside the plugin.s file roots"
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "spec-project-schema1-window",
+   "area": "skill",
+   "status": "fixed",
+   "match": "`c300-build-spec.mjs --project project.json` falla",
+   "symptom": "spec falla o toma otro sitio",
+   "cause": "solo aceptaba la entrada plana; sin window usaba todo el X-TOPO",
+   "fix": "lee schema 1 + window derivado alrededor de lotPoint",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-build-spec.mjs",
+     "pattern": "c300Input\\(rawProject\\)"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-build-spec.mjs",
+     "pattern": "function deriveWindow"
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "fase1-notes-orphan-glyphs",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "queda huérfano en la hoja",
+   "symptom": "glifos (NOT PART OF M-WASD NOTES…) huérfanos tras acortar las notas",
+   "cause": "cuelgan del encabezado que sube",
+   "fix": "fase1_build mide la nota (extents) y mueve lo que quedó en la franja",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "AddTextExtents"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "async function shiftOrphans"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_build.test.ts"
+    }
+   ]
+  },
+  {
+   "since": "2026-09-28",
+   "id": "prop-notes-single-source",
+   "area": "skill",
+   "status": "fixed",
+   "match": "La regla de notas PROP del script y la del tool nativo",
+   "symptom": "script y tool divergen",
+   "cause": "dos copias de la lógica",
+   "fix": "una sola: fase1PropNotes.ts; el script importa build/",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-strip-prop-notes.mjs",
+     "pattern": "build/tools/domains/fase1PropNotes.js"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Audit.ts",
+     "pattern": "from \"./fase1PropNotes.js\""
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_prop_notes.test.ts"
+    }
+   ]
+  }
+ ]
 }

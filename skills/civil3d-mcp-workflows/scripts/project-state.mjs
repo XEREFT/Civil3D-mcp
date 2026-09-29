@@ -8,8 +8,9 @@
 //   node project-state.mjs decide <dir> "decision the user made"                 append to decisions (with today's date)
 //   node project-state.mjs list  [--root "<...>\AUTOCAD @XEREFT"] [--json]      table of every project under the root
 //   node project-state.mjs validate [--root ...]                                 issues across projects (exit 1 on ERROR)
-//   node project-state.mjs spec  <dir>                                           prints the input JSON of c300-build-spec.mjs (--project) built from project.json
-//                                                                                (needs site.window [xmin,ymin,xmax,ymax] and site.lotPoint [x,y] set with `set`)
+//   node project-state.mjs spec  <dir>                                           prints the flat input of c300-build-spec.mjs built from project.json (that script
+//                                                                                also reads project.json directly). Needs site.lotPoint [x,y]; site.window
+//                                                                                [xmin,ymin,xmax,ymax] is optional (derived from the X-TOPO cluster when missing)
 // Schema (version 1) — every field optional except schema/name:
 //   { schema, name, projectNo, agrNo, phase (1..4), status ("new"|"in-progress"|"delivered"),
 //     deliverables:{ dwg, pdf, layout }, subject:{ address, folio, use, gpd, pb, units, sf },
@@ -142,8 +143,8 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import
   } else if (cmd === "spec") {
     const p = dir && loadProject(dir); if (!p) fail("no project.json");
     const spec = c300Input(p);
-    const missing = ["address", "window", "lotPoint"].filter((k) => !spec[k]).concat(["pa.folio", "property.use", "property.gpd"].filter((k) => !k.split(".").reduce((o, x) => o?.[x], spec)));
-    if (missing.length) console.error(`WARN missing: ${missing.join(", ")} (set them: node project-state.mjs set <dir> subject.address=... site.window=[..] site.lotPoint=[..])`);
+    const missing = ["address", "lotPoint"].filter((k) => !spec[k]).concat(["pa.folio", "pa.plat", "property.use", "property.gpd"].filter((k) => !k.split(".").reduce((o, x) => o?.[x], spec)));
+    if (missing.length) console.error(`WARN missing: ${missing.join(", ")} (set them: node project-state.mjs set <dir> subject.address=... site.lotPoint=[..]; site.window is optional)`);
     console.log(JSON.stringify(spec, null, 2));
   } else if (cmd === "list") {
     const rows = discoverProjects(root).map((f) => {

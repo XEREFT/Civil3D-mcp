@@ -1,0 +1,12 @@
+---
+description: Dibuja el C-300 Fase 1 de un proyecto en UNA llamada (civil3d_workflow_fase1_build) a partir de su carpeta — dump de X-TOPO, spec, payload, aprobación, build, auditoría y entrega
+argument-hint: "<carpeta del proyecto> [--dwg \"NOMBRE FASE 1.dwg\"] [--template <.dwg>] [--no-template]"
+---
+Trabaja en español. Construye la hoja C-300 Fase 1 del proyecto en: $ARGUMENTS (carpeta con project.json, X-TOPO/X-UTIL/X-ARCH y `_template.dwg` de `/proyecto-nuevo`). Skill `civil3d-mcp-workflows`: `references/tool-index.md` (entrada `civil3d_workflow_fase1_build`) y `references/c300-water-sewer-plan.md` §7/§9. Nunca uses datos de la guía; nunca guardes ni cierres la guía.
+
+1. Arranque: `civil3d_health` + `acad_list_open_documents` (anota qué hay abierto: la guía o una FASE 1 entregada pueden estar abiertas). `node ~/.claude/skills/civil3d-mcp-workflows/scripts/project-state.mjs show <carpeta>`: si falta `site.lotPoint`, sácalo del Property Appraiser (`pa-lookup.mjs --xy`) y guárdalo con `project-state.mjs set`.
+2. Payload: `node ~/.claude/skills/civil3d-mcp-workflows/scripts/fase1-build-payload.mjs --dir "<carpeta>" [args]` (dump X-TOPO + spec con window automático + payload). Muéstrame el resumen (destino, plantilla, xrefs, alineamiento, giro) antes de seguir. Si el script se niega (destino ya existe, plantilla fuera de las raíces del plugin), pregúntame; no lo fuerces.
+3. Lee el `payload.json` que imprimió y úsalo IDÉNTICO en las dos llamadas: `civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<payload>}` y luego `civil3d_workflow_fase1_build {<payload>, approvalToken}`. El tool abre la plantilla, comprueba el documento activo antes de escribir y antes de guardar, adjunta xrefs, alineamiento BCC, `_cl`, entidades, giros, limpia las notas PROP (y sube lo que quedó debajo) y guarda.
+4. Revisa `outputs.steps[]`. Si hay FAIL: dime el paso exacto y su detalle; no reintentes el payload completo (lo ya hecho no se deshace ni se duplica solo).
+5. `civil3d_workflow_fase1_audit` (0 FAIL). Lo que el spec no cubre (etiquetas de utilidades, símbolos PL, U.E., replay del paquete, title block) sigue la receta §9 paso 7-10; pregúntame si lo hago ahora.
+6. Cierre: `/fase1` (o `node .../scripts/fase1-finish.mjs`) hasta READY, `project-state.mjs log`, memoria del proyecto, `integrity-check.mjs` 0 FAIL.

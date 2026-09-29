@@ -1,10 +1,45 @@
-# Automatización: qué ya corre solo y qué sigue (actualizado 2026-09-28)
+# Automatización: qué ya corre solo y qué sigue (actualizado 2026-09-28 noche)
+
+## Auditoría 2026-09-28 (noche): cómo llegar a "Villa One Fase 1" con menos recursos en cada proyecto nuevo
+Disparada por: un bug real de cotas encontrado a mano (comparando VILLA ONE contra su guía) que un chequeo automático
+debería haber visto solo. Diagnóstico: **sí existía** el chequeo (script `fase1-audit.mjs`), pero **no** en la
+herramienta nativa `civil3d_workflow_fase1_audit` (la que usan los subagentes sin Bash) — las dos rutas se habían
+desincronizado sin que nada lo avisara. Cerrado esta sesión:
+- Chequeo #6 (texto de cota desprendido de su línea) portado a `fase1Audit.ts` (antes solo en el script) — commit local `dcfb89e`. Necesita desplegar capa Node + reiniciar Claude Desktop para que la herramienta nativa lo traiga en vivo (el script ya lo tiene).
+- **Nuevo meta-chequeo en `integrity-check.mjs`** ("`fase1-audit.mjs == fase1Audit.ts checks`"): compara los nombres de chequeo literales entre el script y la herramienta nativa; FAIL/WARN si alguno tiene uno que el otro no. Así esta clase de bug (un chequeo agregado a una sola de las dos rutas) no vuelve a pasar desapercibida.
+
+### Medidas propuestas — estado tras la construcción de A (2026-09-28 noche)
+| # | Propuesta | Impacto | Esfuerzo | Estado |
+|---|---|---|---|---|
+| A | **`civil3d_workflow_fase1_build` nativo** | Muy alto | Alto | **CONSTRUIDO y VALIDADO en vivo 2026-09-28**; sus 5 brechas + 2 más **arregladas y automatizadas** la misma noche (`/fase1-build`). Ver detalle abajo. |
+| B | **`civil3d_workflow_project_qc` nativo**: fusionar `fase1_audit` + los 4 `civil3d_qc_check_*` + `drawing_readiness_audit` en una sola llamada de QC. | Medio (ahorra ~5 llamadas en la fase 4) | Medio | Sin construir. Solo tiene sentido una vez que fase 2-4 se retomen en otro proyecto real. |
+| C | **Ampliar el meta-chequeo de deriva** a otros pares script/nativo que puedan existir a futuro. | Bajo esfuerzo, protección genérica | Bajo | Sin construir. Solo aplica cuando aparezca un segundo caso real. |
+| D | **`project.json` con un campo `dimensionStyle`/`shortDimensionFix` explícito** por proyecto (escala de hoja distinta de 1:20). | Bajo | Muy bajo | Sin construir. Ningún proyecto real lo ha necesitado aún. |
+
+### A — `civil3d_workflow_fase1_build` (CONSTRUIDO y VALIDADO en vivo 2026-09-28)
+- Consolida en **1 llamada** los pasos 6-13 del §7 (`c300-water-sewer-plan.md`): abrir plantilla, guardar-como, adjuntar xrefs (Overlay), crear el alineamiento (con estilo/labelSet), importar la definición del bloque `_cl` y colocar el resto del lote de entidades, girar el viewport C-300 y la pestaña Model, editar texto del cuadro de título por subcadena, guardar.
+- Sin código C# nuevo: orquesta RPC ya existentes (`newDrawing`, `saveDrawing`, `attachXref`, `createAlignment`, `insertBlockReference`, `createEntities`, `setViewportTwist`, `listTextEntities`, `updateTextContent`) — igual patrón que `fase1_audit` (TS puro, `src/tools/domains/fase1Build.ts`, probado con cliente falso en `tests/fase1_build.test.ts`, 7 pruebas nuevas, 446 en total).
+- Se detiene en el primer paso que falla; los siguientes quedan `skipped`; nada de lo ya hecho se deshace o reintenta solo.
+- A propósito NO lee X-TOPO/PA/as-builts — eso lo sigue haciendo `c300-build-spec.mjs`/`pa-lookup.mjs`/`poc-extract.mjs` (Node, fuera del plugin); este tool solo dibuja el `spec.json` que le pasen.
+- Deploy: capa Node (`server/`) ya copiada; falta el reinicio de Claude Desktop (nombre de tool nuevo — no se puede invocar en la sesión que lo construyó, ni un subagente lo ve).
+- **Validado 2026-09-28** sobre una copia de descarte (`VILLA ONE @XEREFT FASE1-BUILD-TEST.dwg`, luego a la Papelera) con el `spec.json` de VILLA ONE regenerado: **9/9 pasos OK en 1 llamada** (3 xrefs, alineamiento, `_cl`, 18 entidades, giro C-300 + Model, save). Comparado contra `FASE 1.dwg` real (dump de solo lectura): alineamiento 440.00 ft `BCC - ALIGNMENT`, `CDF1` 268.4891° mismo centro/escala, Model 268.4891°, xrefs relativos overlay, CL y `_cl` idénticos a 0.01 ft; rótulos con mismo texto/estilo/altura/rotación (la real los tiene en la posición del replay del paquete). Receta y gotchas en `tool-index.md`.
+- **Brechas encontradas en la validación → ARREGLADAS 2026-09-28 noche** (usuario: "arreglas todo de una vez y lo dejas automatizado"):
+  1. Spec + `project.json` schema 1 → `c300-build-spec.mjs` lo lee directo; `site.window` es opcional (se deriva del grupo de entidades del X-TOPO alrededor de `site.lotPoint`; VILLA ONE da el mismo spec); VILLA ONE ya tiene `site.lotPoint`/`site.window` guardados.
+  2. Notas PROP de la plantilla → paso nativo **"Fase 1 notes"** del tool (default `stripPropNotes:true`): borra las notas PROP fuera de la hoja, reescribe la nota MD-WASD de la hoja y **sube los glifos huérfanos** "(NOT PART OF M-WASD NOTES…)" midiendo la nota antes/después (C# nuevo, solo lectura: `listTextEntities` devuelve `minX/minY/maxX/maxY`). Regla única en `src/tools/domains/fase1PropNotes.ts` (el script `fase1-strip-prop-notes.mjs` la importa de `build/`; la auditoría también). Llamado solo con `{ expectedDocument }` = arreglo en 1 llamada del FAIL de notas de `fase1_audit`.
+  3. Documento activo → `expectedDocument` (o `saveAs`) obligatorio; guardias antes de escribir, antes de guardar y tras `newDrawing` (el "save as" no renombra otro documento).
+  4. Plantilla fuera de las raíces → `c300-prep-template.ps1` y `fase1-build-payload.mjs` la rechazan antes; `new-project.mjs` crea `<proyecto>\_template.dwg` con `-DeleteLayouts C-301`.
+  5. Detalle del giro → "viewport CDF1: twist 359.11° -> 268.4891°, center …, scale …".
+  6. (extra) `titleBlock` ignoraba el layout (`listTextEntities` no filtra por layout) → filtrado en TS + FAIL si el fragmento es ambiguo.
+  7. (extra) Armar el payload a mano (con el tropiezo de las barras invertidas) → **`scripts/fase1-build-payload.mjs --dir <carpeta>`** + comando **`/fase1-build`**; se niega a construir sobre un archivo existente sin `--overwrite`.
+  Tests: 461 en el repo (+15: guardias, layout, notas con el texto real de la plantilla como fixture, huérfanos, giro). 6 entradas nuevas en `known-bugs.json` con chequeos. **Pendiente de despliegue**: DLL (extensión de textos) + Node (`server/`) y reinicio de Claude Desktop — primera corrida en vivo de las guardias/notas en el próximo proyecto o en una copia de descarte.
+- Detalle de payload: `references/tool-index.md` (sección `civil3d_workflow_fase1_build`).
 
 ## Ya automatizado (no volver a preguntar cómo se hace)
 | Necesidad | Cómo se dispara | Qué hace | Dónde |
 |---|---|---|---|
 | Saber si algo se desincronizó (3 capas de despliegue, docs, agentes, memoria, regresiones) | **Hook SessionStart** (silencioso si todo está OK, ~2 s) · `/integridad` · `node scripts/integrity-check.mjs` | 60 bugs conocidos con chequeos + chequeos genéricos | `scripts/integrity-check.mjs`, `references/standards/known-bugs.json` |
 | Cerrar un proyecto en Fase 1 | `/fase1` (guía el flujo completo) · `node scripts/fase1-finish.mjs` (cola posterior al guardado, ~9 s) | dump + audit 0 FAIL + plot + revisión del PDF (0 texto < 5 pt, sin PROP/PROPOSED) + copia a `_QC\` conservando el anterior en `_QC\_prev` | `scripts/fase1-audit.mjs`, `fase1-cleanup-plan.mjs`, `fase1-finish.mjs` |
+| Dibujar el C-300 Fase 1 de un proyecto nuevo | **`/fase1-build <carpeta>`** · `node scripts/fase1-build-payload.mjs --dir <carpeta>` + 1 aprobación + `civil3d_workflow_fase1_build` | dump X-TOPO → spec (window automático) → payload → plantilla, guardias de documento, xrefs, alineamiento BCC, `_cl`, entidades, giros, notas sin PROP (+ glifos huérfanos), guardado | `scripts/fase1-build-payload.mjs`, `c300-build-spec.mjs`, `src/tools/domains/fase1Build.ts` |
 | Desplegar el plugin (3 capas) | `pwsh scripts/deploy-all.ps1` (plan) → `-Go -AllowSave '<dwg>' -Relaunch '<dwg>'` | compila solo si hay .cs más nuevo que el DLL instalado, copia capa 2, cierra Civil 3D con guardas, instala DLL, relanza, espera el 8080, corre integrity-check | `scripts/deploy-all.ps1` (+ agente `civil3d-deploy`) |
 | Registrar lo aprendido | regla en SKILL.md §5.4 | fila en `troubleshooting.md` + entrada en `known-bugs.json` (el check falla si divergen) | skill |
 | Respaldo (skill + agentes + comandos + hook + memoria) | `bash scripts/sync-skill-to-fork.sh "<msg>" --yes` (solo cuando se pide; sube al fork público) | rama `skill/civil3d-mcp-workflows` + espejo privado de memoria | `scripts/sync-skill-to-fork.sh` |
