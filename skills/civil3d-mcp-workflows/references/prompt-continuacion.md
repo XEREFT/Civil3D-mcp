@@ -2,7 +2,7 @@
 Antes de pegarlo (pasos del usuario): cerrar Civil 3D uno mismo (la guía está abierta; Claude nunca la cierra) → que Claude corra `pwsh scripts/deploy-all.ps1 -Go` (instala el DLL con la extensión de textos) → aprobar el diálogo "Unsigned Executable File" → salir del todo de Claude Desktop y abrir un chat nuevo.
 
 ```
-Retomamos civil3d_workflow_fase1_build tras endurecerlo (commit local 0e85bd8, branch local/deploy-acad-plus-schema-fix, sin pushear): guardias de documento activo (expectedDocument), paso nativo de notas PROP con glifos huérfanos, spec con project.json schema 1 + window automático, script fase1-build-payload.mjs y comando /fase1-build. Ya desplegué el DLL y reinicié Claude Desktop. Responde en español.
+Retomamos civil3d_workflow_fase1_build tras endurecerlo (commit 0e85bd8, branch local/deploy-acad-plus-schema-fix, ya subido al fork: PR #16; skill sincronizada con la rama skill/civil3d-mcp-workflows): guardias de documento activo (expectedDocument), paso nativo de notas PROP con glifos huérfanos, spec con project.json schema 1 + window automático, script fase1-build-payload.mjs y comando /fase1-build. Ya desplegué el DLL y reinicié Claude Desktop. Responde en español.
 
 Contexto grabado (no lo rederives): memoria `fase1-build-tool-status`; skill `references/tool-index.md` (entrada civil3d_workflow_fase1_build) y `references/automation-backlog.md` §A.
 
