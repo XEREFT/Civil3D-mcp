@@ -10,3 +10,5 @@ Trabaja en español. Construye la hoja C-300 Fase 1 del proyecto en: $ARGUMENTS 
 4. Revisa `outputs.steps[]`. Si hay FAIL: dime el paso exacto y su detalle; no reintentes el payload completo (lo ya hecho no se deshace ni se duplica solo).
 5. `civil3d_workflow_fase1_audit` (0 FAIL). Lo que el spec no cubre (etiquetas de utilidades, símbolos PL, U.E., replay del paquete, title block) sigue la receta §9 paso 7-10; pregúntame si lo hago ahora.
 6. Cierre: `/fase1` (o `node .../scripts/fase1-finish.mjs`) hasta READY, `project-state.mjs log`, memoria del proyecto, `integrity-check.mjs` 0 FAIL.
+
+Sin Claude (sin créditos, lo corre el usuario en su terminal): `node .../scripts/fase1-build-payload.mjs --dir "<carpeta>"` → `node .../scripts/fase1-build-run.mjs --dir "<carpeta>" --build [--finish]` (mismo código que el tool; pide escribir el nombre del destino; sin probar en vivo todavía). Claude no lo ejecuta: usa los pasos 1-6.

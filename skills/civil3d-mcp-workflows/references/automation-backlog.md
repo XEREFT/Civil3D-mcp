@@ -31,7 +31,9 @@ desincronizado sin que nada lo avisara. Cerrado esta sesión:
   5. Detalle del giro → "viewport CDF1: twist 359.11° -> 268.4891°, center …, scale …".
   6. (extra) `titleBlock` ignoraba el layout (`listTextEntities` no filtra por layout) → filtrado en TS + FAIL si el fragmento es ambiguo.
   7. (extra) Armar el payload a mano (con el tropiezo de las barras invertidas) → **`scripts/fase1-build-payload.mjs --dir <carpeta>`** + comando **`/fase1-build`**; se niega a construir sobre un archivo existente sin `--overwrite`.
-  Tests: 461 en el repo (+15: guardias, layout, notas con el texto real de la plantilla como fixture, huérfanos, giro). 6 entradas nuevas en `known-bugs.json` con chequeos. **Pendiente de despliegue**: DLL (extensión de textos) + Node (`server/`) y reinicio de Claude Desktop — primera corrida en vivo de las guardias/notas en el próximo proyecto o en una copia de descarte.
+  Tests: 461 en el repo (+15: guardias, layout, notas con el texto real de la plantilla como fixture, huérfanos, giro). 6 entradas nuevas en `known-bugs.json` con chequeos. Desplegado (DLL + Node).
+- **Guardias + notas VALIDADAS en vivo 2026-10-01** (copia `FASE1-BUILD-TEST2.dwg`, se conserva en la carpeta de VILLA ONE): 15/15 OK, glifos subidos 45 entidades +7.621, `fase1_audit` 0 FAIL, plot de las notas idéntico al entregado. Las corridas destaparon 2 bugs, ya arreglados con test: campos del esquema que el MCP borraba (`1ec99e2`) y caja falsa del MText que dejaba los glifos abajo sin avisar (`6f8d4c4`). 476 tests.
+- **Sin créditos (2026-10-01, SIN PROBAR):** `scripts/fase1-build-run.mjs` corre el mismo código compilado del tool + la auditoría nativa directo contra el plugin, desde la terminal del usuario (plan en seco por defecto; `--build` pide escribir el nombre del destino en una terminal interactiva; `--finish` encadena `fase1-finish.mjs`). El modo automático de Claude no lo deja correr (es la versión sin token de aprobación); la primera corrida la hace el usuario.
 - Detalle de payload: `references/tool-index.md` (sección `civil3d_workflow_fase1_build`).
 
 ## Ya automatizado (no volver a preguntar cómo se hace)

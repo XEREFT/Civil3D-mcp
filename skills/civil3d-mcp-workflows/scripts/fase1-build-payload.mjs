@@ -112,4 +112,5 @@ payload -> ${out}
  twists      ${payload.twists.map((t) => `${t.layout} ${t.streetAngleDegrees}°`).join(", ")}
  titleBlock  ${payload.titleBlock ? `${payload.titleBlock.length} replacement(s)` : "none (project.json has no titleBlock array)"}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}
- -> civil3d_workflow_fase1_build {<file contents>, approvalToken} -> civil3d_workflow_fase1_audit -> /fase1 (fase1-finish.mjs)`);
+ -> civil3d_workflow_fase1_build {<file contents>, approvalToken} -> civil3d_workflow_fase1_audit -> /fase1 (fase1-finish.mjs)
+NEXT (your terminal, no Claude): node "${join(here, "fase1-build-run.mjs")}" --dir "${dir}" --build [--finish]`);

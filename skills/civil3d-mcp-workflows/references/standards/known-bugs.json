@@ -1142,6 +1142,43 @@
      "file": "tests/fase1_prop_notes.test.ts"
     }
    ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "mtext-extents-false-box",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "dice solo \"rewrote CF80\"",
+   "symptom": "fase1_build no sube los glifos huérfanos y no avisa",
+   "cause": "MText.GeometricExtents da una caja de una línea",
+   "fix": "caja del MText desde ActualWidth/ActualHeight + inserción + rotación; el paso avisa si el fondo no sube",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+     "pattern": "TryGetMTextBox"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "bottom did not move up"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_build.test.ts"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "fase1-build-request-timeout",
+   "area": "process",
+   "status": "process",
+   "match": "devuelve \"Request timed out\"",
+   "symptom": "fase1_build vence a mitad (attachXref)",
+   "cause": "la llamada MCP vence mientras el paso sigue; otra copia con el mismo X-TOPO abierta",
+   "fix": "no reintentar: plugin.log, destino a la Papelera, Civil 3D sin dibujos, repetir",
+   "checks": []
   }
  ]
 }
