@@ -12,6 +12,10 @@
   {
    "date": "2026-10-01",
    "change": "roles.fase1.freezeXrefLayers (X-TOPO|DIM) + roles.fase1.styleDecisions (keep asphalt; label every X-UTIL MH)"
+  },
+  {
+   "date": "2026-10-01",
+   "change": "roles.streetLabel / roles.propertyLabel backgroundMask true (scale 1.2); roles.rowDimension used by default (c300-build-spec), dimTad 4 + dimTxtDirection"
   }
  ],
  "template": {
@@ -118,7 +122,9 @@
    "layer": "C-ANNO",
    "dimStyle": "BCC-1.0",
    "offset": 0,
-   "source": "survey dims on layer DIM (style '1 IN 20'): CL -> each R/W line, one per side (25.00' + 25.00' for a 50' R/W)"
+   "source": "survey dims on layer DIM (style 1 IN 20): CL -> each R/W line, one per side; copied by default since 2026-10-01 (the survey layer X-TOPO|DIM is frozen by the build, so they do not stack); text kept upright on the twisted sheet",
+   "dimTad": 4,
+   "dimTxtDirection": true
   },
   "easementCornerDimension": {
    "kind": "aligned_dimension",
@@ -140,7 +146,10 @@
    "distanceFromIntersectionFt": 90,
    "perStreet": 2,
    "textFormat": "SW {n}TH AVENUE | SW {n}TH STREET (no periods; survey writes S.W. 118TH AVENUE)",
-   "rotationRule": "street direction chosen so (rotation + viewport twist) is 0 deg for the frontage street and 90 deg for cross streets (reads left-to-right / bottom-to-top on the sheet)"
+   "rotationRule": "street direction chosen so (rotation + viewport twist) is 0 deg for the frontage street and 90 deg for cross streets (reads left-to-right / bottom-to-top on the sheet)",
+   "backgroundMask": true,
+   "backgroundScale": 1.2,
+   "maskWhy": "on the sheet the street labels sit on the CL / SAN / WM lines and the subject label on the X-ARCH house: without a background mask they print struck through (throwaway VILLA ONE build 2026-10-01); the approved FASE 1 labels are masked"
   },
   "clSymbol": {
    "kind": "block",
@@ -173,7 +182,9 @@
     "folio/book/page": "scripts/pa-lookup.mjs --xy <point in lot>",
     "units/sf/use/gpd": "project inputs (architect / WASD flow table)"
    },
-   "fase1Note": "Fase 1 label has no 'PROP {units} {sf} SF' line (user 2026-09-28); units/sf are design data and are not printed in Fase 1. The line 'SINGLE FAMILY RESIDENCE' ({use}) and '{gpd} GPD' stay unless the user says otherwise."
+   "fase1Note": "Fase 1 label has no 'PROP {units} {sf} SF' line (user 2026-09-28); units/sf are design data and are not printed in Fase 1. The line 'SINGLE FAMILY RESIDENCE' ({use}) and '{gpd} GPD' stay unless the user says otherwise.",
+   "backgroundMask": true,
+   "backgroundScale": 1.2
   },
   "existingUtilityLeader": {
    "kind": "mleader",

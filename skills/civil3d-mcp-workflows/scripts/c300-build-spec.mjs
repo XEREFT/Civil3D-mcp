@@ -191,14 +191,20 @@ for (const c of cross) {
 }
 pushCl(alStart, add(far.int, mul(uLot, -ext.lengthFromIntersectionFt)));
 
-// 3) R/W dimensions replicated from the survey DIM layer - OFF by default (--rw-dims to enable).
-//    The survey xref already shows its own R/W dims; copying them stacks two dims on top of each other.
-//    The target sheet dimensions R/W at its own stations (engineer's package): replay those with
-//    scripts/replay-from-package.cjs (dimTad 4 + dimTxtDirection, as the package's DSTYLE xdata).
+// 3) R/W dimensions replicated from the survey DIM layer - ON by default since 2026-10-01 (--no-rw-dims to skip).
+//    The survey's own dims (X-TOPO|DIM) are frozen by fase1_build (freezeLayers), so copying them no longer stacks two dims:
+//    the sheet gets clean C-ANNO dims in the firm style, measured by the surveyor (no package / guide needed).
+//    Text reads upright on the twisted sheet: the two points are ordered so the dim direction, seen on the sheet
+//    (model angle + twist), points to the right; dimTad 4 + dimTxtDirection as the approved FASE 1 dims (package DSTYLE).
 const dim = S.rowDimension;
-for (const e of ents.filter((x) => args['rw-dims'] && x.type === 'DIMENSION' && x.layer === 'DIM' && +x.meas > 1)) {
-  const p2 = pt(e.p2);
-  entities.push({ kind: 'aligned_dimension', layer: dim.layer, dimStyle: dim.dimStyle, offset: dim.offset, x1: r4(e.p[0]), y1: r4(e.p[1]), x2: r4(p2[0]), y2: r4(p2[1]) });
+const sheetAngle = (p, q) => { let a = (Math.atan2(q[1] - p[1], q[0] - p[0]) * 180) / Math.PI + twistDeg; a = ((a % 360) + 540) % 360 - 180; return a; };
+for (const e of ents.filter((x) => !args['no-rw-dims'] && x.type === 'DIMENSION' && x.layer === 'DIM' && +x.meas > 1)) {
+  let p1 = e.p, p2 = pt(e.p2);
+  if (!p2) continue;
+  const s = sheetAngle(p1, p2);
+  if (s > 90 || s <= -90) [p1, p2] = [p2, p1];
+  entities.push({ kind: 'aligned_dimension', layer: dim.layer, dimStyle: dim.dimStyle, offset: dim.offset, dimTad: dim.dimTad ?? 4, dimTxtDirection: dim.dimTxtDirection ?? true,
+    x1: r4(p1[0]), y1: r4(p1[1]), x2: r4(p2[0]), y2: r4(p2[1]) });
 }
 report.push(`R/W dims from survey: ${entities.filter((e) => e.kind === 'aligned_dimension').length}`);
 
@@ -208,7 +214,8 @@ const sl = S.streetLabel;
 const label = (text, onCl, rotDeg) => {
   const up = dirOf(rotDeg + 90);
   const p = add(onCl, mul(up, sl.height / 2));
-  entities.push({ kind: 'mtext', layer: sl.layer, textStyle: sl.textStyle, height: sl.height, attachment: sl.attachment, rotation: r4(rotDeg * D2R), text, x: r4(p[0]), y: r4(p[1]) });
+  entities.push({ kind: 'mtext', layer: sl.layer, textStyle: sl.textStyle, height: sl.height, attachment: sl.attachment, rotation: r4(rotDeg * D2R), text, x: r4(p[0]), y: r4(p[1]),
+    ...(sl.backgroundMask ? { backgroundMask: true, backgroundScale: sl.backgroundScale ?? 1.2 } : {}) });
 };
 for (const sgn of [1, -1]) label(front.name, add(near.int, mul(u, sgn * sl.distanceFromIntersectionFt)), theta);
 for (const c of cross) {
@@ -241,7 +248,8 @@ const propText = pl.textFormat
   .replace('{units}', project.property.units).replace('{sf}', project.property.sf)
   .replace('{use}', project.property.use).replace('{gpd}', project.property.gpd)
   .replace('{book}', book).replace('{page}', page);
-entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(theta * D2R), text: propText, x: r4(lot[0]), y: r4(lot[1]) });
+entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(theta * D2R), text: propText, x: r4(lot[0]), y: r4(lot[1]),
+  ...(pl.backgroundMask ? { backgroundMask: true, backgroundScale: pl.backgroundScale ?? 1.2 } : {}) });
 
 // 7) Viewport: center on the frontage CL midway between the far intersection and the lot (+25 ft)
 const sFar = dot(sub(far.int, front.origin), u);

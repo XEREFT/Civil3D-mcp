@@ -5,7 +5,8 @@
 //        [--template-from <previous project's C-300.dwg>] [--xy 859852,444852] [--dry-run]
 // Creates <root>\<NAME> @XEREFT\ with _QC, _backup and _reports; copies the base xrefs in as X-TOPO/X-UTIL/X-ARCH.dwg (never moves them);
 // builds _template.dwg from the previous project's C-300 (c300-prep-template.ps1, Core Console on a copy); writes project.json;
-// reads the POC (poc-extract.mjs -> subject data) and, only with --xy, the Property Appraiser (pa-lookup.mjs -> folio/plat, a read-only web query);
+// reads the POC (poc-extract.mjs -> subject data) and ALWAYS the Property Appraiser (pa-site.mjs: cross-checks the POC folio, the address and
+// --xy; writes project.json only on an OK verdict, else lists the candidates — read-only web queries);
 // then prints the exact MCP steps that remain (they need the live Civil 3D session).
 import { existsSync, mkdirSync, copyFileSync } from "node:fs";
 import { join, dirname, resolve, basename } from "node:path";
@@ -63,26 +64,26 @@ if (flag("poc") && !dry) {
   if (r.stderr?.includes("CONFLICTS")) console.log(r.stderr.trim());
 } else if (flag("poc")) console.log("[dry-run] read the POC into project.json");
 
-if (flag("xy") && !dry) {
-  const r = spawnSync("node", [join(here, "pa-lookup.mjs"), "--xy", flag("xy")], { encoding: "utf8", timeout: 60000 });
-  try {
-    const pa = JSON.parse(r.stdout);
-    const hit = (pa.parcels ?? pa.results ?? [pa])[0] ?? {};
-    const p = ps.loadProject(dir);
-    p.sources.pa = pa; p.subject.folio ??= hit.folio; p.subject.pb ??= (hit.plat ?? hit.pb)?.replace?.(/^P\.B\.\s*/i, "");
-    ps.saveProject(dir, p);
-    console.log(`ok   Property Appraiser lookup -> folio ${p.subject.folio ?? "?"}`);
-  } catch { console.log(`WARN Property Appraiser lookup gave no usable JSON (${(r.stderr ?? r.stdout ?? "").slice(-120)})`); }
-}
+// Property Appraiser — ALWAYS (user rule): pa-site.mjs cross-checks the document folio (from the POC above), the address and the lot
+// point (--xy), writes project.json only when the verdict is OK, and otherwise prints the candidates to choose from.
+if (!dry) {
+  const paArgs = [join(here, "pa-site.mjs"), "--dir", dir, "--write", ...(flag("xy") ? ["--xy", flag("xy")] : [])];
+  const r = spawnSync("node", paArgs, { encoding: "utf8", timeout: 120000 });
+  const lines = (r.stdout ?? "").trim().split("\n");
+  console.log(`${r.status === 0 ? "ok  " : "WARN"} Property Appraiser (pa-site.mjs): ${lines[0] ?? ""}`);
+  for (const l of lines.slice(1).filter((l) => /^\s+(\d|note|CONFLICT|chosen)/.test(l))) console.log(`     ${l.trim()}`);
+  if (r.status !== 0 && !lines.length) console.log(`     ${(r.stderr ?? "").slice(-200)}`);
+} else console.log("[dry-run] Property Appraiser: node scripts/pa-site.mjs --dir <project> --write [--xy X,Y]");
 
 const rel = (f) => `${dir}/${f}`;
 console.log(`
 NEXT (recipe = skill references/c300-water-sewer-plan.md section 7 + 9 "Receta Fase 1"; shortcut: /fase1-build):
- 1. site.lotPoint (PA centroid; --xy above or node scripts/pa-lookup.mjs --xy X,Y): node scripts/project-state.mjs set "${dir}" site.lotPoint=[x,y]
-    (site.window is optional: c300-build-spec.mjs derives it from the X-TOPO cluster around lotPoint and prints it)
- 2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + payload for "${folderName} FASE 1.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
- 3. Claude: civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<payload>}
-    -> civil3d_workflow_fase1_build {<payload>, approvalToken}: template, xrefs, alignment BCC, _cl, entities, twists, no-PROP notes, save
- 4. still by hand (other scripts): utility labels (c300-utility-labels.mjs), PL symbols (c300-pl-symbols.mjs), U.E., package replay, title block
+ 1. site.lotPoint: pa-site.mjs above fills it with the parcel centroid when its verdict is OK; if it asked for the lot point or
+    the folio, rerun: node scripts/pa-site.mjs --dir "${dir}" --xy X,Y --write   (U.E.: download the plat P.B./PG it printed from the Clerk)
+ 2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + PL symbols + survey R/W dims + payload for "${folderName} FASE 1.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
+ 3. build (no credits, Civil 3D open with NO drawing): node scripts/fase1-build-run.mjs --dir "${dir}" --build [--finish]
+    (= civil3d_workflow_fase1_build + audit: template, xrefs, freeze X-TOPO|DIM, alignment BCC, _cl, entities, twists, no-PROP notes, save)
+ 4. as-builts (scans): scan-ocr.ps1 -> asbuilt-extract -> asbuilt-associate -> asbuilt-review.py (YOU confirm) -> asbuilt-build -> c300-utility-labels
+    still by hand: U.E. (plat), title block
  5. /fase1 (civil3d_workflow_fase1_audit, then node scripts/fase1-finish.mjs) -> READY
  Then: node scripts/project-state.mjs log "${dir}" "<what you did>" and keep decisions with 'decide'.`);

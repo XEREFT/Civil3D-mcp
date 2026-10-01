@@ -98,6 +98,20 @@ payload.twists = [
   { layout: spec.twist.layout, streetAngleDegrees: spec.twist.streetAngleDegrees, centerX: spec.twist.centerX, centerY: spec.twist.centerY },
   { layout: "Model", streetAngleDegrees: spec.twist.streetAngleDegrees, centerX: r4((a.x + b.x) / 2), centerY: r4((a.y + b.y) / 2) },
 ];
+// PL symbols (etapa 1.6, 2026-10-01): one per lot line shared by two county plat lots inside the C-300 viewport, from the
+// Property Appraiser's Lot_poly (c300-pl-symbols.mjs) -> appended to the same createEntities batch. --no-pl skips; a web failure
+// only warns (the build still runs, the summary says PL 0).
+let plCount = 0, plNote = "";
+if (!has("no-pl")) {
+  const plOut = join(work, "pl.json");
+  const r = spawnSync("node", [join(here, "c300-pl-symbols.mjs"), "--frontage", String(spec.twist.streetAngleDegrees),
+    "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut], { encoding: "utf8" });
+  if (r.status === 0 && existsSync(plOut)) {
+    const pl = JSON.parse(readFileSync(plOut, "utf8")).createEntities?.entities ?? [];
+    payload.entities = [...payload.entities, ...pl];
+    plCount = pl.length;
+  } else plNote = ` (NOT added: ${(r.stderr || r.stdout || "c300-pl-symbols failed").trim().split("\n").pop()})`;
+}
 if (Array.isArray(project.titleBlock) && project.titleBlock.length) payload.titleBlock = project.titleBlock;
 // xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
 payload.freezeLayers = std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"];
@@ -114,6 +128,7 @@ payload -> ${out}
  twists      ${payload.twists.map((t) => `${t.layout} ${t.streetAngleDegrees}°`).join(", ")}
  titleBlock  ${payload.titleBlock ? `${payload.titleBlock.length} replacement(s)` : "none (project.json has no titleBlock array)"}
  freeze      ${payload.freezeLayers.join(", ")}
+ PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}
  -> civil3d_workflow_fase1_build {<file contents>, approvalToken} -> civil3d_workflow_fase1_audit -> /fase1 (fase1-finish.mjs)
 NEXT (your terminal, no Claude): node "${join(here, "fase1-build-run.mjs")}" --dir "${dir}" --build [--finish]`);
