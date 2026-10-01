@@ -81,8 +81,10 @@ for (const m of Object.values(mh).filter((x) => !x.labeledBySurvey && !x.outside
   const other = main.from === m.id ? mh[main.to].p : mh[main.from].p;
   const d = unit(sub(other, m.p));
   const away = -nearestWaterSide(m.p, d);
-  const invLines = m.inv.map(([dir, v]) => `INV: ${v}' (${dir})`).join('\\P');
-  leader(EL, `EXIST. SAN MH \\PRIM: ${m.rim}'\\P${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
+  // elevations always with 2 decimals, as the as-builts print them ("12.20'", never "12.2'")
+  const el = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : v);
+  const invLines = m.inv.map(([dir, v]) => `INV: ${el(v)}' (${dir})`).join('\\P');
+  leader(EL, `EXIST. SAN MH \\PRIM: ${el(m.rim)}'\\P${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
 }
 
 // 4) Hydrants: block + label, text 12 ft further from the street CL (the hub street line)

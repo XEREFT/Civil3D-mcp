@@ -99,6 +99,8 @@ payload.twists = [
   { layout: "Model", streetAngleDegrees: spec.twist.streetAngleDegrees, centerX: r4((a.x + b.x) / 2), centerY: r4((a.y + b.y) / 2) },
 ];
 if (Array.isArray(project.titleBlock) && project.titleBlock.length) payload.titleBlock = project.titleBlock;
+// xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
+payload.freezeLayers = std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"];
 payload.save = true;
 
 const out = flag("out") ?? join(work, "payload.json");
@@ -111,6 +113,7 @@ payload -> ${out}
  entities    ${entities.length}${payload.clImport ? ` (first ${clName} imported from X-TOPO)` : ""}
  twists      ${payload.twists.map((t) => `${t.layout} ${t.streetAngleDegrees}°`).join(", ")}
  titleBlock  ${payload.titleBlock ? `${payload.titleBlock.length} replacement(s)` : "none (project.json has no titleBlock array)"}
+ freeze      ${payload.freezeLayers.join(", ")}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}
  -> civil3d_workflow_fase1_build {<file contents>, approvalToken} -> civil3d_workflow_fase1_audit -> /fase1 (fase1-finish.mjs)
 NEXT (your terminal, no Claude): node "${join(here, "fase1-build-run.mjs")}" --dir "${dir}" --build [--finish]`);

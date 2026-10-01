@@ -8,7 +8,11 @@
   "2026-09-28 user: alignment style BCC - ALIGNMENT + SAN/WM marking are the firm standard on every project (recorded from VILLA ONE guide vs FASE 1 comparison)",
   "2026-09-28 roles.fase1: definition of done + cleanup rules for Fase 1 files (no proposals), used by scripts/fase1-audit.mjs and fase1-cleanup-plan.mjs",
   "2026-09-28 user decision: Fase 1 has NO PROP/PROPOSED wording anywhere (subject label line 'PROP <units> <sf> SF' and every MD-WASD note that says PROP/PROPOSED removed); fase1-strip-prop-notes.mjs added",
-  "2026-09-28 late: found+fixed a plugin bug (not a data error) in the two 5.00' U.E./PL corner dimensions of VILLA ONE FASE 1 (handles 12235/12248) -> roles.easementCornerDimension + short-dimension rule below; acad_create_aligned_dimension now respects an explicit dimLineX/dimLineY instead of letting AutoCAD's own DIMFIT eject the text (see plugin-deployment-gotcha memory / DimensionViewportCommands.cs); fase1-audit.mjs gained a 'dimension text detached from its line' check"
+  "2026-09-28 late: found+fixed a plugin bug (not a data error) in the two 5.00' U.E./PL corner dimensions of VILLA ONE FASE 1 (handles 12235/12248) -> roles.easementCornerDimension + short-dimension rule below; acad_create_aligned_dimension now respects an explicit dimLineX/dimLineY instead of letting AutoCAD's own DIMFIT eject the text (see plugin-deployment-gotcha memory / DimensionViewportCommands.cs); fase1-audit.mjs gained a 'dimension text detached from its line' check",
+  {
+   "date": "2026-10-01",
+   "change": "roles.fase1.freezeXrefLayers (X-TOPO|DIM) + roles.fase1.styleDecisions (keep asphalt; label every X-UTIL MH)"
+  }
  ],
  "template": {
   "note": "Start from the previous project's C-300.dwg (styles, layouts, title block, seal). scripts/c300-prep-template.ps1 empties model space, detaches xrefs and renames layouts.",
@@ -304,7 +308,23 @@
    "decisions": [
     "2026-09-28: nothing that says PROP or PROPOSED stays in a Fase 1 file: the subject label 'PROP ONE (1) 5,200 SF' line and every MD-WASD bullet/paragraph that says PROP/PROPOSED were removed (scripts/fase1-strip-prop-notes.mjs); template notes parked off-sheet that said PROP/PROPOSED were erased"
    ],
-   "mdWaspNotes": "MD-WASD NOTES MText on C-300: every bullet that says PROP/PROPOSED goes, and the 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block too (its only predicate says PROPOSED ACTIVITY); PROP notes parked off the ARCH D sheet (x > 36) are erased; whatever sat on the shortened note (the '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs, layer PDF_Geometry) moves up by the note's bottom shift. Done natively by civil3d_workflow_fase1_build (rules: src/tools/domains/fase1PropNotes.ts); manual path: scripts/fase1-strip-prop-notes.mjs + acad_update_text_content + scripts/fase1-notes-shift.py."
+   "mdWaspNotes": "MD-WASD NOTES MText on C-300: every bullet that says PROP/PROPOSED goes, and the 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block too (its only predicate says PROPOSED ACTIVITY); PROP notes parked off the ARCH D sheet (x > 36) are erased; whatever sat on the shortened note (the '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs, layer PDF_Geometry) moves up by the note's bottom shift. Done natively by civil3d_workflow_fase1_build (rules: src/tools/domains/fase1PropNotes.ts); manual path: scripts/fase1-strip-prop-notes.mjs + acad_update_text_content + scripts/fase1-notes-shift.py.",
+   "freezeXrefLayers": {
+    "layers": [
+     "X-TOPO|DIM"
+    ],
+    "why": "the survey prints its own R/W dims (some upside down) on X-TOPO|DIM; every one is mirrored by the sheet C-ANNO dims, so left visible they print doubled (VILLA ONE + guide, found 2026-10-01). fase1_build freezes them (freezeLayers) right after the xrefs; fase1_audit check 7 warns if one is visible."
+   },
+   "styleDecisions": [
+    {
+     "date": "2026-10-01",
+     "text": "Keep the black asphalt hatch (X-TOPO|HATCH_ASPHALT) with the masked white street labels: it is the firm style. Freezing it shows the SAN/WM/MH under the street but also exposes survey texts on X-TOPO|TEXT (duplicate street names, the survey MH note with field RIM/I.E. that contradict the as-built) -> only on user request."
+    },
+    {
+     "date": "2026-10-01",
+     "text": "Label EVERY existing X-UTIL manhole inside the C-300 viewport with its as-built RIM/INV, including the connection manhole at the intersection (VILLA ONE MH#5 was missing in the guide and in FASE 1)."
+    }
+   ]
   }
  },
  "viewport": {

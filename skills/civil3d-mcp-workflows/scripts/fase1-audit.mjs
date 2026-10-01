@@ -15,6 +15,8 @@
 //      short-dimension bug found 2026-09-28 (a 5' U.E./PL corner dim can get its text ejected several feet away by
 //      AutoCAD's own DIMFIT auto-placement -- fixed in the plugin for NEW dimensions, but replayed/legacy ones can still
 //      carry it). Flags any C-ANNO dimension whose text sits further from its own line than max(3 ft, line length).
+//   7. (WARN) survey dimensions hidden: an xref DIM layer (X-TOPO|DIM) visible while the sheet has its own C-ANNO dims prints
+//      every R/W dim twice (VILLA ONE 2026-10-01, guide included) -> freeze it (fase1_build: freezeLayers).
 // Exit code 1 if any FAIL.
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -133,6 +135,18 @@ await withApplicationConnection(async (client) => {
         detached.map((x) => `${x.handle} (${x.dist} ft away, line ${x.lineLen} ft)`).join(", ") +
         " -> recreate with acad_create_aligned_dimension passing explicit dimLineX/dimLineY (not just offset), or reposition in place with acad_update_text_content {handle, x, y} (Dimension support added 2026-09-28)");
     } else add("OK", "dimension text position", `${(dims.entities ?? []).length} C-ANNO dimension(s), none detached`);
+  }
+
+  // 7. survey dimensions hidden (see the header): an xref DIM layer left visible doubles the sheet's own C-ANNO dims
+  const ownDims = dims.__error ? 0 : (dims.entities ?? []).length;
+  const xd = await call(client, "listLayers", { namePattern: "*|DIM", includeXref: true });
+  if (xd.__error) add("WARN", "survey dimensions hidden", xd.__error);
+  else {
+    const visible = (xd.layers ?? []).filter((l) => l.isFrozen !== true && l.isOff !== true).map((l) => l.name);
+    if (visible.length && ownDims > 0) {
+      add("WARN", "survey dimensions hidden", `${visible.join(", ")} visible while the sheet has ${ownDims} C-ANNO dimension(s): they print doubled -> ` +
+        visible.map((n) => `acad_create_or_update_layer {name:"${n}", frozen:true}`).join("; ") + " (fase1_build does it with freezeLayers)");
+    } else add("OK", "survey dimensions hidden", visible.length ? `${visible.join(", ")} visible but the sheet has no C-ANNO dimensions of its own` : "no xref DIM layer visible");
   }
 });
 

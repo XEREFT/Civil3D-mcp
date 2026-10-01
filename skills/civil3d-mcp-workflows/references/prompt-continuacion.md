@@ -1,4 +1,24 @@
-# Prompt de continuación VIGENTE (2026-09-28, tarde noche — primera corrida en vivo de fase1_build endurecido) — pegar tal cual en un chat nuevo
+# Prompt de continuación VIGENTE (2026-10-01 — motor "Fase 1 desde cero", etapa 1) — pegar tal cual en un chat nuevo
+Antes de pegarlo (usuario): si no lo hiciste, salir del todo de Claude Desktop y abrir un chat nuevo (el tool MCP `civil3d_workflow_fase1_build` gana `freezeLayers`; el runner ya lo usa sin reinicio).
+
+```
+Seguimos con la etapa 1 del motor "Fase 1 desde cero" (sin guía: 3 DWG + escaneos + Property Appraiser). Responde en español.
+
+Contexto grabado (no lo rederives): skill `references/automation-backlog.md` §B (diseño, estado de cada paso, valores de prueba de VILLA ONE); memorias `fase1-from-scratch-engine`, `fase1-use-runner`, `asbuilts-always-scanned`, `villa-one-c300-status`. Hecho: 1.1 as-builts escaneados de punta a punta (scan-ocr.ps1 → asbuilt-extract → asbuilt-associate → asbuilt-review.py → asbuilt-build → c300-utility-labels; VILLA ONE = rótulos idénticos a FASE 1), 1.2 pa-site.mjs, build/auditoría con freezeLayers X-TOPO|DIM + chequeo 7 (commit debddec, PR #16), runner sin créditos por defecto.
+
+Siguiente, en este orden (cada uno con prueba en una copia de descarte de VILLA ONE — FASE 1, TEST2 y TEST3 no se tocan):
+1. 1.6 símbolos PL dentro del build (c300-pl-symbols.mjs ya existe, desde las líneas de lote del PA): que fase1-build-payload.mjs los agregue a `entities`.
+2. 1.3 cotas de R/W calculadas del survey (líneas de R/W del X-TOPO), comparadas con las 16 cotas C-ANNO de FASE 1.
+3. 1.5 motor de colocación de rótulos (dentro del viewport, sin choques; validar con el plot).
+4. 1.8 QC sin guía (lista "¿está todo?" + reglas + datos cruzados).
+5. Que new-project.mjs use pa-site.mjs.
+Pendientes del usuario: PDF del plat P.B. 46 PG 94 (para 1.4 U.E.) y qué datos del title block cambian por proyecto (1.7).
+
+Reglas que ya rigen: nunca datos de la guía; construir con el runner (`node C:/Users/camil/.claude/skills/civil3d-mcp-workflows/scripts/fase1-build-run.mjs …`, regla de permiso en .claude/settings.local.json); confirma conmigo antes de guardar/borrar archivos reales; push al fork / sync de la skill solo si lo pido.
+```
+
+---
+# (anterior, 2026-09-28 tarde noche — primera corrida en vivo de fase1_build endurecido; YA EJECUTADO: pasó 2026-10-01)
 Antes de pegarlo (pasos del usuario): cerrar Civil 3D uno mismo (la guía está abierta; Claude nunca la cierra) → que Claude corra `pwsh scripts/deploy-all.ps1 -Go` (instala el DLL con la extensión de textos) → aprobar el diálogo "Unsigned Executable File" → salir del todo de Claude Desktop y abrir un chat nuevo.
 
 ```

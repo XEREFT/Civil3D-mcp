@@ -1179,6 +1179,81 @@
    "cause": "la llamada MCP vence mientras el paso sigue; otra copia con el mismo X-TOPO abierta",
    "fix": "no reintentar: plugin.log, destino a la Papelera, Civil 3D sin dibujos, repetir",
    "checks": []
+  },
+  {
+   "since": "2026-10-01",
+   "id": "survey-dims-doubled",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "las cotas de R/W `25.00'` salen dobles",
+   "symptom": "cotas de R/W duplicadas/al revés en el plot",
+   "cause": "X-TOPO|DIM visible junto a las cotas C-ANNO de la hoja",
+   "fix": "fase1_build freezeLayers + fase1_audit chequeo 7",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "options\\.freezeLayers"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Audit.ts",
+     "pattern": "survey dimensions hidden"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-audit.mjs",
+     "pattern": "survey dimensions hidden"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-build-payload.mjs",
+     "pattern": "payload\\.freezeLayers"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_audit.test.ts"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "scan-ocr-ps-case-shadow",
+   "area": "skill",
+   "status": "fixed",
+   "match": "las cajas de las pasadas giradas salen fuera de la imagen",
+   "symptom": "cajas del OCR girado fuera de la imagen",
+   "cause": "PowerShell: $h local pisa $H (sin mayúsculas, alcance dinámico); pares @(x,y) desenrollados",
+   "fix": "$ImgW/$ImgH y [pscustomobject]@{x;y}",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/scan-ocr.ps1",
+     "pattern": "\\$ImgH - \\$u"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "ocr-fragmented-callouts",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El OCR de un as-built parte una llamada en trozos",
+   "symptom": "llamadas de tubo partidas, % leído como Z/7.",
+   "cause": "el OCR corta en huecos grandes; el trozo derecho puede estar 1 px más arriba",
+   "fix": "unión izquierda→derecha por fila (también en pasadas giradas) + pendiente tolerante",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-extract.mjs",
+     "pattern": "rows\\.sort\\(\\(a, b\\) => a\\.box\\.x - b\\.box\\.x"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-extract.mjs",
+     "pattern": "7\\[\\.a\\]\\?"
+    }
+   ]
   }
  ]
 }

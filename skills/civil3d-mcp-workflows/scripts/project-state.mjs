@@ -47,6 +47,8 @@ export function discoverProjects(root = DEFAULT_ROOT) {
     const hasJson = entries.some((e) => e.isFile() && e.name === FILE);
     const dwg = entries.find((e) => e.isFile() && /FASE \d+\.dwg$/i.test(e.name));
     if (hasJson || dwg) found.push({ dir: dir.replace(/\\/g, "/"), hasJson, dwg: dwg?.name });
+    // a folder with a project.json IS the project: its subfolders (Propuesta\, _backup_*, copies of the FASE 1 dwg) are not projects
+    if (hasJson) return;
     if (depth < 2) for (const e of entries) if (e.isDirectory() && !IGNORED_DIRS.test(e.name)) visit(join(dir, e.name), depth + 1);
   };
   visit(resolve(root), 0);
