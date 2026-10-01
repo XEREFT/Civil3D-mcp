@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // FASE 1 FINISH (never touches the live drawing): the whole "after save" tail of a Fase 1 delivery in ONE command.
-//   node fase1-finish.mjs [--dwg "<...\<NAME> FASE 1.dwg>"] [--layouts C-300] [--pdf-name "C-300 FASE 1.pdf"] [--no-copy]
+//   node fase1-finish.mjs [--dwg "<...\<NAME> FASE 1.dwg>"] [--layouts C-300] [--pdf-name "C-300 FASE 1.pdf"] [--no-copy] [--qc-json <file>  (clashes + labels for fase1-declutter.py)]
 // 1. resolves the DWG (default: the ACTIVE document in Civil 3D) — SAVE IT FIRST (the plot/dump read the saved file)
 // 2. dwg-dump.ps1 of the saved file -> fase1-audit.mjs --dump   (layers/xrefs; FAIL if C-TINN-BNDY is not frozen, PROP, networks, style…)
 // 3. qc-plot.ps1 -Layouts <layouts> on a %TEMP% copy (Core Console; never on the OneDrive path)
@@ -88,7 +88,7 @@ print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop}))
 //     street labels, xrefs, subject label = project.json (PA/POC), PDF text clashes. FAIL blocks READY; WARNs are listed.
 const c300 = results.find((r) => /C-300/i.test(r.layout));
 if (c300 && dumpPath && existsSync(dumpPath) && existsSync(join(dirname(dwg), "project.json"))) {
-  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath],
+  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath, ...(flag("qc-json") ? ["--json", flag("qc-json")] : [])],
     { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   const qlines = (q.stdout ?? "").split("\n").filter((l) => /^(FAIL|WARN)/.test(l));
   for (const l of qlines) log(`  qc: ${l}`);

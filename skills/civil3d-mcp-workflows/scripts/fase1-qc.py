@@ -11,7 +11,7 @@ the plot PDF (default _QC/C-300 FASE 1.pdf). No guide anywhere. Checks, each OK 
     - PL symbols (U+214A), R/W dims (C-ANNO), street labels, the alignment, the 3 xrefs (and their files) are present
     - the survey's own DIM layer is frozen (it would double the R/W dims)
   cross-checked data: the subject label's folio / GPD / P.B. = project.json (which pa-site.mjs filled from the Property Appraiser)
-  legibility on the PDF: words of different text lines overlapping each other (>= 25 % of the smaller box), words < 5 pt
+  legibility on the PDF: words of different text lines overlapping each other (>= 8 % of the smaller box: a rotated word crossing a label barely touches its box), words < 5 pt
 Exit 1 on any FAIL. Prints the exact item (handle / coordinates / PDF position) for every WARN/FAIL.
 """
 import argparse, json, math, os, re, subprocess, sys
@@ -22,6 +22,7 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--dir", required=True)
 ap.add_argument("--dwg"); ap.add_argument("--pdf"); ap.add_argument("--dump"); ap.add_argument("--util-dump")
 ap.add_argument("--tol", type=float, default=3.0)
+ap.add_argument("--json", help="write the clashes + every movable label (box in PDF pt, text position, arrows) for fase1-declutter.py")
 a = ap.parse_args()
 proj_dir = os.path.abspath(a.dir)
 project = json.load(open(os.path.join(proj_dir, "project.json"), encoding="utf-8"))
@@ -114,7 +115,8 @@ def arrows(e):
     pts = [tuple(map(float, p.split(","))) for p in e.get("arrows", "").split(";") if "," in p]
     return pts or [(float(e["x"]), float(e["y"]))]
 def has_leader(pred, near):
-    return [e for e in leaders if pred(e.get("txt", "")) and any(near(q) for q in arrows(e))]
+    # (line breaks count as spaces: the generator wraps "SAN MAIN" as SAN\PMAIN)
+    return [e for e in leaders if pred(re.sub(r"\s+", " ", e.get("txt", "").replace("\\P", " "))) and any(near(q) for q in arrows(e))]
 miss = []
 for m in mh_nodes:
     if not in_view(m): continue
@@ -175,10 +177,11 @@ if os.path.exists(pdf):
     hits, seen = [], set()
     # words under a filled black area (survey texts under the asphalt hatch) are in the PDF but not visible: skip them
     pix = page.get_pixmap(dpi=36, colorspace=fitz.csGRAY); k = 36 / 72
-    def visible(r):
+    def dark_frac(r, lim=60):
         x0, y0, x1, y1 = int(r.x0 * k), int(r.y0 * k), max(int(r.x1 * k), int(r.x0 * k) + 1), max(int(r.y1 * k), int(r.y0 * k) + 1)
         vals = [pix.pixel(x, y)[0] for x in range(max(0, x0), min(pix.width, x1)) for y in range(max(0, y0), min(pix.height, y1))]
-        return not vals or sum(v < 60 for v in vals) / len(vals) < 0.85
+        return sum(v < lim for v in vals) / len(vals) if vals else 0.0
+    def visible(r): return dark_frac(r) < 0.85
     # PDF point -> model (paper inches from the viewport centre, times the scale, turned by the twist); page = sheet, 72 pt/in
     ps = pt(vp["psctr"]); page_h_in = page.rect.height / 72
     def to_model(x, y):
@@ -193,6 +196,44 @@ if os.path.exists(pdf):
         kind = "PL symbol" if "214A" in best.get("txt", "") else best["type"]
         return f" [model {m[0]:.1f},{m[1]:.1f}; nearest {kind} {best['h']} at {d:.1f} ft]"
     boxes = [(fitz.Rect(w[:4]), w[4], (w[5], w[6])) for w in words if w[4].strip() and visible(fitz.Rect(w[:4]))]
+    # --- who owns each printed word? Only OUR labels can be moved: MLeaders (text position = txtpt) and PL symbols. A word belongs to the
+    # nearest one (in model space, <= 80 ft from its text position) whose own text contains that word; survey/xref words have no owner.
+    code_re = re.compile(r"\\[A-Za-z][^;\\]*;|\\P|[{}]")
+    norm_w = lambda t: re.sub(r"[^A-Z0-9⅊]", "", t.upper())
+    ours = []
+    for e in ents:
+        if e["type"] == "MULTILEADER" and pt(e.get("txtpt")):
+            toks = {norm_w(x) for x in code_re.sub(" ", e.get("txt", "")).split()} - {""}
+            ours.append(dict(h=e["h"], type="MULTILEADER", raw=e.get("txt", ""), pos=pt(e["txtpt"]), toks=toks, ntok=sum(1 for x in code_re.sub(" ", e.get("txt", "")).split() if norm_w(x)), text=code_re.sub(" ", e.get("txt", "")).strip(), arrows=arrows(e)))
+        elif e["type"] == "MTEXT" and "214A" in e.get("txt", "") and e.get("x"):
+            ours.append(dict(h=e["h"], type="PL", raw="", pos=(float(e["x"]), float(e["y"])), toks={"⅊"}, text="PL", arrows=[]))
+    # The text box hangs from the text position: to the right (sheet +x) when the position is "forward" of the arrow, to the left otherwise
+    # (plugin MoveMLeaderText: TopLeft / TopRight attachment), about 1 ft per character wide and 2 ft per line tall at this text height.
+    for o in ours:
+        if o["type"] != "MULTILEADER": continue
+        lines = re.split(r"\\P", o["raw"])
+        o["W"] = 1.05 * max(len(code_re.sub("", l)) for l in lines); o["H"] = 2.1 * len(lines)
+        ar = o["arrows"][0]; o["fwd"] = (o["pos"][0] - ar[0]) * ux + (o["pos"][1] - ar[1]) * uy >= 0
+    def box_dist(o, m):
+        if o["type"] != "MULTILEADER": return dist(m, o["pos"])
+        da, dd = (m[0] - o["pos"][0]) * ux + (m[1] - o["pos"][1]) * uy, (m[0] - o["pos"][0]) * uy - (m[1] - o["pos"][1]) * ux
+        lo, hi = (0, o["W"]) if o["fwd"] else (-o["W"], 0)
+        return math.hypot(max(0, lo - da, da - hi), max(0, -1.5 - dd, dd - (o["H"] + 1.5)))
+    def owner_of(rect, text):
+        m = to_model((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
+        c_ = [(box_dist(o, m), o) for o in ours if norm_w(text) in o["toks"]]
+        c_ = [t for t in c_ if t[0] <= 6]
+        return min(c_, key=lambda t: t[0])[1] if c_ else None
+    for o in ours: o["rect"] = None; o["hidden"] = 0; o["words"] = 0
+    all_words = []
+    for w in words:
+        if not w[4].strip(): continue
+        r_ = fitz.Rect(w[:4]); o = owner_of(r_, w[4]); vis_ = visible(r_)
+        all_words.append(dict(r=list(r_), t=w[4], o=o and o["h"], vis=bool(vis_)))
+        if o is None: continue
+        o["rect"] = fitz.Rect(r_) if o["rect"] is None else o["rect"] | r_
+        o["words"] += 1; o["hidden"] += 1 if dark_frac(r_, 80) >= 0.25 else 0
+    clashes = []
     # the survey's own street name ("S.W. 118TH AVENUE") sits UNDER our masked street label ("SW 118TH AVENUE"): the PDF keeps both
     # words but the mask hides the survey one -> a pair whose words both belong to one of our street labels is not a clash
     street_tokens = [set(re.sub(r"[^A-Z0-9 ]", " ", e.get("txt", "").upper()).split()) for e in streets]
@@ -205,10 +246,34 @@ if os.path.exists(pdf):
             if k1 == k2 or not r1.intersects(r2) or hidden_dupe(t1, t2): continue
             inter = r1 & r2
             small = min(r1.get_area(), r2.get_area()) or 1
-            if inter.get_area() / small >= 0.25:
+            ratio = inter.get_area() / small
+            if ratio >= 0.08:
+                # 8-25 %: a rotated word grazing a label only counts when one of the two is OUR label (survey-vs-survey grazing is not ours to fix)
+                o1, o2 = owner_of(r1, t1), owner_of(r2, t2)
+                if ratio < 0.25 and not (o1 or o2): continue
                 key = (round(r1.x0 / 20), round(r1.y0 / 20))
                 if key in seen: continue
-                seen.add(key); hits.append(f"'{t1}' x '{t2}' at PDF {r1.x0:.0f},{r1.y0:.0f}" + nearest(to_model((r1.x0 + r1.x1) / 2, (r1.y0 + r1.y1) / 2), (t1, t2)))
+                seen.add(key)
+                clashes.append(dict(kind="overlap", words=[t1, t2], rects=[list(r1), list(r2)], owners=[o1 and o1["h"], o2 and o2["h"]]))
+                hits.append(f"'{t1}' x '{t2}' at PDF {r1.x0:.0f},{r1.y0:.0f}" + nearest(to_model((r1.x0 + r1.x1) / 2, (r1.y0 + r1.y1) / 2), (t1, t2)))
+    under = [o for o in ours if o["type"] == "MULTILEADER" and o["words"] and o["hidden"]]
+    for o in under: clashes.append(dict(kind="under_asphalt", words=[o["text"][:40]], rects=[list(o["rect"])], owners=[o["h"]]))
+    add("WARN" if under else "OK", "our labels under the survey fill", ("; ".join(f"MLeader {o['h']} ({o['hidden']}/{o['words']} words hidden) at model {o['pos'][0]:.1f},{o['pos'][1]:.1f}" for o in under)) if under else "none hidden (asphalt does not cover any of our MLeader text)")
+    # a label whose text box reaches the viewport edge is cut off there (the viewport clips model space): words beyond the edge are not in the PDF at all
+    vx0 = (ps[0] - float(vp["w"]) / 2) * 72; vx1 = (ps[0] + float(vp["w"]) / 2) * 72
+    vy0 = (page_h_in - ps[1] - float(vp["ht"]) / 2) * 72; vy1 = (page_h_in - ps[1] + float(vp["ht"]) / 2) * 72
+    # (words the viewport clips away are missing from the PDF: fewer printed words than the label has = text cut off)
+    edge = [o for o in ours if o["type"] == "MULTILEADER" and any(in_view(q) for q in o["arrows"]) and o["words"] < o.get("ntok", 0)
+            or o["type"] == "MULTILEADER" and o["rect"] is not None and (o["rect"].x0 < vx0 + 3 or o["rect"].x1 > vx1 - 3 or o["rect"].y0 < vy0 + 3 or o["rect"].y1 > vy1 - 3)]
+    for o in edge: clashes.append(dict(kind="viewport_edge", words=[o["text"][:40]], rects=[list(o["rect"])], owners=[o["h"]]))
+    add("WARN" if edge else "OK", "our labels inside the viewport", ("; ".join(f"MLeader {o['h']} is cut off by the viewport edge ({o['words']}/{o.get('ntok', 0)} words printed) at model {o['pos'][0]:.1f},{o['pos'][1]:.1f}" for o in edge)) if edge else "none cut by the viewport edge")
+    if a.json:
+        vx0 = (ps[0] - float(vp["w"]) / 2) * 72; vx1 = (ps[0] + float(vp["w"]) / 2) * 72
+        vy0 = (page_h_in - ps[1] - float(vp["ht"]) / 2) * 72; vy1 = (page_h_in - ps[1] + float(vp["ht"]) / 2) * 72
+        json.dump(dict(pdf=pdf, ft_per_pt=scale / 72, ux=ux, uy=uy, view_rect=[vx0, vy0, vx1, vy1], clashes=clashes, words=all_words,
+                       labels=[dict(h=o["h"], type=o["type"], pos=o["pos"], arrows=o["arrows"], fwd=o.get("fwd"), W=o.get("W"), rect=list(o["rect"]) if o["rect"] else None,
+                                    text=o["text"], words=o["words"], hidden=o["hidden"]) for o in ours]),
+                  open(a.json, "w", encoding="utf-8"), indent=1)
     add("WARN" if hits else "OK", "PDF overlapping texts", f"{len(hits)} spot(s)" + (": " + "; ".join(hits[:12]) + (" ..." if len(hits) > 12 else "") if hits else ""))
 else: add("WARN", "PDF", f"{pdf} not found: plot first (qc-plot.ps1 / fase1-finish.mjs)")
 

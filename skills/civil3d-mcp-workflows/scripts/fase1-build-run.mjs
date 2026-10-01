@@ -52,6 +52,7 @@ console.log(`payload    ${payloadPath}
  xrefs     ${(payload.xrefs ?? []).map((x) => basename(x.filePath)).join(", ") || "none"}
  alignment ${payload.alignment ? `${payload.alignment.name}, style ${payload.alignment.style ?? "(default)"}` : "none"}
  entities  ${(payload.entities ?? []).length}${payload.clImport ? ` (+ ${payload.clImport.blockName} block definition from ${basename(payload.clImport.sourceFilePath)})` : ""}
+ blocks    ${(payload.blockImports ?? []).map((b) => `${b.blockName} <- ${basename(b.sourceFilePath)}`).join(", ") || "none besides _cl"}
  twists    ${(payload.twists ?? []).map((t) => `${t.layout} ${t.streetAngleDegrees ?? t.twistDegrees}°`).join(", ") || "none"}
  freeze    ${(payload.freezeLayers ?? []).join(", ") || "none"}
  notes     ${payload.stripPropNotes === false ? "left as they are (stripPropNotes:false)" : "PROP/PROPOSED removed + orphaned glyphs moved"}

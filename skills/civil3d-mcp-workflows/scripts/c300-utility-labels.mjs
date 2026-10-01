@@ -5,7 +5,7 @@
 // arrows. Values come from the as-builts (transcribed into asbuilt.json); properties and placement
 // rules from references/standards/formtech-c300.json. Node 18, no deps.
 //
-//   node c300-utility-labels.mjs --asbuilt asbuilt.json [--standard formtech-c300.json] [--out labels.json]
+//   node c300-utility-labels.mjs --asbuilt asbuilt.json [--standard formtech-c300.json] [--out labels.json] [--wrap 26]
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -32,9 +32,19 @@ const hub = mh[ab.intersectionMh].p;
 const entities = [];
 const firsts = {};
 
+// The delivered sheets print these labels in an MText ~25 characters wide (it wraps by itself: "EXIST 8" PVC (SDR-35) SAN / MAIN @ 0.38% SLOPE /
+// (PER ES9467-2) / (TO REMAIN)"). acad_create_mleader has no width, so a long line would print 46 characters wide and run over lots, text and the
+// asphalt: break every line longer than WRAP characters at a space, greedy, exactly where the narrow MText would.
+const WRAP = Number(args.wrap ?? std.roles.existingUtilityLeader.wrapChars ?? 26);
+const wrapText = (text) => text.split('\\P').flatMap((line) => {
+  const out = []; let cur = '';
+  for (const w of line.split(' ')) { if (cur && (cur + ' ' + w).length > WRAP) { out.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; }
+  out.push(cur); return out;
+}).join('\\P');
+
 const leader = (role, text, arrow, textPt) => entities.push({
   kind: 'mleader', layer: role.layer, colorIndex: role.colorIndex, mLeaderStyle: role.mLeaderStyle, height: role.height,
-  ...(role.annotative ? {} : { scale: role.scale }), rotation: rot, text, leaderX: r4(arrow[0]), leaderY: r4(arrow[1]), x: r4(textPt[0]), y: r4(textPt[1]),
+  ...(role.annotative ? {} : { scale: role.scale }), rotation: rot, text: wrapText(text), leaderX: r4(arrow[0]), leaderY: r4(arrow[1]), x: r4(textPt[0]), y: r4(textPt[1]),
 });
 
 // side of a point relative to a directed line (+1 left, -1 right)

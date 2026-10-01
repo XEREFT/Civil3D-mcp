@@ -7,6 +7,9 @@
 //                                              drawing is already open and active (then only expectedDocument guards the writes)
 //        [--topo <X-TOPO dump.txt> | --spec <spec.json>]   default: dwg-dump.ps1 on <dir>\X-TOPO.dwg + c300-build-spec.mjs
 //        [--out payload.json] [--overwrite]
+//        [--asbuilt asbuilt.json] [--blocks-from <package C-300.dwg>] [--no-labels]   existing-utility labels (default asbuilt.json in the
+//                                              folder or project.json sources.asbuilt; blocks FH / EXIST ARROW imported from --blocks-from
+//                                              or sources.blocksFrom when the template lacks them)
 //
 // Chain: X-TOPO.dwg -> dwg-dump.ps1 -> c300-build-spec.mjs (project.json schema 1, window derived when missing) -> this payload.
 // Payload = { templatePath, saveAs, overwrite, expectedDocument, xrefs (roles.xref of standards/formtech-c300.json), alignment,
@@ -119,6 +122,32 @@ if (!has("no-pl")) {
     plCount = pl.length;
   } else plNote += ` (NOT added: ${(r.stderr || r.stdout || "c300-pl-symbols failed").trim().split("\n").pop()})`;
 }
+// Existing-utility labels (etapa 3, 2026-10-01): when the as-built chain produced an asbuilt.json (scan-ocr -> asbuilt-extract -> -associate ->
+// asbuilt-review (user confirms) -> asbuilt-build), c300-utility-labels.mjs turns it into the sewer/water/MH/FH MLeaders + FH + EXIST ARROW
+// blocks, appended to the SAME entity batch. The two block definitions come from --blocks-from (a package C-300 that has them; never the
+// guide) through the build's blockImports. No asbuilt.json = no labels (fase1-qc then FAILs the unlabeled X-UTIL items, which is the point).
+let labelNote = "none (no asbuilt.json: pass --asbuilt, or put it in the project folder / project.json sources.asbuilt)";
+const asbuiltPath = flag("asbuilt") ?? [project.sources?.asbuilt, join(dir, "asbuilt.json")].filter(Boolean).map((p) => resolve(dir, p)).find((p) => existsSync(p));
+if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
+  const labelsOut = join(work, "labels.json");
+  const r = spawnSync("node", [join(here, "c300-utility-labels.mjs"), "--asbuilt", asbuiltPath, "--out", labelsOut], { encoding: "utf8" });
+  if (r.status !== 0 || !existsSync(labelsOut)) die(`c300-utility-labels.mjs failed:\n${(r.stderr || r.stdout || "").trim()}`);
+  const labels = JSON.parse(readFileSync(labelsOut, "utf8"));
+  const asb = JSON.parse(readFileSync(asbuiltPath, "utf8"));
+  const warn = [];
+  if (Math.abs((asb.frontageAngleDeg ?? NaN) - spec.twist.streetAngleDegrees) > 0.5) warn.push(`asbuilt frontage ${asb.frontageAngleDeg} deg vs sheet ${spec.twist.streetAngleDegrees} deg: label rotation will not match the sheet`);
+  const blocksFrom = flag("blocks-from") ?? project.sources?.blocksFrom;
+  const labelEntities = [...Object.values(labels.firstBlocks ?? {}), ...(labels.createEntities?.entities ?? [])];
+  const blockNames = [...new Set(labelEntities.filter((e) => e.kind === "block").map((e) => e.blockName))];
+  if (blocksFrom && existsSync(resolve(dir, blocksFrom))) {
+    if (!underRoots(resolve(dir, blocksFrom))) die(`--blocks-from ${blocksFrom} is outside the plugin's file roots`);
+    payload.blockImports = blockNames.map((blockName) => ({ blockName, sourceFilePath: win(resolve(dir, blocksFrom)) }));
+  } else warn.push(`no --blocks-from / project.json sources.blocksFrom: ${blockNames.join(", ")} must already be in the template`);
+  payload.entities = [...payload.entities, ...labelEntities];
+  payload.layers = { ...payload.layers, ...Object.fromEntries([...new Set(labelEntities.map((e) => e.layer))].filter((n) => n && std.layers[n] && !(n in payload.layers)).map((n) => [n, std.layers[n]])) };
+  const kinds = {}; for (const e of labelEntities) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
+  labelNote = `${labelEntities.length} entities ${JSON.stringify(kinds)} from ${asbuiltPath}${warn.length ? "  WARN: " + warn.join("; ") : ""}`;
+}
 if (Array.isArray(project.titleBlock) && project.titleBlock.length) payload.titleBlock = project.titleBlock;
 // xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
 payload.freezeLayers = std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"];
@@ -136,6 +165,7 @@ payload -> ${out}
  titleBlock  ${payload.titleBlock ? `${payload.titleBlock.length} replacement(s)` : "none (project.json has no titleBlock array)"}
  freeze      ${payload.freezeLayers.join(", ")}
  PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
+ utility labels ${labelNote}${payload.blockImports ? `\n block imports ${payload.blockImports.map((b) => b.blockName).join(", ")} <- ${basename(payload.blockImports[0].sourceFilePath)}` : ""}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}
  -> civil3d_workflow_fase1_build {<file contents>, approvalToken} -> civil3d_workflow_fase1_audit -> /fase1 (fase1-finish.mjs)
 NEXT (your terminal, no Claude): node "${join(here, "fase1-build-run.mjs")}" --dir "${dir}" --build [--finish]`);
