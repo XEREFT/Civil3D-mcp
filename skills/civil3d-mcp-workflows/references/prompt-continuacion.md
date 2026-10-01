@@ -4,7 +4,9 @@ Antes de pegarlo (usuario): salir del todo de Claude Desktop (bandeja → Salir)
 ```
 Seguimos con el motor "Fase 1 desde cero" (sin guía: X-TOPO + X-UTIL + X-ARCH + escaneos + Property Appraiser). Responde en español.
 
-Contexto grabado (no lo rederives): skill civil3d-mcp-workflows `references/automation-backlog.md` §B (bloques «1.5 + etapa 3 COMPLETOS» y «1.7 COMPLETO + orquestador»); memorias `fase1-from-scratch-engine`, `fase1-use-runner`, `asbuilts-always-scanned`, `github-publishing`.
+Contexto grabado (no lo rederives): skill civil3d-mcp-workflows `references/automation-backlog.md` §B (bloques «1.5 + etapa 3 COMPLETOS» y «1.7 COMPLETO + orquestador»); memorias `fase1-from-scratch-engine`, `fase1-use-runner`, `fase1-titleblock-source`, `asbuilts-always-scanned`, `github-publishing`.
+
+Decisiones ya tomadas (no preguntar): title block = plantilla de Goulds + valores del proyecto (nombre, dirección, proyecto, AGR DEL POC = 33810 en VILLA ONE, hoja, fecha, JH; aprobó CF fijo); «la página» = Property Appraiser; el plat P.B. 46 PG 94 NO existe en AUTOCAD @XEREFT y el usuario no lo tiene.
 
 Hecho y validado (VILLA ONE, copias TEST7–TEST9): TODO el camino en UN comando — `node scripts/fase1-from-scratch.mjs --dir <carpeta> --dwg "<destino nuevo>.dwg" --template <t.dwg> --asbuilt <asbuilt.json> --blocks-from <C-300 del paquete>` (payload con PL + cotas R/W + etiquetas de utilidades + title block desde project.json → runner sin créditos → plot + fase1-qc.py → lazo de despeje de MLeaders): QC 0 FAIL / 0 WARN / 16 OK, sin datos de Goulds en el plot. Plugin a2e52a5 y skill en el fork (PR #16).
 
