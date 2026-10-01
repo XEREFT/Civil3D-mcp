@@ -1182,6 +1182,28 @@
   },
   {
    "since": "2026-10-01",
+   "id": "dump-mleader-xy-not-arrow",
+   "area": "skill",
+   "status": "fixed",
+   "match": "aunque el MLeader está ahí",
+   "symptom": "QC: pozo/FH sin rótulo aunque lo tiene",
+   "cause": "x/y del MULTILEADER en dwg-dump = último punto 10 (landing en leaders de acad_create_mleader)",
+   "fix": "dwg-dump arrows= (primer 10 tras LEADER_LINE{) y fase1-qc.py lo usa",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/dwg-dump.ps1",
+     "pattern": "\\|arrows="
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "def arrows"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
    "id": "survey-dims-doubled",
    "area": "plugin",
    "status": "fixed",

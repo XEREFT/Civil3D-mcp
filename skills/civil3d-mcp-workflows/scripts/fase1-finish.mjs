@@ -5,6 +5,7 @@
 // 2. dwg-dump.ps1 of the saved file -> fase1-audit.mjs --dump   (layers/xrefs; FAIL if C-TINN-BNDY is not frozen, PROP, networks, style…)
 // 3. qc-plot.ps1 -Layouts <layouts> on a %TEMP% copy (Core Console; never on the OneDrive path)
 // 4. PDF checks with pymupdf: 0 words < 5 pt, no PROP/PROPOSED words (SUBJECT PROPERTY is fine), page is not blank
+// 4b. QC without a guide: fase1-qc.py (completeness vs X-UTIL / PA / POC + PDF text clashes); a FAIL blocks READY
 // 5. golden PDF: compares with _QC\_golden\<name> (the last APPROVED plot) and WARNs with the changed regions; --approve-golden (or the
 //    first run) stores the new PDF as the golden one
 // 6. copies the PDF to <dwg folder>\_QC\<pdf-name>; an existing PDF is MOVED to _QC\_prev\<name>_<timestamp>.pdf (never deleted)
@@ -82,6 +83,18 @@ print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop}))
   verdict(prop.length ? "FAIL" : "OK", `pdf ${layout} PROP/PROPOSED`, prop.length ? prop.join(" | ").slice(0, 200) : "none");
   results.push({ layout, pdf });
 }
+
+// 4b. QC without a guide (etapa 1.8, fase1-qc.py): every X-UTIL manhole / tramo / water line / FH labeled, PL symbols, R/W dims,
+//     street labels, xrefs, subject label = project.json (PA/POC), PDF text clashes. FAIL blocks READY; WARNs are listed.
+const c300 = results.find((r) => /C-300/i.test(r.layout));
+if (c300 && dumpPath && existsSync(dumpPath) && existsSync(join(dirname(dwg), "project.json"))) {
+  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath],
+    { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+  const qlines = (q.stdout ?? "").split("\n").filter((l) => /^(FAIL|WARN)/.test(l));
+  for (const l of qlines) log(`  qc: ${l}`);
+  const summary = (q.stdout ?? "").split("\n").find((l) => l.startsWith("FASE 1 QC")) ?? (q.stderr ?? "fase1-qc.py gave no summary").slice(-200);
+  verdict(q.status === 0 ? (qlines.length ? "WARN" : "OK") : "FAIL", "fase1-qc (no guide)", summary);
+} else if (c300) log("INFO fase1-qc (no guide) skipped: needs the dump and project.json");
 
 // 5. copy to _QC (keep the previous one)
 if (!has("no-copy") && !bad && results.length) {

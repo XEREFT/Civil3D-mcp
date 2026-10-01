@@ -9,7 +9,7 @@
 .EXAMPLE
   powershell -NoProfile -ExecutionPolicy Bypass -File dwg-dump.ps1 "C:\...\C-300.dwg"
   -> prints the path of <name>_dump.txt. Lines: XREF|name|path|flags, LAYER|name|c=|lt=|fl=,
-     VPORT|layout|h=|psctr=|w=|ht=|viewctr=|viewht=|twist_rad=|layer=,
+     VPORT|layout|h=|psctr=|w=|ht=|viewctr=|viewht=|twist_rad=|layer=|target= (model centre = target + viewctr turned by the twist),
      DIM|layout|h=|layer=|style=|type=|meas=|txt=|p13=|p14=|p10=|tm=|rot=,
      LAYOUT|name (one per layout, incl. Model), PTXT|layout|type|handle|txt= (paper-space text/MText/MLeader, for the PROP scan)
   Viewport scale = ht / viewht (e.g. 23/460 = 1"=20'). Twist in degrees = twist_rad*180/pi.
@@ -32,7 +32,7 @@ $scr = Join-Path $work 'dump.scr'
 (vl-load-com)
 (defun _p (x) (cond ((null x) "") ((= (type x) 'REAL) (rtos x 2 4)) ((and (listp x) (vl-every 'numberp x)) (strcat "(" (apply 'strcat (mapcar '(lambda (v) (strcat (rtos v 2 4) " ")) x)) ")")) (T (vl-princ-to-string x))))
 (defun _g (k e) (cdr (assoc k e)))
-(defun c:DUMPINFO ( / f ss i ed b e ty pt pts xtra txt mls nm)
+(defun c:DUMPINFO ( / f ss i ed b e ty pt pts xtra txt mls nm arr fl)
   (setq f (open (strcat (getvar "DWGPREFIX") (vl-filename-base (getvar "DWGNAME")) "_dump.txt") "w"))
   (write-line (strcat "INSUNITS|" (_p (getvar "INSUNITS"))) f)
   (setq b (tblnext "BLOCK" T))
@@ -67,7 +67,12 @@ $scr = Join-Path $work 'dump.scr'
         ((= ty "MTEXT") (setq xtra (strcat "|style=" (_p (_g 7 ed)) "|h=" (_p (_g 40 ed)) "|att=" (_p (_g 71 ed)) "|w=" (_p (_g 41 ed)) "|rot=" (_p (_g 50 ed))) txt (_g 1 ed)))
         ((= ty "MULTILEADER")
           (setq pts (mapcar 'cdr (vl-remove-if-not '(lambda (x) (and (= (car x) 10) (> (+ (abs (cadr x)) (abs (caddr x))) 2.0))) ed)) pt (last pts))
-          (setq xtra (strcat "|style=" (_p (vl-some '(lambda (x) (if (= (car x) 340) (cdr (assoc (cdr x) mls)))) ed)) "|h=" (_p (_g 41 ed)) "|txtpt=" (_p (_g 12 ed)))
+          ; arrowheads = first vertex (10) after each (304 . "LEADER_LINE{"); x/y above is the LAST 10, which is the arrow only for
+          ; some leaders (replayed ones) and the landing for others (acad_create_mleader) -- consumers should use arrows=
+          (setq arr nil fl nil)
+          (foreach x ed (cond ((and (= (car x) 304) (= (cdr x) "LEADER_LINE{")) (setq fl T)) ((and fl (= (car x) 10)) (setq arr (cons (cdr x) arr) fl nil))))
+          (setq xtra (strcat "|style=" (_p (vl-some '(lambda (x) (if (= (car x) 340) (cdr (assoc (cdr x) mls)))) ed)) "|h=" (_p (_g 41 ed))
+                "|arrows=" (apply 'strcat (mapcar '(lambda (q) (strcat (rtos (car q) 2 4) "," (rtos (cadr q) 2 4) ";")) (reverse arr))) "|txtpt=" (_p (_g 12 ed)))
                 txt (_p (_g 304 ed))))
         ((= ty "DIMENSION") (setq pt (_g 13 ed) xtra (strcat "|style=" (_p (_g 3 ed)) "|meas=" (_p (_g 42 ed)) "|p2=" (_p (_g 14 ed))) txt (_p (_g 1 ed))))
         ((= ty "INSERT") (setq xtra (strcat "|block=" (_p (_g 2 ed)) "|sx=" (_p (_g 41 ed)) "|rot=" (_p (_g 50 ed)))))
@@ -78,7 +83,7 @@ $scr = Join-Path $work 'dump.scr'
     (repeat (setq i (sslength ss))
       (setq ed (entget (ssname ss (setq i (1- i)))))
       (write-line (strcat "VPORT|" (_p (_g 410 ed)) "|h=" (_p (_g 5 ed)) "|psctr=" (_p (_g 10 ed)) "|w=" (_p (_g 40 ed)) "|ht=" (_p (_g 41 ed))
-        "|viewctr=" (_p (_g 12 ed)) "|viewht=" (_p (_g 45 ed)) "|twist_rad=" (_p (_g 51 ed)) "|layer=" (_p (_g 8 ed))) f)))
+        "|viewctr=" (_p (_g 12 ed)) "|viewht=" (_p (_g 45 ed)) "|twist_rad=" (_p (_g 51 ed)) "|layer=" (_p (_g 8 ed)) "|target=" (_p (_g 17 ed))) f)))
   (if (setq ss (ssget "X" '((0 . "DIMENSION"))))
     (repeat (setq i (sslength ss))
       (setq ed (entget (ssname ss (setq i (1- i)))))

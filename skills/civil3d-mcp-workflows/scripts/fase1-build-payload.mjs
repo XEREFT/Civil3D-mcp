@@ -104,13 +104,20 @@ payload.twists = [
 let plCount = 0, plNote = "";
 if (!has("no-pl")) {
   const plOut = join(work, "pl.json");
+  // etapa 1.5: the symbols keep clear of the annotation already in the payload (R/W dim texts = their midpoints, street labels,
+  // the subject label) — c300-pl-symbols.mjs slides a clashing symbol along its own lot line
+  const avoid = payload.entities.flatMap((e) =>
+    e.kind === "aligned_dimension" ? [[(e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2]] : e.kind === "mtext" && e.x != null ? [[e.x, e.y]] : [])
+    .map((p) => p.map((v) => v.toFixed(2)).join(",")).join(";");
   const r = spawnSync("node", [join(here, "c300-pl-symbols.mjs"), "--frontage", String(spec.twist.streetAngleDegrees),
-    "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut], { encoding: "utf8" });
+    "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut, ...(avoid ? ["--avoid", avoid] : [])], { encoding: "utf8" });
+  const movedPl = (r.stdout ?? "").split("\n").filter((l) => /moved|STILL ON/.test(l));
+  if (movedPl.length) plNote = ` (${movedPl.length} slid clear of other annotation: ${movedPl.map((l) => l.trim()).join(" | ")})`;
   if (r.status === 0 && existsSync(plOut)) {
     const pl = JSON.parse(readFileSync(plOut, "utf8")).createEntities?.entities ?? [];
     payload.entities = [...payload.entities, ...pl];
     plCount = pl.length;
-  } else plNote = ` (NOT added: ${(r.stderr || r.stdout || "c300-pl-symbols failed").trim().split("\n").pop()})`;
+  } else plNote += ` (NOT added: ${(r.stderr || r.stdout || "c300-pl-symbols failed").trim().split("\n").pop()})`;
 }
 if (Array.isArray(project.titleBlock) && project.titleBlock.length) payload.titleBlock = project.titleBlock;
 // xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
