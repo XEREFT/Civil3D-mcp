@@ -7,11 +7,12 @@
 //   node fase1-build-run.mjs     --dir "<project folder>" --build -> opens the template, builds, cleans PROP notes, saves, audits
 //   node fase1-finish.mjs        --dwg "<target .dwg>"            -> dump audit + plot + PDF checks + PDF to _QC (or add --finish here)
 //
-//   node fase1-build-run.mjs (--dir "<project folder>" | --payload <payload.json>) [--build] [--finish [--no-copy]] [--repo <Civil3D-mcp>]
+//   node fase1-build-run.mjs (--dir "<project folder>" | --payload <payload.json>) [--build [--confirm "<target name>"]]
+//                            [--finish [--no-copy]] [--repo <Civil3D-mcp>]
 //
-// Without --build it only prints the plan (dry run, nothing sent to Civil 3D). With --build YOU type the target file name at an
-// interactive terminal (that typed confirmation replaces the MCP approval token, which exists for Claude's calls; piped input or an
-// agent cannot start it — Claude's auto mode refuses to run this unattended). The tool's own guards all still run: the template opens as a NEW drawing,
+// Without --build it only prints the plan (dry run, nothing sent to Civil 3D). With --build you confirm the target file name: typed
+// at an interactive terminal, or --confirm "<target name>" (that confirmation replaces the MCP approval token, which exists for
+// Claude's calls; Claude may use --confirm only because the user allowed this script in .claude/settings.local.json). The tool's own guards all still run: the template opens as a NEW drawing,
 // expectedDocument is checked after opening, before the first write and before the save, and saveAs refuses an existing file unless
 // the payload says overwrite (fase1-build-payload.mjs only sets that with --overwrite). This script also refuses up front when the
 // target already exists. Civil 3D must be running with the plugin loaded (better with NO drawing open: a build once hung in
@@ -58,16 +59,21 @@ if (!has("build")) {
   console.log("\nDRY RUN: nothing sent to Civil 3D. Add --build to build (it asks you to type the target file name).");
   process.exit(0);
 }
-// The human-approval step that replaces Claude's approval token: only a person at an interactive terminal can start the writes.
-if (!process.stdin.isTTY) die("--build needs an interactive terminal: type the confirmation yourself (no piped input, no agents).");
+// The human-approval step that replaces Claude's approval token: the target name, typed at an interactive terminal or passed as
+// --confirm "<name>" (a Claude session uses --confirm only because the user allowed it in .claude/settings.local.json, 2026-10-01).
 const expectedName = basename(String(target)).replace(/\.dwg$/i, "");
-const { createInterface } = await import("node:readline/promises");
-const rl = createInterface({ input: process.stdin, output: process.stdout });
-const typed = (await rl.question(`\nTo build, type the target name (${expectedName}): `)).trim();
-rl.close();
-if (typed.toLowerCase() !== expectedName.toLowerCase()) die("name does not match: nothing sent to Civil 3D.");
+let typed = flag("confirm");
+if (typed === undefined) {
+  if (!process.stdin.isTTY) die(`--build needs the target name: type it at an interactive terminal, or pass --confirm "${expectedName}".`);
+  const { createInterface } = await import("node:readline/promises");
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  typed = await rl.question(`\nTo build, type the target name (${expectedName}): `);
+  rl.close();
+}
+if (String(typed).trim().replace(/\.dwg$/i, "").toLowerCase() !== expectedName.toLowerCase()) die("name does not match: nothing sent to Civil 3D.");
 
 // ---------- build (same code as the MCP tool) ----------
+process.env.CIVIL3D_LOG_LEVEL ??= "warn"; // the repo logger prints "[INFO] Connected" on every call; keep warnings/errors only
 const mod = (p) => import(pathToFileURL(join(repo, p)).href);
 const { withApplicationConnection } = await mod("build/utils/ConnectionManager.js");
 const { runFase1Build, summarizeFase1Build } = await mod("build/tools/domains/fase1Build.js");
