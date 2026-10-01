@@ -1,4 +1,25 @@
-# Prompt de continuación VIGENTE (2026-10-01 — motor "Fase 1 desde cero", etapa 1) — pegar tal cual en un chat nuevo
+# Prompt de continuación VIGENTE (2026-10-01, cierre — motor "Fase 1 desde cero", resto de la etapa 1) — pegar tal cual en un chat nuevo
+Antes de pegarlo (usuario): salir del todo de Claude Desktop (bandeja → Salir) y abrir un chat nuevo; Civil 3D abierto sin dibujos.
+
+```
+Seguimos con el motor "Fase 1 desde cero" (sin guía: X-TOPO + X-UTIL + X-ARCH + escaneos + Property Appraiser). Responde en español.
+
+Contexto grabado (no lo rederives): skill civil3d-mcp-workflows `references/automation-backlog.md` §B (diseño, estado y valores de prueba); memorias `fase1-from-scratch-engine`, `fase1-use-runner`, `asbuilts-always-scanned`, `villa-one-c300-status`, `github-publishing`.
+
+Hecho y validado en VILLA ONE: 1.1 as-builts escaneados (scan-ocr.ps1 → asbuilt-extract → asbuilt-associate → asbuilt-review.py → asbuilt-build → c300-utility-labels; rótulos idénticos a FASE 1), 1.2 pa-site.mjs (también dentro de new-project.mjs), 1.3 cotas de R/W del survey en el payload, 1.6 símbolos PL en el payload (15 = FASE 1), 1.8 fase1-qc.py (QC sin guía, dentro de fase1-finish; FASE 1 = 0 FAIL 0 WARN 14 OK), 1.5 parcial (máscaras en rótulos de calle/lote; PL que esquivan anotaciones con --avoid). Build con el runner sin créditos (freezeLayers X-TOPO|DIM, chequeo 7 de la auditoría). Plugin debddec (PR #16), skill 99afb9f en el fork.
+
+Pasos:
+1. Hook de integridad sin FAIL; `node scripts/integrity-check.mjs --only deploy` = 0 FAIL. ToolSearch `select:mcp__Civil_3D_MCP__civil3d_workflow_fase1_build`: su esquema debe traer `freezeLayers` (si no, el reinicio no llegó — avísame).
+2. 1.5 despeje general de MLeaders: usar los choques que reporta fase1-qc.py (posición en modelo + handle) para proponer movimientos de texto de MLeader (acad_update_text_content {handle, x, y}) que eviten cotas, símbolos PL y otros rótulos; primero en una copia en %TEMP% (patrón try-move: Core Console + qc-plot + fase1-qc), nunca en el archivo real sin mi OK.
+3. Integrar en el build las etiquetas de utilidades de la cadena de as-builts (c300-utility-labels → mismo lote de entidades) y que pasen el QC.
+4. Prueba completa desde cero en una copia de descarte de VILLA ONE (FASE1-BUILD-TEST7…): payload → runner --build --confirm → etiquetas → fase1-qc; comparar con FASE 1 solo como examen.
+Pendientes míos: PDF del plat P.B. 46 PG 94 (1.4 U.E.) y qué datos del title block cambian por proyecto (1.7) — pregúntamelos si llegas ahí.
+
+Reglas que ya rigen: nunca datos de la guía; construir con el runner (`node C:/Users/camil/.claude/skills/civil3d-mcp-workflows/scripts/fase1-build-run.mjs …`, regla en .claude/settings.local.json); FASE 1, TEST2, TEST3 y la carpeta Propuesta no se tocan sin mi OK; confirma conmigo antes de guardar/borrar archivos reales; respaldo antes de tocar un archivo real; push al fork / sync de la skill solo si lo pido.
+```
+
+---
+# (anterior, 2026-10-01 — motor "Fase 1 desde cero", etapa 1; YA EJECUTADO hasta 1.8)
 Antes de pegarlo (usuario): si no lo hiciste, salir del todo de Claude Desktop y abrir un chat nuevo (el tool MCP `civil3d_workflow_fase1_build` gana `freezeLayers`; el runner ya lo usa sin reinicio).
 
 ```
