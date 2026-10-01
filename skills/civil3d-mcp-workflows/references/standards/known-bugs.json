@@ -1375,12 +1375,45 @@
    "since": "2026-10-01",
    "id": "qc-shx-text-blind",
    "area": "skill",
-   "status": "info",
+   "status": "fixed",
    "match": "Un rótulo nuestro está cruzado por texto del survey («SIGNAL», «W.P.»)",
    "symptom": "se ve el cruce en el PDF pero el QC no lo marca",
    "cause": "el texto SHX del survey se plotea como trazos, no como texto: no está en page.get_text(\"words\")",
-   "fix": "sin arreglo automático todavía (idea: redactar nuestro texto del PDF y medir la tinta ajena dentro de la caja); revisar el PNG del plot",
-   "checks": []
+   "fix": "fase1-qc.py ubica cada TEXT/MTEXT del survey con los DWG base, toma los trazos del PDF dentro de su caja como su tinta (los tapados por una máscara blanca posterior no cuentan) y mide el cruce con los glifos de nuestras palabras: WARN «survey SHX text over our labels»; las cajas de tinta van al --json como obstáculos del planificador de despeje",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "survey SHX text over our labels"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "def base_dump_of"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "qc-foreign-ink-blind",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Un rótulo nuestro queda encima de un símbolo, relleno o línea gruesa y el QC dice 0 WARN",
+   "symptom": "«(TO REMAIN)» del MLeader 10D03 cayó sobre un símbolo rectangular negro tras el despeje (TEST10) y el QC daba 0 WARN",
+   "cause": "los chequeos del QC miran texto contra texto y el relleno de asfalto; un símbolo, relleno o línea gruesa bajo las palabras no se medía",
+   "fix": "fase1-qc.py quita todo el texto de una copia del PDF y mide cuánto del área de glifos de cada palabra nuestra queda sobre tinta que no es texto: WARN «foreign ink over our labels» desde 15 % (--ink-limit; los PL no cuentan, un rótulo ya marcado por SHX o asfalto no se repite); fase1-declutter.py exige < 5 % de tinta no-texto en el sitio nuevo de ese rótulo",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "foreign ink over our labels"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-declutter.py",
+     "pattern": "need_fore"
+    }
+   ]
   },
   {
    "since": "2026-10-01",

@@ -12,6 +12,7 @@ Geometry (plugin MoveMLeaderText): the text position is the text box's anchor â€
 For each problem label it searches, on a 4 pt grid up to --max-ft, for the cheapest text position whose box (HARD rules)
   - touches no other printed word of anybody, 1.5 pt padding,
   - has < 15 % black-fill pixels (the asphalt hatch: text there is invisible) and stays inside the C-300 viewport (4 pt margin),
+  - for a label the QC flagged "foreign_ink" (its words sit on a symbol / fill / line): < 5 % non-text ink in the new box, measured on a copy of the PDF with all text removed,
   - keeps the text within --leader-ft of the arrow tip, and does not land on a box this same plan already moved,
 and (SOFT) costs extra for every line it would cross: score = distance in pt + 150 x (extra non-white fraction vs the clearest spot).
 PL symbols are not moved here (c300-pl-symbols.mjs --avoid slides them along their own lot line).
@@ -41,6 +42,13 @@ def frac(I, r):
     x0, y0 = max(0, int(r[0] * sc)), max(0, int(r[1] * sc)); x1, y1 = min(gray.width, max(int(r[2] * sc), x0 + 1)), min(gray.height, max(int(r[3] * sc), y0 + 1))
     if x1 <= x0 or y1 <= y0: return 0.0
     return float(I[y1, x1] - I[y0, x1] - I[y1, x0] + I[y0, x0]) / ((x1 - x0) * (y1 - y0))
+I_fore = None                              # anything printed that is NOT text (symbols, fills, lines, SHX strokes): only built when a label needs it
+if any(c["kind"] == "foreign_ink" for c in Q["clashes"]):
+    _doc = fitz.open(Q["pdf"]); _pg = _doc[0]
+    for w_ in _pg.get_text("words"): _pg.add_redact_annot(fitz.Rect(w_[:4]))
+    _pg.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=fitz.PDF_REDACT_LINE_ART_NONE, text=fitz.PDF_REDACT_TEXT_REMOVE)
+    _g = _pg.get_pixmap(dpi=DPI, colorspace=fitz.csGRAY)
+    I_fore = integral(np.frombuffer(_g.samples, dtype=np.uint8).reshape(_g.height, _g.width) < 200)
 def hit(r1, r2, pad=1.5):
     return not (r1[2] + pad <= r2[0] or r2[2] + pad <= r1[0] or r1[3] + pad <= r2[1] or r2[3] + pad <= r1[1])
 def pdf_delta_to_model(dx, dy):          # PDF pt (y down) -> model feet: sheet axes are (ux,uy) and (-uy,ux)
@@ -62,6 +70,7 @@ for h, whys in problems.items():
     bw, bh = max(box[2] - box[0], 0.9 * (L.get("W") or 0) / k), box[3] - box[1]      # a cut-off label is wider than its visible words
     anchor0 = (box[0] if fwd0 else box[2], box[1])
     other = [w["r"] for w in words if w["o"] != h and w["vis"]]
+    need_fore = I_fore is not None and any(w_.startswith("foreign_ink") for w_ in whys)
     cands = []
     R = int(a.max_ft / k / a.step)
     for i in range(-R, R + 1):
@@ -79,6 +88,7 @@ for h, whys in problems.items():
         r = [ax_, ay_, ax_ + bw, ay_ + bh] if fwd else [ax_ - bw, ay_, ax_, ay_ + bh]
         if r[0] < vx0 + 4 or r[2] > vx1 - 4 or r[1] < vy0 + 4 or r[3] > vy1 - 4: continue
         if frac(I_dark, r) > 0.15: continue
+        if need_fore and frac(I_fore, r) > 0.05: continue          # a label that sat on a symbol/fill/line must not land on another one
         if any(hit(r, o) for o in other) or any(hit(r, m, 0) for m in moved): continue
         score = cost + 150.0 * frac(I_ink, r)
         if best is None or score < best[0]: best = (score, dx, dy, mdx, mdy, r, fwd)

@@ -19,7 +19,7 @@
 // Exit code 1 if any FAIL. Nothing is written except a `git fetch fork <skill branch>` (read) unless --offline.
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { join, relative, resolve, dirname } from "node:path";
+import { join, relative, resolve, dirname, isAbsolute } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { homedir } from "node:os";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -304,7 +304,8 @@ async function bugs(registry) {
           const ok = new RegExp(c.pattern).test(read(p));
           add(g, ok ? "OK" : "FAIL", id, ok ? `${c.file} ~ /${c.pattern}/` : `regression: /${c.pattern}/ no longer in ${c.file} — the fix for "${b.id}" may be gone`);
         } else if (c.type === "file-exists") {
-          const ok = existsSync(c.path); add(g, ok ? "OK" : "FAIL", id, ok ? c.path : `missing ${c.path}`);
+          const p = isAbsolute(c.path) ? c.path : join(skill, c.path); // relative paths are skill-relative, never cwd-relative
+          const ok = existsSync(p); add(g, ok ? "OK" : "FAIL", id, ok ? c.path : `missing ${c.path}`);
         } else if (c.type === "node-version") {
           const major = Number(process.versions.node.split(".")[0]); add(g, major >= c.min ? "OK" : "FAIL", id, `node ${process.versions.node} (need >= ${c.min})`);
         } else if (c.type === "vitest") {

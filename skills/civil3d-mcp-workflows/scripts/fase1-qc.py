@@ -12,6 +12,14 @@ the plot PDF (default _QC/C-300 FASE 1.pdf). No guide anywhere. Checks, each OK 
     - the survey's own DIM layer is frozen (it would double the R/W dims)
   cross-checked data: the subject label's folio / GPD / P.B. = project.json (which pa-site.mjs filled from the Property Appraiser)
   legibility on the PDF: words of different text lines overlapping each other (>= 8 % of the smaller box: a rotated word crossing a label barely touches its box), words < 5 pt
+    - survey text plotted as STROKES (SHX fonts: SIMPLEX "SIGNAL", "W.P.P." ...) is not a PDF word, so it is found through the base DWGs: every TEXT/MTEXT of
+      X-TOPO / X-ARCH / X-UTIL in the viewport that no printed word accounts for owns the text-sized strokes inside its text box (a later white fill = a mask
+      of ours hides them); >= 1.5 pt of that ink inside the glyph area of one of our words = WARN "survey SHX text over our labels". The ink hulls also go to
+      --json as obstacles, so fase1-declutter.py steers our MLeaders around them. The base dumps are cached per project (size + mtime of the DWG).
+      Not covered: attribute text inside blocks and anything that is not TEXT/MTEXT. --debug-shx lists every text found.
+    - foreign ink: on a copy of the PDF with every text removed, >= 15 % (--ink-limit) of the glyph area of a word of ours on symbols, fills or lines = WARN
+      "foreign ink over our labels" (a hair-line crossing a word is 3-6 %). PL symbols are skipped (they sit on their lot line); labels already reported
+      for SHX text or the asphalt fill are not repeated. fase1-declutter.py then picks a new spot with < 5 % non-text ink.
 Exit 1 on any FAIL. Prints the exact item (handle / coordinates / PDF position) for every WARN/FAIL.
 """
 import argparse, json, math, os, re, subprocess, sys
@@ -22,6 +30,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("--dir", required=True)
 ap.add_argument("--dwg"); ap.add_argument("--pdf"); ap.add_argument("--dump"); ap.add_argument("--util-dump")
 ap.add_argument("--tol", type=float, default=3.0)
+ap.add_argument("--ink-limit", type=float, default=0.15, help="WARN when this fraction of a word of ours (glyph area) lies on survey symbols, fills or lines")
+ap.add_argument("--debug-shx", action="store_true", help="print every survey SHX text the stroke check found (ink strokes, hull, ink over our words)")
 ap.add_argument("--json", help="write the clashes + every movable label (box in PDF pt, text position, arrows) for fase1-declutter.py")
 a = ap.parse_args()
 proj_dir = os.path.abspath(a.dir)
@@ -35,8 +45,23 @@ def dump_of(path):
     out = subprocess.run(["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", os.path.join(HERE, "dwg-dump.ps1"), path],
                          capture_output=True, text=True, timeout=900).stdout.strip().splitlines()
     return out[-1].strip() if out else None
+def base_dump_of(path):
+    """Dump of a base xref (X-TOPO / X-UTIL / X-ARCH): they do not change between QC rounds, so keep one per project under %TEMP%, keyed by the
+    DWG's size + mtime (the generic c3d-dwg-dump folder is shared by every project's X-TOPO.dwg, so it cannot be trusted for this)."""
+    if not os.path.exists(path): return None
+    import shutil, tempfile
+    work = os.path.join(tempfile.gettempdir(), "c3d-fase1-qc-cache", re.sub(r"[^\w\-]", "_", os.path.basename(proj_dir)))
+    os.makedirs(work, exist_ok=True)
+    base = re.sub(r"[^\w\-]", "_", os.path.splitext(os.path.basename(path))[0])
+    cache, key = os.path.join(work, base + "_dump.txt"), os.path.join(work, base + "_dump.key")
+    st = os.stat(path); sig = f"{st.st_size}:{int(st.st_mtime)}"
+    if os.path.exists(cache) and os.path.exists(key) and open(key).read().strip() == sig: return cache
+    fresh = dump_of(path)
+    if not fresh or not os.path.exists(fresh): return None
+    shutil.copyfile(fresh, cache); open(key, "w").write(sig)
+    return cache
 dump = a.dump or dump_of(dwg)
-udump = a.util_dump or dump_of(os.path.join(proj_dir, "X-UTIL.dwg"))
+udump = a.util_dump or base_dump_of(os.path.join(proj_dir, "X-UTIL.dwg"))
 if not dump or not os.path.exists(dump): sys.exit(f"no dump for {dwg}")
 
 def kv(fields):
@@ -170,6 +195,7 @@ else:
 # ---------- legibility on the PDF ----------
 if os.path.exists(pdf):
     import pymupdf as fitz
+    import numpy as np
     page = fitz.open(pdf)[0]
     words = page.get_text("words")
     tiny = [w for w in words if (w[3] - w[1]) < 5 and (w[2] - w[0]) < 5 * max(1, len(w[4]))]
@@ -267,6 +293,156 @@ if os.path.exists(pdf):
             or o["type"] == "MULTILEADER" and o["rect"] is not None and (o["rect"].x0 < vx0 + 3 or o["rect"].x1 > vx1 - 3 or o["rect"].y0 < vy0 + 3 or o["rect"].y1 > vy1 - 3)]
     for o in edge: clashes.append(dict(kind="viewport_edge", words=[o["text"][:40]], rects=[list(o["rect"])], owners=[o["h"]]))
     add("WARN" if edge else "OK", "our labels inside the viewport", ("; ".join(f"MLeader {o['h']} is cut off by the viewport edge ({o['words']}/{o.get('ntok', 0)} words printed) at model {o['pos'][0]:.1f},{o['pos'][1]:.1f}" for o in edge)) if edge else "none cut by the viewport edge")
+    # ---------- survey text the plot draws as STROKES (SHX fonts): the blind spot of every word-based check above ----------
+    # SIMPLEX / ROMANS / ... (.shx) text is plotted as vector strokes, so it is not in page.get_text("words"): a survey "SIGNAL" or "W.P.P." crossing one
+    # of OUR labels was invisible to the overlap check. The base DWGs know where each survey text is: for every TEXT/MTEXT of X-TOPO / X-ARCH / X-UTIL in
+    # the viewport that no printed word accounts for (TrueType text is already covered above), the plotted strokes that fall inside its text box (text
+    # frame, model feet) are its ink. Ink that no later white fill hides (our masks) and that crosses the glyph area of one of our words is a clash; the
+    # ink hull of every such text also goes to the declutter planner as an obstacle, so the MLeader loop can steer clear of it.
+    def to_pdf(m):
+        dx, dy = m[0] - centre[0], m[1] - centre[1]
+        px, py = (dx * c + dy * s) / scale, (-dx * s + dy * c) / scale
+        return ((px + ps[0]) * 72, (page_h_in - (py + ps[1])) * 72)
+    def clip_len(p, q, r):                      # length of segment p-q inside rect r (Liang-Barsky)
+        x0, y0, dx, dy = p[0], p[1], q[0] - p[0], q[1] - p[1]
+        t0, t1 = 0.0, 1.0
+        for pp, qq in ((-dx, x0 - r.x0), (dx, r.x1 - x0), (-dy, y0 - r.y0), (dy, r.y1 - y0)):
+            if pp == 0:
+                if qq < 0: return 0.0
+            else:
+                t = qq / pp
+                if pp < 0:
+                    if t > t1: return 0.0
+                    t0 = max(t0, t)
+                else:
+                    if t < t0: return 0.0
+                    t1 = min(t1, t)
+        return max(0.0, t1 - t0) * math.hypot(dx, dy)
+    def poly_of(d_):
+        pts = []
+        for it in d_["items"]:
+            if it[0] == "l":
+                if not pts: pts.append(it[1])
+                pts.append(it[2])
+            elif it[0] == "re": q = it[1]; pts += [q.top_left, q.top_right, q.bottom_right, q.bottom_left]
+            elif it[0] == "qu": q = it[1]; pts += [q.ul, q.ur, q.lr, q.ll]
+        return pts
+    def in_poly(p, poly):
+        inside = False
+        for i in range(len(poly)):
+            (x1, y1), (x2, y2) = poly[i - 1], poly[i]
+            if (y1 > p[1]) != (y2 > p[1]) and p[0] < (x2 - x1) * (p[1] - y1) / (y2 - y1) + x1: inside = not inside
+        return inside
+    draws = page.get_drawings()
+    whites = [(d_.get("seqno", 0), d_["rect"], poly_of(d_)) for d_ in draws
+              if d_["type"] in ("f", "fs") and tuple(round(x, 2) for x in (d_.get("fill") or ())) == (1.0, 1.0, 1.0)]
+    strokes = []                                # (seqno, [segments], rect): text-sized stroked paths only (longer ones are linework)
+    for d_ in draws:
+        if d_["type"] != "s" or max(d_["rect"].width, d_["rect"].height) > 24: continue
+        segs = []
+        for it in d_["items"]:
+            if it[0] == "l": segs.append((it[1], it[2]))
+            elif it[0] == "c": segs += [(it[1], it[2]), (it[2], it[3]), (it[3], it[4])]
+            elif it[0] == "qu": q = it[1]; segs += [(q.ul, q.ur), (q.ur, q.lr), (q.lr, q.ll), (q.ll, q.ul)]
+            elif it[0] == "re": q = it[1]; segs += [(q.top_left, q.top_right), (q.top_right, q.bottom_right), (q.bottom_right, q.bottom_left), (q.bottom_left, q.top_left)]
+        if segs: strokes.append((d_.get("seqno", 0), segs, d_["rect"]))
+    def hidden(seq, p):                         # painted over by a later white fill (a mask of ours, a wipeout)
+        return any(w[0] > seq and w[1].contains(fitz.Point(*p)) and (len(w[2]) < 3 or in_poly(p, w[2])) for w in whites)
+    fmt_re = re.compile(r"\\[A-Za-z][^;\\]*;|\\[LlOoKk]|\\[~\\{}]|[{}]")
+    survey = []
+    for tag in ("X-TOPO", "X-ARCH", "X-UTIL"):
+        dp = udump if tag == "X-UTIL" else base_dump_of(os.path.join(proj_dir, tag + ".dwg"))
+        if not dp or not os.path.exists(dp): continue
+        for line in open(dp, encoding="utf-8", errors="replace"):
+            if not (line.startswith("ENT|TEXT|") or line.startswith("ENT|MTEXT|")): continue
+            raw = line.rstrip("\n"); cut = raw.find("|txt=")
+            f0 = (raw[:cut] if cut >= 0 else raw).split("|"); d = kv(f0[4:])
+            lay = layers.get(f"{tag}|{f0[3]}")
+            if lay and (int(lay.get("fl", "0") or 0) & 1 or lay.get("plot") == "0" or lay.get("c", "").lstrip().startswith("-")): continue   # frozen / off / not plotted
+            if not d.get("x"): continue
+            txt = fmt_re.sub("", (raw[cut + 5:] if cut >= 0 else "").replace("\\P", "\n")).replace("%%c", "Ø").replace("%%d", "°").replace("%%p", "±").replace("%%u", "").replace("%%o", "")
+            lines = [l.strip() for l in txt.split("\n") if l.strip()]
+            if not lines: continue
+            h_ = float(d.get("h") or 0) or 2.0; th = float(d.get("rot") or 0); att = int(float(d["att"])) if d.get("att") else 0
+            L = max(len(l) for l in lines) * 0.95 * h_; Ht = h_ + 1.667 * h_ * (len(lines) - 1); pad = 0.35 * h_
+            if att:
+                col, row = (att - 1) % 3, (att - 1) // 3
+                u0, u1 = [(-pad, L + pad), (-L / 2 - pad, L / 2 + pad), (-L - pad, pad)][col]
+                v0, v1 = [(-Ht - pad, pad), (-Ht / 2 - pad, Ht / 2 + pad), (-pad, Ht + pad)][row]
+            else: u0, u1, v0, v1 = -L - pad, L + pad, -h_ - pad, 1.4 * h_ + pad        # TEXT: its justification is not in the dump -> wide box
+            x_, y_ = float(d["x"]), float(d["y"])
+            if not in_view((x_, y_), -(L + 6)): continue
+            survey.append(dict(tag=tag, h=f0[2], x=x_, y=y_, cs=math.cos(th), sn=math.sin(th), box=(u0, u1, v0, v1), text=" ".join(lines), n=sum(len(l.replace(" ", "")) for l in lines),
+                               toks={norm_w(w) for w in " ".join(lines).split()} - {""}))
+    def in_box(m, t):
+        dx, dy = m[0] - t["x"], m[1] - t["y"]
+        u, v = dx * t["cs"] + dy * t["sn"], -dx * t["sn"] + dy * t["cs"]
+        b = t["box"]; return b[0] <= u <= b[1] and b[2] <= v <= b[3]
+    ours_words = []                             # (owner handle, text, rect, glyph area): the glyphs sit inside the font box, so shrink it
+    for w in all_words:
+        if w["o"]:
+            r_ = fitz.Rect(w["r"]); hh = r_.height
+            ours_words.append((w["o"], w["t"], r_, fitz.Rect(r_.x0, r_.y0 + 0.14 * hh, r_.x1, r_.y1 - 0.17 * hh)))
+    by_handle = {o["h"]: o for o in ours}
+    shx_hits, shx_clashes, shx_obstacles, n_shx = [], [], [], 0
+    for t in survey:
+        # TrueType survey text is already a printed word: skip the texts a word accounts for
+        if any(w[4].strip() and norm_w(w[4]) in t["toks"] and in_box(to_model((w[0] + w[2]) / 2, (w[1] + w[3]) / 2), t) for w in words):
+            if a.debug_shx: print(f"  [skip: printed as a word] {t['tag']} {t['h']} '{t['text']}'")
+            continue
+        corners = [to_pdf((t["x"] + u * t["cs"] - v * t["sn"], t["y"] + u * t["sn"] + v * t["cs"])) for u in t["box"][:2] for v in t["box"][2:]]
+        R = fitz.Rect(min(q[0] for q in corners), min(q[1] for q in corners), max(q[0] for q in corners), max(q[1] for q in corners))
+        ink = [st for st in strokes if st[2].intersects(R) and in_box(to_model((st[2].x0 + st[2].x1) / 2, (st[2].y0 + st[2].y1) / 2), t)]
+        ink = [(st[0], [sg for sg in st[1] if not hidden(st[0], ((sg[0][0] + sg[1][0]) / 2, (sg[0][1] + sg[1][1]) / 2))]) for st in ink]
+        ink = [st for st in ink if st[1]]
+        segs = [sg for _, ss in ink for sg in ss]
+        if len(ink) < max(2, round(0.5 * t["n"])):                  # not (visibly) plotted: nothing there to clash with (frozen in the viewport, hidden, or not text)
+            if a.debug_shx: print(f"  [skip: {len(ink)} visible strokes < {max(2, round(0.5 * t['n']))}] {t['tag']} {t['h']} '{t['text']}' at PDF {R.x0:.0f},{R.y0:.0f}")
+            continue
+        hull = fitz.Rect(min(min(sg[0][0], sg[1][0]) for sg in segs), min(min(sg[0][1], sg[1][1]) for sg in segs),
+                         max(max(sg[0][0], sg[1][0]) for sg in segs), max(max(sg[0][1], sg[1][1]) for sg in segs))
+        n_shx += 1
+        shx_obstacles.append(dict(r=list(hull), t=t["text"], o=None, vis=True))
+        per = {}
+        for oh, otxt, r_, g in ours_words:
+            if not g.intersects(hull): continue
+            ln = sum(clip_len(sg[0], sg[1], g) for sg in segs)
+            if ln > 0:
+                e_ = per.setdefault(oh, [0.0, set(), fitz.Rect(g)]); e_[0] += ln; e_[1].add(otxt); e_[2] |= g
+        if a.debug_shx: print(f"  [shx] {t['tag']} {t['h']} '{t['text']}' strokes {len(ink)} hull {tuple(round(v, 1) for v in hull)} ink-over-ours {{{', '.join(f'{k}: {v[0]:.1f}pt' for k, v in per.items())}}}")
+        for oh, (ln, toks_, grect) in per.items():
+            if ln < 1.5: continue                                    # a hair grazing the font box is not a crossing
+            lab = by_handle.get(oh)
+            shx_clashes.append(dict(kind="overlap", words=[(lab["text"] if lab else "label")[:40], t["text"]], rects=[list(grect), list(hull)], owners=[oh, None]))
+            shx_hits.append(f"survey '{t['text']}' ({t['tag']} {t['h']}) crosses {'MLeader' if lab and lab['type'] == 'MULTILEADER' else 'label'} {oh} \"{(lab['text'] if lab else '')[:36]}\" ({ln:.1f} pt of ink; words {', '.join(sorted(toks_))[:50]}) at PDF {grect.x0:.0f},{grect.y0:.0f}")
+    clashes += shx_clashes
+    all_words += shx_obstacles
+    add("WARN" if shx_hits else "OK", "survey SHX text over our labels", (f"{len(shx_hits)} crossing(s): " + "; ".join(shx_hits[:8]) + (" ..." if len(shx_hits) > 8 else "")) if shx_hits else f"none of the {n_shx} stroke-plotted survey texts in the viewport touches our text")
+    # ---------- foreign ink (symbols, fills, lines) over the glyphs of our words ----------
+    # The checks above only see TEXT. A survey symbol, a black fill or a heavy line under one of our MLeader words still makes it unreadable (TEST10: "(TO REMAIN)"
+    # on a black symbol, 0 WARN). Take a copy of the page with EVERY text removed (what is left is linework, fills, symbols and the SHX strokes) and measure how
+    # much of each word's glyph area is dark: a hair-line crossing a word is ~3-6 %, a symbol or fill is >= 15 %. PL symbols sit on their lot line by design: skipped.
+    # Labels already reported above (SHX text, under the asphalt fill) are not reported twice.
+    fdoc = fitz.open(pdf); fpage = fdoc[0]
+    for w in fpage.get_text("words"): fpage.add_redact_annot(fitz.Rect(w[:4]))
+    fpage.apply_redactions(images=fitz.PDF_REDACT_IMAGE_NONE, graphics=fitz.PDF_REDACT_LINE_ART_NONE, text=fitz.PDF_REDACT_TEXT_REMOVE)
+    fpix = fpage.get_pixmap(dpi=200, colorspace=fitz.csGRAY); fk = 200 / 72
+    fimg = np.frombuffer(fpix.samples, dtype=np.uint8).reshape(fpix.height, fpix.width) < 140
+    already = {o_ for cl in shx_clashes for o_ in cl["owners"] if o_} | {o["h"] for o in under}
+    ink_by_label = {}
+    for oh, otxt, r_, g in ours_words:
+        if by_handle.get(oh, {}).get("type") != "MULTILEADER" or oh in already: continue
+        sub = fimg[max(0, int(g.y0 * fk)):int(g.y1 * fk) + 1, max(0, int(g.x0 * fk)):int(g.x1 * fk) + 1]
+        frac_ = float(sub.mean()) if sub.size else 0.0
+        if frac_ >= a.ink_limit: ink_by_label.setdefault(oh, []).append((frac_, otxt, g))
+    ink_hits = []
+    for oh, ws_ in ink_by_label.items():
+        lab = by_handle[oh]; ws_.sort(key=lambda t: -t[0]); grect = fitz.Rect(ws_[0][2])
+        for t_ in ws_[1:]: grect |= t_[2]
+        clashes.append(dict(kind="foreign_ink", words=[lab["text"][:40], "foreign ink"], rects=[list(grect), list(grect)], owners=[oh, None]))
+        ink_hits.append(f"MLeader {oh} \"{lab['text'][:36]}\": " + ", ".join(f"'{t_[1]}' {t_[0]:.0%}" for t_ in ws_[:4]) + f" of the glyph area is symbol/fill/line ink, at PDF {grect.x0:.0f},{grect.y0:.0f}"
+                        + f" [model {lab['pos'][0]:.1f},{lab['pos'][1]:.1f}]")
+    add("WARN" if ink_hits else "OK", "foreign ink over our labels", (f"{len(ink_hits)} label(s): " + "; ".join(ink_hits[:8])) if ink_hits else f"no word of ours has >= {a.ink_limit:.0%} of its glyph area on symbols, fills or lines")
     if a.json:
         vx0 = (ps[0] - float(vp["w"]) / 2) * 72; vx1 = (ps[0] + float(vp["w"]) / 2) * 72
         vy0 = (page_h_in - ps[1] - float(vp["ht"]) / 2) * 72; vy1 = (page_h_in - ps[1] + float(vp["ht"]) / 2) * 72

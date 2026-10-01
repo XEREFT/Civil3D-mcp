@@ -41,7 +41,8 @@ export function formatAddress(raw) {
   return toks.map((t, i) => {
     if (i === 0) return t;                                   // house number ("227XX" stays)
     if (DIR[t] && !/\d/.test(t)) return DIR[t];
-    if (/^\d+$/.test(t)) return ordinal(Number(t));          // "232" -> "232ND"
+    // "232" -> "232ND", but only the street number (after a compass direction or before a street type); "UNIT 3" stays "UNIT 3"
+    if (/^\d+$/.test(t) && ((DIR[toks[i - 1]] && !/\d/.test(toks[i - 1])) || toks[i + 1] in SUFFIX)) return ordinal(Number(t));
     return SUFFIX[t] ?? t;
   }).join(" ");
 }
