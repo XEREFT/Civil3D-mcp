@@ -1,4 +1,26 @@
-# Prompt de continuación VIGENTE (2026-10-01, cierre — motor "Fase 1 desde cero", resto de la etapa 1) — pegar tal cual en un chat nuevo
+# Prompt de continuación VIGENTE (2026-10-01, noche — motor "Fase 1 desde cero": lo que queda tras el orquestador) — pegar tal cual en un chat nuevo
+Antes de pegarlo (usuario): salir del todo de Claude Desktop (bandeja → Salir) y abrir un chat nuevo; Civil 3D abierto (de preferencia sin dibujos).
+
+```
+Seguimos con el motor "Fase 1 desde cero" (sin guía: X-TOPO + X-UTIL + X-ARCH + escaneos + Property Appraiser). Responde en español.
+
+Contexto grabado (no lo rederives): skill civil3d-mcp-workflows `references/automation-backlog.md` §B (bloques «1.5 + etapa 3 COMPLETOS» y «1.7 COMPLETO + orquestador»); memorias `fase1-from-scratch-engine`, `fase1-use-runner`, `asbuilts-always-scanned`, `github-publishing`.
+
+Hecho y validado (VILLA ONE, copias TEST7–TEST9): TODO el camino en UN comando — `node scripts/fase1-from-scratch.mjs --dir <carpeta> --dwg "<destino nuevo>.dwg" --template <t.dwg> --asbuilt <asbuilt.json> --blocks-from <C-300 del paquete>` (payload con PL + cotas R/W + etiquetas de utilidades + title block desde project.json → runner sin créditos → plot + fase1-qc.py → lazo de despeje de MLeaders): QC 0 FAIL / 0 WARN / 16 OK, sin datos de Goulds en el plot. Plugin a2e52a5 y skill en el fork (PR #16).
+
+Pasos sugeridos (elige con el usuario):
+1. Hook de integridad sin FAIL; `node scripts/integrity-check.mjs --only deploy` = 0 FAIL. ToolSearch `select:mcp__Civil_3D_MCP__civil3d_workflow_fase1_build`: el esquema debe traer `blockImports` y `freezeLayers` (chat nuevo tras el reinicio).
+2. 1.9 etiquetas Civil 3D «general note» que FASE 1 trae y el motor no: ~30 EOP / EXIST R/W + 2 «ALIGNMENT START» (derivarlas del survey y la alineación, solo como examen contra FASE 1; sin datos de la guía).
+3. Punto ciego del QC: texto SHX del survey (SIGNAL, W.P.) que cruza un rótulo nuestro (sale como trazos en el PDF): detectar por tinta ajena dentro de la caja del rótulo.
+4. 1.4 U.E.: bloqueada hasta tener el PDF del plat del Clerk (P.B. 46 PG 94 NO está en AUTOCAD @XEREFT); cuando exista: OCR + ubicación con Lot_poly y meterla en la lista de evitar de los PL.
+5. Etapa 2 "Fase 1 Studio" (app local en el navegador: arrastrar los 3 DWG + escaneos → revisar → 1 botón, usando fase1-from-scratch.mjs) y etapa 3 (tablero de proyectos).
+6. Probar el camino completo en un proyecto NUEVO distinto de VILLA ONE (p. ej. 12300 SW 232 ST → pa-site.mjs) para validar el title block con otra dirección.
+
+Reglas que ya rigen: nunca datos de la guía; construir con el runner / fase1-from-scratch.mjs (regla en .claude/settings.local.json); FASE 1, TEST2, TEST3 y la carpeta Propuesta no se tocan sin su OK; confirma antes de guardar/borrar archivos reales; respaldo antes de tocar un archivo real; push al fork / sync de la skill solo si lo pide. Copias de descarte en la carpeta de VILLA ONE: _template-BUILD-TEST.dwg, FASE1-BUILD-TEST7/8/9.dwg (no borrar sin preguntar).
+```
+
+---
+# (anterior, 2026-10-01 — YA EJECUTADO: pasos 1.5 despeje, etiquetas en el build y prueba TEST7–TEST9)
 Antes de pegarlo (usuario): salir del todo de Claude Desktop (bandeja → Salir) y abrir un chat nuevo; Civil 3D abierto sin dibujos.
 
 ```

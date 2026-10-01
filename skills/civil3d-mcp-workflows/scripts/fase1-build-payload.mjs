@@ -7,6 +7,7 @@
 //                                              drawing is already open and active (then only expectedDocument guards the writes)
 //        [--topo <X-TOPO dump.txt> | --spec <spec.json>]   default: dwg-dump.ps1 on <dir>\X-TOPO.dwg + c300-build-spec.mjs
 //        [--out payload.json] [--overwrite]
+//        [--no-titleblock]  title block from project.json (c300-titleblock.mjs)
 //        [--asbuilt asbuilt.json] [--blocks-from <package C-300.dwg>] [--no-labels]   existing-utility labels (default asbuilt.json in the
 //                                              folder or project.json sources.asbuilt; blocks FH / EXIST ARROW imported from --blocks-from
 //                                              or sources.blocksFrom when the template lacks them)
@@ -148,7 +149,16 @@ if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
   const kinds = {}; for (const e of labelEntities) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
   labelNote = `${labelEntities.length} entities ${JSON.stringify(kinds)} from ${asbuiltPath}${warn.length ? "  WARN: " + warn.join("; ") : ""}`;
 }
-if (Array.isArray(project.titleBlock) && project.titleBlock.length) payload.titleBlock = project.titleBlock;
+// Title block (etapa 1.7): an explicit project.json "titleBlock" array wins; otherwise c300-titleblock.mjs derives the replacements from
+// project.json (name, address, project no., AGR, sheet, date, drawn-by) against the Goulds template's values. --no-titleblock skips.
+let titleNote = "none";
+if (Array.isArray(project.titleBlock) && project.titleBlock.length) { payload.titleBlock = project.titleBlock; titleNote = `${project.titleBlock.length} replacement(s) from project.json titleBlock`; }
+else if (!has("no-titleblock")) {
+  const tbOut = join(work, "titleblock.json");
+  const r = spawnSync("node", [join(here, "c300-titleblock.mjs"), "--dir", dir, "--out", tbOut], { encoding: "utf8" });
+  if (r.status === 0 && existsSync(tbOut)) { payload.titleBlock = JSON.parse(readFileSync(tbOut, "utf8")); titleNote = (r.stdout ?? "").trim().split("\n").filter((l) => /WARN/.test(l)).concat([`${payload.titleBlock.length} replacement(s) from project.json`]).join(" | "); }
+  else titleNote = `NOT added: ${(r.stderr || r.stdout || "c300-titleblock failed").trim().split("\n").pop()}`;
+}
 // xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
 payload.freezeLayers = std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"];
 payload.save = true;
@@ -162,7 +172,7 @@ payload -> ${out}
  alignment   ${alignment.name} ${lengthFt} ft, style ${alignment.style}
  entities    ${entities.length}${payload.clImport ? ` (first ${clName} imported from X-TOPO)` : ""}
  twists      ${payload.twists.map((t) => `${t.layout} ${t.streetAngleDegrees}°`).join(", ")}
- titleBlock  ${payload.titleBlock ? `${payload.titleBlock.length} replacement(s)` : "none (project.json has no titleBlock array)"}
+ titleBlock  ${titleNote}
  freeze      ${payload.freezeLayers.join(", ")}
  PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
  utility labels ${labelNote}${payload.blockImports ? `\n block imports ${payload.blockImports.map((b) => b.blockName).join(", ")} <- ${basename(payload.blockImports[0].sourceFilePath)}` : ""}

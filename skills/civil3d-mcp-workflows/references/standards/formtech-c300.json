@@ -367,6 +367,19 @@
    "approved by CF",
    "date MM/DD/YY",
    "AGR. NO."
-  ]
+  ],
+  "drawnBy": "JH",
+  "templateFrom": {
+   "goulds": {
+    "projectName": "231-232 GOULDS",
+    "address": "231XX S.W. 125TH AVENUE",
+    "projectNo": "26-04.046",
+    "agr": "33809",
+    "sheet": "C-301",
+    "date": "08/03/26",
+    "drawnBy": "UB"
+   },
+   "_note": "values the Goulds C-300 template prints (user 2026-10-01: the title block data almost always comes from Goulds). c300-titleblock.mjs replaces them from project.json; another template -> project.json titleBlockFind {same keys}"
+  }
  }
 }

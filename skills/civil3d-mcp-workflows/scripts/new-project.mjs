@@ -81,9 +81,11 @@ NEXT (recipe = skill references/c300-water-sewer-plan.md section 7 + 9 "Receta F
  1. site.lotPoint: pa-site.mjs above fills it with the parcel centroid when its verdict is OK; if it asked for the lot point or
     the folio, rerun: node scripts/pa-site.mjs --dir "${dir}" --xy X,Y --write   (U.E.: download the plat P.B./PG it printed from the Clerk)
  2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + PL symbols + survey R/W dims + payload for "${folderName} FASE 1.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
- 3. build (no credits, Civil 3D open with NO drawing): node scripts/fase1-build-run.mjs --dir "${dir}" --build [--finish]
+ 2b. EVERYTHING IN ONE COMMAND (payload + build + plot + QC + MLeader declutter): node scripts/fase1-from-scratch.mjs --dir "${dir}" --dwg "<NEW name>.dwg" --template "<template>.dwg" [--asbuilt asbuilt.json --blocks-from <package C-300.dwg>]
+    (title block comes from project.json: name, subject.address, projectNo, agrNo (POC), date, JH; the template is almost always the Goulds C-300)
+ 3. build only (no credits, Civil 3D open with NO drawing): node scripts/fase1-build-run.mjs --dir "${dir}" --build [--finish]
     (= civil3d_workflow_fase1_build + audit: template, xrefs, freeze X-TOPO|DIM, alignment BCC, _cl, entities, twists, no-PROP notes, save)
  4. as-builts (scans): scan-ocr.ps1 -> asbuilt-extract -> asbuilt-associate -> asbuilt-review.py (YOU confirm) -> asbuilt-build -> c300-utility-labels
-    still by hand: U.E. (plat), title block
+    still by hand: U.E. (plat PDF from the Clerk), the EOP / EXIST R/W / ALIGNMENT START Civil 3D labels
  5. /fase1 (civil3d_workflow_fase1_audit, then node scripts/fase1-finish.mjs) -> READY
  Then: node scripts/project-state.mjs log "${dir}" "<what you did>" and keep decisions with 'decide'.`);

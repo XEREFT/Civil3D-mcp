@@ -1276,6 +1276,143 @@
      "pattern": "7\\[\\.a\\]\\?"
     }
    ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "label-long-line-overlap",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Los rótulos SAN/WM del build salen en UNA línea larguísima",
+   "symptom": "rótulo de 46 caracteres pisa lotes, texto y asfalto; sin sitio libre para moverlo",
+   "cause": "acad_create_mleader no define ancho de MText (las hojas entregadas usan ~25 caracteres)",
+   "fix": "c300-utility-labels.mjs parte las líneas > 26 caracteres con \\P (--wrap)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-utility-labels.mjs",
+     "pattern": "wrapText"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "build-single-block-import",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "`fase1_build` no puede importar `EXIST ARROW` / `FH`",
+   "symptom": "bloques EXIST ARROW/FH sin definición en la plantilla de Goulds; la capa del bloque cae en la capa actual",
+   "cause": "clImport importaba un solo bloque y el import ocurría antes de crear `layers`",
+   "fix": "blockImports[] + capa creada antes del import (a2e52a5)",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "options\\.blockImports"
+    },
+    {
+     "type": "vitest",
+     "file": "tests/fase1_build.test.ts"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-build-payload.mjs",
+     "pattern": "payload\\.blockImports"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "qc-label-ownership",
+   "area": "skill",
+   "status": "fixed",
+   "match": "`fase1-qc.py` atribuye mal las palabras del PDF a los rótulos",
+   "symptom": "«9/12 palabras impresas» o rótulos cortados que no lo están; atribución al rótulo equivocado",
+   "cause": "las líneas «(PER ES9467-2)», «(TO REMAIN)» se repiten en todos los rótulos; la distancia al punto de texto no basta (el texto mide ~40 ft)",
+   "fix": "dueño = rótulo cuya CAJA de texto (cuelga del punto de texto a derecha/izquierda según quede adelante o atrás de la flecha) contiene la palabra",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "def box_dist"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "qc-partial-asphalt-cover",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Un rótulo nuestro queda a medias bajo el asfalto negro",
+   "symptom": "«SL|OPE», «(PER ES946» cortadas por el relleno negro y el QC dice OK",
+   "cause": "el QC ignoraba palabras con ≥ 85 % de su caja sobre el relleno (para no marcar el texto del survey bajo el asfalto) y no distinguía las nuestras",
+   "fix": "para palabras de NUESTROS rótulos el umbral es 25 % de píxeles oscuros: «our labels under the survey fill»",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "dark_frac\\(r_, 80\\) >= 0\\.25"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "mleader-move-anchor-flip",
+   "area": "plugin",
+   "status": "info",
+   "match": "Al mover el texto de un MLeader con `acad_update_text_content {x,y}` el cuadro de texto salta",
+   "symptom": "el texto aparece a la izquierda/derecha de donde se esperaba y se sale del viewport",
+   "cause": "MoveMLeaderText re-elige el ancla: TopLeft si el punto de texto queda adelante de la flecha, TopRight si queda atrás",
+   "fix": "planificar con el volteo (fase1-declutter.py) y volver a plotear + QC después de aplicar",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-declutter.py",
+     "pattern": "fwd = "
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "qc-shx-text-blind",
+   "area": "skill",
+   "status": "info",
+   "match": "Un rótulo nuestro está cruzado por texto del survey («SIGNAL», «W.P.»)",
+   "symptom": "se ve el cruce en el PDF pero el QC no lo marca",
+   "cause": "el texto SHX del survey se plotea como trazos, no como texto: no está en page.get_text(\"words\")",
+   "fix": "sin arreglo automático todavía (idea: redactar nuestro texto del PDF y medir la tinta ajena dentro de la caja); revisar el PNG del plot",
+   "checks": []
+  },
+  {
+   "since": "2026-10-01",
+   "id": "title-block-template-values",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El title block de la hoja sale con los datos de Goulds",
+   "symptom": "«231-232 GOULDS», 26-04.046, AGR 33809, C-301, 08/03/26, UB en un proyecto nuevo",
+   "cause": "la plantilla es el C-300 de Goulds y el payload no traía `titleBlock`",
+   "fix": "c300-titleblock.mjs deriva los reemplazos de project.json (nombre, dirección, proyecto, AGR, hoja, fecha, iniciales)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-build-payload.mjs",
+     "pattern": "c300-titleblock\\.mjs"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/c300-titleblock.mjs"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-01",
+   "id": "build-open-template-slow",
+   "area": "process",
+   "status": "info",
+   "match": "El runner falla en «check new drawing is active» con `listOpenDocuments` timed out",
+   "symptom": "Command timed out after 120000ms: listOpenDocuments justo después de abrir la plantilla",
+   "cause": "Civil 3D tardó en abrir un dibujo nuevo con otros dibujos abiertos (FASE 1, copias de prueba)",
+   "fix": "esperar a que responda (plugin-rpc.mjs listOpenDocuments) y reintentar; queda un DrawingN.dwg sin cambios abierto, inofensivo",
+   "checks": []
   }
  ]
 }
