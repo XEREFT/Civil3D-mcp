@@ -13,6 +13,7 @@
 // site.lotPoint = parcel centroid when missing, sources.pa = {date, folio}. Read-only web queries. Node 18+, no deps.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { getJson } from "./lib/gis.mjs";
 
 const PA = "https://apps.miamidadepa.gov/PApublicServiceProxy/PaServicesProxy.ashx";
 const PARCELS = "https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/6/query";
@@ -28,7 +29,7 @@ const xy = flag("xy") ? flag("xy").split(",").map(Number) : project?.site?.lotPo
 const win = project?.site?.window ?? null;
 if (!docFolio && !docAddress && !xy) { console.error('usage: node pa-site.mjs --dir "<project>" | --address "..." | --folio N | --xy X,Y  [--write]'); process.exit(2); }
 
-const get = async (url) => { const r = await fetch(url); if (!r.ok) throw new Error(`${r.status} ${url}`); return r.json(); };
+const get = (url) => getJson(url, { expectFeatures: /MapServer/.test(url) });  // county GIS: retried when it answers with an empty feature list (first-hit hiccup)
 const fmtFolio = (f) => String(f).replace(/\D/g, "").replace(/^(\d{2})(\d{4})(\d{3})(\d{4})$/, "$1-$2-$3-$4");
 const notes = [];
 

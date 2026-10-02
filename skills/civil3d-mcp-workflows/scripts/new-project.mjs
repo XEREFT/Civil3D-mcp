@@ -75,6 +75,15 @@ if (!dry) {
   if (r.status !== 0 && !lines.length) console.log(`     ${(r.stderr ?? "").slice(-200)}`);
 } else console.log("[dry-run] Property Appraiser: node scripts/pa-site.mjs --dir <project> --write [--xy X,Y]");
 
+// Property Appraiser AREA (user's manual routine, automated): streets of the survey -> "11800 227" search -> possible folios -> every lot of the window with
+// its legal size vs its GIS polygon (R/W dedications) + U.E. candidates on the shared lot lines. Non fatal; report in <project>\_reports\pa-area_<date>.json.
+if (!dry) {
+  const r = spawnSync("node", [join(here, "pa-area.mjs"), "--dir", dir, "--write"], { encoding: "utf8", timeout: 600000 });
+  const out = (r.stdout ?? "").trim().split("\n");
+  console.log(`${r.status === 0 ? "ok  " : "WARN"} Property Appraiser area (pa-area.mjs): ${out.filter((l) => /^search|^lots inside|^report/.test(l)).join(" | ")}`);
+  if (r.status !== 0) console.log(`     ${(r.stderr ?? "").slice(-200)}`);
+} else console.log("[dry-run] Property Appraiser area: node scripts/pa-area.mjs --dir <project> --write");
+
 const rel = (f) => `${dir}/${f}`;
 console.log(`
 NEXT (recipe = skill references/c300-water-sewer-plan.md section 7 + 9 "Receta Fase 1"; shortcut: /fase1-build):

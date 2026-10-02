@@ -16,11 +16,8 @@ const GIS = 'https://services.arcgis.com/8Pc9XBTAsYuxx9Ny/arcgis/rest/services/P
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) =>
   (v.startsWith('--') ? a.concat([[v.slice(2), arr[i + 1]]]) : a), []));
 
-const get = async (url) => {
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`${r.status} ${url}`);
-  return r.json();
-};
+import { getJson } from './lib/gis.mjs';
+const get = (url) => getJson(url, { expectFeatures: /MapServer/.test(url) }); // county GIS: retried on an empty first answer
 const fmtFolio = (f) => String(f).replace(/\D/g, '').replace(/^(\d{2})(\d{4})(\d{3})(\d{4})$/, '$1-$2-$3-$4');
 
 async function byFolio(folio) {

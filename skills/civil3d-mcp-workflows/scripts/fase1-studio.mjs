@@ -245,6 +245,7 @@ const server = http.createServer(async (req, res) => {
     if (p === "/") { res.writeHead(200, { "content-type": MIME[".html"], "cache-control": "no-store" }); return res.end(uiHtml()); }
     if (p === "/api/projects") return sendJson(res, { root: ROOT, projects: listProjects(), inbox: listInbox(), plugin: await portOpen(8080) });
     if (p === "/api/project") return sendJson(res, { ...inspect(safeDir(q("dir"))), plugin: await portOpen(8080) });
+    if (p === "/api/paarea") { const dir = safeDir(q("dir")); const f = readJson(join(dir, "project.json"))?.site?.paArea?.file; if (!f || !existsSync(f)) throw Object.assign(new Error("run «Lotes del área» first"), { status: 404 }); const rep = readJson(f); return sendJson(res, { ...rep, lots: (rep.lots ?? []).map(({ ring, ...l }) => l) }); }
     if (p === "/api/job") { const from = Number(q("from") ?? 0); return sendJson(res, { id: job.id, label: job.label, running: job.running, code: job.code, text: job.log.slice(from), next: job.log.length, seconds: Math.round((Date.now() - job.started) / 1000) }); }
     if (p === "/api/upload" && req.method === "POST") {                       // raw body = file; ?dir=<project> or ?inbox=<NAME>&name=<file>
       const name = basename(q("name") ?? "").replace(/[<>:"|?*]/g, "_"); if (!name) throw Object.assign(new Error("name required"), { status: 400 });
@@ -280,6 +281,7 @@ const server = http.createServer(async (req, res) => {
       const dir = safeDir(o.dir);
       if (kind === "poc") { const i = inspect(dir); if (!i.poc) throw Object.assign(new Error("no hay POC.pdf (arrástralo a la página)"), { status: 400 }); return sendJson(res, { id: startJob("Leer POC", async ({ run }) => (await run(node, [sc("poc-extract.mjs"), i.poc, "--project", dir])).code === 0) }); }
       if (kind === "pa") return sendJson(res, { id: startJob("Property Appraiser", async ({ run }) => (await run(node, [sc("pa-site.mjs"), "--dir", dir, "--write", ...(o.xy ? ["--xy", String(o.xy)] : [])])).code === 0) });
+      if (kind === "paarea") return sendJson(res, { id: startJob("Lotes del área (Property Appraiser)", async ({ run }) => (await run(node, [sc("pa-area.mjs"), "--dir", dir, "--write", ...(o.near ? ["--near", String(o.near)] : [])])).code === 0) });
       if (kind === "prepare") return sendJson(res, { id: startJob("Preparar (X-TOPO → spec)", async (c) => prepareSteps(c, dir)) });
       if (kind === "template") { const src = String(o.source ?? ""); if (!existsSync(src)) throw Object.assign(new Error(`no existe: ${src}`), { status: 400 }); if (existsSync(join(dir, "_template.dwg"))) throw Object.assign(new Error("_template.dwg ya existe (no se sobrescribe)"), { status: 409 });
         return sendJson(res, { id: startJob("Crear plantilla", async ({ run }) => (await run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", sc("c300-prep-template.ps1"), "-Source", src, "-Out", join(dir, "_template.dwg"), "-DeleteLayouts", "C-301"])).code === 0) }); }

@@ -1520,6 +1520,27 @@
      "pattern": "textTemplate"
     }
    ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "gis-first-hit-empty",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El Property Appraiser / GIS devuelve «possible matches» vacíos o 0 lotes en la primera consulta",
+   "symptom": "pa-site / pa-area / c300-pl-symbols sin candidatos o con 0 símbolos PL y a la segunda vez sí funciona",
+   "cause": "gisfs.miamidade.gov contesta 200 con features: [] a la primera consulta tras una pausa",
+   "fix": "scripts/lib/gis.mjs getJson reintenta (hasta 4, espera creciente) ante lista vacía; lo usan pa-area, pa-site y pa-lookup (c300-pl-symbols tiene su propio bucle)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/lib/gis.mjs",
+     "pattern": "j.features.length > 0"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/pa-area.mjs"
+    }
+   ]
   }
  ]
 }

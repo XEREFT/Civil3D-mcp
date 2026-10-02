@@ -47,6 +47,7 @@ iframe{width:100%;height:620px;border:1px solid var(--line);border-radius:8px;ba
       <div id="dropmsg" class="small mute" style="margin-top:6px"></div>
       <h3 style="margin-top:14px">Ajustes del proyecto</h3>
       <div class="row"><input type="text" id="s-projectNo" placeholder="N.º de proyecto (26-04.047)"><input type="text" id="s-agr" placeholder="AGR (33810)"></div>
+      <div class="row"><input type="text" id="s-near" placeholder="Búsqueda PA por calles, p. ej. 11800 227 (opcional: se arma sola)"></div>
       <div class="row"><input type="text" id="s-address" placeholder="Dirección del sitio (227XX SW 118TH AVENUE)" style="min-width:340px"></div>
       <div class="row"><input type="text" id="s-lot" placeholder="Punto del lote: x,y (opcional)"><input type="text" id="s-blocks" placeholder="C-300 con EXIST ARROW / FH (ruta)" style="min-width:300px"></div>
       <div class="row"><button class="b alt" id="save-set">Guardar ajustes</button></div>
@@ -57,11 +58,13 @@ iframe{width:100%;height:620px;border:1px solid var(--line);border-radius:8px;ba
     <div class="row">
       <button class="b alt" data-run="poc">1 · Leer POC</button>
       <button class="b alt" data-run="pa">2 · Property Appraiser</button>
+      <button class="b alt" data-run="paarea">2b · Lotes del área (PA)</button>
       <button class="b alt" data-run="prepare">3 · Preparar (spec)</button>
       <button class="b alt" data-run="scans">4 · Leer escaneos (OCR)</button>
     </div>
     <div class="mute small">El paso 4 termina en una página de revisión: confirmas cada valor y subes el archivo exportado. Nada de los escaneos entra al dibujo sin tu confirmación.</div>
   </div>
+  <div class="card" style="margin-top:12px"><h3>Lotes del área (Property Appraiser)</h3><div id="paarea" class="small mute">Sin datos todavía: corre «2b · Lotes del área (PA)».</div></div>
   <div class="card" style="margin-top:12px"><h3>Revisar as-builts</h3>
     <div class="row"><button class="b alt" id="show-review">Abrir revisión</button>
       <label class="small mute">Archivo exportado (asbuilt.confirmed.json): <input type="file" id="confirmed" accept=".json"></label></div>
@@ -109,6 +112,11 @@ async function loadBoard(){
 function plugin(ok){const e=$("#plug");e.textContent=ok?"Civil 3D conectado":"Civil 3D sin conexión";e.className="pill "+(ok?"ok":"warn")}
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+async function loadArea(){const box=$("#paarea");try{const r=await api("/api/paarea?dir="+encodeURIComponent(cur));
+  const q=r.queries.map(x=>`<div><b>Búsqueda «${esc(x.shorthand)}»</b> → ${esc(x.search)}<div class="small mute">${x.possibleMatches.map(m=>esc(m.folio+" · "+m.address+" · "+(m.owner||""))).join("<br>")}</div></div>`).join("");
+  const rows=r.lots.map(l=>`<tr style="${l.subject?"font-weight:700;background:var(--accbg)":""}"><td>${l.subject?"★":""}</td><td>${esc(l.folio)}</td><td>L${esc(l.lot)} B${esc(l.block)}</td><td>${esc((l.legalSize||[]).join(" × "))}</td><td>${esc(l.measuredSize.join(" × "))}</td><td>${esc(l.sizeCheck)}</td></tr>`).join("");
+  const ue=(r.ueCandidates||[]).map(c=>`<li>borde ${c.edge}: ${c.lengthFt} ft · ${esc(c.kind)} ${esc((c.sharedWith||[]).join(", "))}</li>`).join("");
+  box.innerHTML=q+`<div class="small mute" style="margin:8px 0">Tamaño legal = «Full Legal Description» del PA; medido = polígono GIS actual. Un lote más chico que su plat suele ser cesión de derecho de vía.</div><div style="overflow:auto"><table style="border-collapse:collapse;font-size:12px"><tr><th></th><th>Folio</th><th>Lote</th><th>Legal</th><th>Medido</th><th>Revisión</th></tr>${rows}</table></div>`+(ue?`<div style="margin-top:8px"><b>Candidatos de U.E.</b> (propuestas; el plat decide cuál línea lleva la servidumbre)<ul>${ue}</ul></div>`:"")+((r.notes||[]).length?`<div class="small mute">${r.notes.map(esc).join("<br>")}</div>`:"")}catch(e){box.textContent="Sin datos todavía: corre «2b · Lotes del área (PA)»."}}
 async function openProject(dir){cur=dir;$("#nav-proj").disabled=false;await loadProject();show("proj")}
 async function loadProject(){
   const p=await api("/api/project?dir="+encodeURIComponent(cur));plugin(p.plugin);
@@ -119,8 +127,9 @@ async function loadProject(){
   $("#do-next").onclick=()=>{ if(p.ready)return $("#build").scrollIntoView({behavior:"smooth"}); const r={poc:"poc",pa:"pa",asbuilt:"scans",scans:null}[p.next]; r?runJob({kind:r,dir:cur}):$("#drop").scrollIntoView({behavior:"smooth"}) };
   $("#s-projectNo").value=p.projectNo||"";$("#s-agr").value=p.agrNo||"";$("#s-lot").value=(p.site.lotPoint||[]).join(",");$("#s-address").value=p.address||"";$("#s-blocks").value=p.blocksFrom||"";
   $("#review").dataset.has=p.review?"1":"";
+  loadArea();
 }
-document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>runJob({kind:b.dataset.run,dir:cur,xy:$("#s-lot").value.trim()||undefined}));
+document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>runJob({kind:b.dataset.run,dir:cur,xy:$("#s-lot").value.trim()||undefined,near:$("#s-near").value.trim()||undefined}));
 $("#save-set").onclick=()=>{const v={};const a=$("#s-projectNo").value.trim(),g=$("#s-agr").value.trim(),l=$("#s-lot").value.trim(),b=$("#s-blocks").value.trim();
   const ad=$("#s-address").value.trim();if(ad)v["subject.address"]=ad;if(a)v.projectNo=a;if(g)v.agrNo=g;if(l)v["site.lotPoint"]="["+l+"]";if(b)v["sources.blocksFrom"]=b;runJob({kind:"set",dir:cur,values:v})};
 $("#mk-tpl").onclick=()=>{const v=$("#s-tpl").value.trim();if(!v)return alert("Escribe la ruta del C-300 anterior");runJob({kind:"template",dir:cur,source:v})};
