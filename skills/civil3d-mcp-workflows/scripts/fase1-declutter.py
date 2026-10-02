@@ -69,6 +69,9 @@ for h, whys in problems.items():
     fwd0 = L["fwd"] if L.get("fwd") is not None else True
     bw, bh = max(box[2] - box[0], 0.9 * (L.get("W") or 0) / k), box[3] - box[1]      # a cut-off label is wider than its visible words
     anchor0 = (box[0] if fwd0 else box[2], box[1])
+    # words hidden under the black fill are not in `rect` (it only boxes the VISIBLE words): grow the box by the hidden share so the current spot is not judged 'clear'
+    _nh, _nw = int(L.get("hidden") or 0), len(str(L.get("text", "")).split())
+    if _nh and _nw > _nh: bh = bh * _nw / (_nw - _nh)
     other = [w["r"] for w in words if w["o"] != h and w["vis"]]
     need_fore = I_fore is not None and any(w_.startswith("foreign_ink") for w_ in whys)
     cands = []
@@ -78,23 +81,29 @@ for h, whys in problems.items():
             cands.append((math.hypot(i, j) * a.step, i * a.step, j * a.step))
     cands.sort()
     ink_floor = None; best = None
-    for cost, dx, dy in cands:
-        if best and cost >= best[0]: break          # score >= distance: nothing farther can win
-        mdx, mdy = pdf_delta_to_model(dx, dy)
-        npos = (pos[0] + mdx, pos[1] + mdy)
-        if math.hypot(npos[0] - arr[0], npos[1] - arr[1]) > a.leader_ft: continue
-        fwd = (npos[0] - arr[0]) * ux + (npos[1] - arr[1]) * uy >= 0
-        ax_, ay_ = anchor0[0] + dx, anchor0[1] + dy
-        r = [ax_, ay_, ax_ + bw, ay_ + bh] if fwd else [ax_ - bw, ay_, ax_, ay_ + bh]
-        if r[0] < vx0 + 4 or r[2] > vx1 - 4 or r[1] < vy0 + 4 or r[3] > vy1 - 4: continue
-        if frac(I_dark, r) > 0.15: continue
-        if need_fore and frac(I_fore, r) > 0.05: continue          # a label that sat on a symbol/fill/line must not land on another one
-        if any(hit(r, o) for o in other) or any(hit(r, m, 0) for m in moved): continue
-        score = cost + 150.0 * frac(I_ink, r)
-        if best is None or score < best[0]: best = (score, dx, dy, mdx, mdy, r, fwd)
+    # pass 1: no word of anybody within 1.5 pt of the box. Pass 2 (only when pass 1 finds nothing, e.g. the crowded corner of an intersection): boxes may overlap
+    # another word by up to 2 pt, which the QC tolerates (it only flags >= 8 % of the smaller box) -- better than leaving the text under the asphalt.
+    for padw in (1.5, -2.0):
+        for cost, dx, dy in cands:
+            if best and cost >= best[0]: break          # score >= distance: nothing farther can win
+            mdx, mdy = pdf_delta_to_model(dx, dy)
+            npos = (pos[0] + mdx, pos[1] + mdy)
+            if math.hypot(npos[0] - arr[0], npos[1] - arr[1]) > a.leader_ft: continue
+            fwd = (npos[0] - arr[0]) * ux + (npos[1] - arr[1]) * uy >= 0
+            ax_, ay_ = anchor0[0] + dx, anchor0[1] + dy
+            r = [ax_, ay_, ax_ + bw, ay_ + bh] if fwd else [ax_ - bw, ay_, ax_, ay_ + bh]
+            if r[0] < vx0 + 4 or r[2] > vx1 - 4 or r[1] < vy0 + 4 or r[3] > vy1 - 4: continue
+            if frac(I_dark, r) > 0.15: continue
+            if need_fore and frac(I_fore, r) > 0.05: continue          # a label that sat on a symbol/fill/line must not land on another one
+            if any(hit(r, o, padw) for o in other) or any(hit(r, m, 0) for m in moved): continue
+            score = cost + 150.0 * frac(I_ink, r)
+            if best is None or score < best[0]: best = (score, dx, dy, mdx, mdy, r, fwd)
+        if best: break
     if not best:
         unresolved.append(dict(why=f"MLeader {h}: no free spot within {a.max_ft} ft / {a.leader_ft} ft of leader ({'; '.join(whys)})", handle=h)); continue
     score, dx, dy, mdx, mdy, r, fwd = best
+    if math.hypot(dx, dy) * k < 0.5:       # the best spot is where it already is: nothing to move (a 0 ft 'move' only burns a plot + QC round)
+        unresolved.append(dict(why=f"MLeader {h}: no better spot than its own ({'; '.join(whys)})", handle=h)); continue
     moved.append(r)
     plan.append(dict(handle=h, x=round(pos[0] + mdx, 4), y=round(pos[1] + mdy, 4), fromX=pos[0], fromY=pos[1], shiftFt=round(math.hypot(dx, dy) * k, 1),
                      side="right of the text position" if fwd else "left of the text position", why="; ".join(whys)))
