@@ -1562,6 +1562,50 @@
      "pattern": "c300-easement.mjs"
     }
    ]
-  }
- ]
+  },
+{
+  "since": "2026-10-02",
+  "id": "review-exports-incomplete-manholes",
+  "area": "skill",
+  "status": "fixed",
+  "match": "La revisión de as-builts exporta manholes sin RIM / INV / nombre y el modelo sale incompleto",
+  "symptom": "asbuilt-build dejaba 1 de 5 MH con RIM, INV sin direcciones, IDs MH-1… y un tramo sin etiqueta; las etiquetas de la hoja salían parciales",
+  "cause": "el OCR parte cada callout en fragmentos y pierde líneas (RIM / INV / nombre bajo el trazo de la flecha); la hoja de revisión dejaba exportar filas incompletas",
+  "fix": "asbuilt-review.py: campos obligatorios por tipo (MH: nombre, RIM, INV con direcciones, N, E; tubo: tubo + %; accesorios: etiqueta + posición), rojo + «Exportar» bloqueado, «Unir con fila nº» para fragmentos, sugerencias por palabra clave; fase1-qc: FAIL «as-built completeness» y «every existing appurtenance labeled»",
+  "checks": [
+   {
+    "type": "skill-grep",
+    "file": "scripts/asbuilt-review.py",
+    "pattern": "REQUIRED FIELDS"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/fase1-qc.py",
+    "pattern": "as-built completeness"
+   }
+  ]
+ },
+ {
+  "since": "2026-10-02",
+  "id": "simulated-asbuilt-feeds-sheet",
+  "area": "skill",
+  "status": "fixed",
+  "match": "Un as-built «confirmado» simulado alimenta la hoja Fase 1",
+  "symptom": "VILLA ONE se construyó con asbuilt.confirmed.json marcado simulated:true guardado en %TEMP%",
+  "cause": "no había guardia: la regla «solo valores confirmados por el usuario» dependía de la disciplina de quien corría el flujo",
+  "fix": "asbuilt-build.mjs y fase1-build-payload.mjs rechazan simulated:true (--allow-simulated solo para pruebas); asbuilt-build guarda la revisión en <proyecto>/_asbuilts; fase1-qc da FAIL «as-built provenance»; la hoja exporta simulated:false + confirmedBy",
+  "checks": [
+   {
+    "type": "skill-grep",
+    "file": "scripts/asbuilt-build.mjs",
+    "pattern": "REFUSED"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/fase1-qc.py",
+    "pattern": "as-built provenance"
+   }
+  ]
+ }
+]
 }
