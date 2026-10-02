@@ -103,7 +103,8 @@ for (const m of manholes) {
 }
 const pipeCalls = confirmed.filter((c) => (c.pipe || c.slope != null) && c.rim == null && !(c.inv?.length)).map((c) => ({
   c, scan: c.scan, p: centre(boxOf(c)),
-  len: Number((/(\d{2,4})\s*['’]\s*[-–.]?\s*(?:\d{1,2}|[eU])\s*["”]/.exec(textOf(c)) ?? [])[1]),
+  // lengthFt typed in the review wins over the OCR text (OCR often drops the "337'-" fragment of the callout)
+  len: Number(c.lengthFt ?? (/(\d{2,4})\s*['’]\s*[-–.]?\s*(?:\d{1,2}|[eU])\s*["”]/.exec(textOf(c)) ?? [])[1]),
 }));
 const used = new Set();
 const pick = (cands) => { const best = cands.sort((x, y) => x.score - y.score)[0]; if (best) used.add(best.x); return best?.x; };
