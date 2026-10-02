@@ -287,7 +287,7 @@ else:
         lab = [e for e in leaders if "SAN MH" in _flat(e.get("txt", "")) and any(dist(q, mp) <= a.tol for q in arrows(e))]
         if not lab: continue                      # a missing label is already a FAIL above
         t = _flat(lab[0]["txt"]); _chk += 1
-        rim = re.search(r"RIM:\s*([\d.]+)", t); invs = sorted((d_, float(v)) for v, d_ in re.findall(r"INV:\s*([\d.]+)'\s*\((\w)\)", t))
+        rim = re.search(r"RIM:\s*([\d.]+)", t); invs = sorted((d_ or "ND", float(v)) for v, d_ in re.findall(r"INV:\s*([\d.]+)'(?:\s*\((\w)\))?", t))   # ND = the as-built prints no direction
         if m.get("rim") is not None and (not rim or abs(float(rim.group(1)) - m["rim"]) > 0.005): _bad.append(f"{m['id']} RIM label {rim.group(1) if rim else 'none'} vs as-built {m['rim']}")
         if sorted((d_, float(v)) for d_, v in m.get("inv", [])) != invs: _bad.append(f"{m['id']} INV label {invs} vs as-built {m.get('inv')}")
     # completeness: every manhole of X-UTIL inside the viewport needs RIM + INV (with directions) from the confirmed as-built, else its label prints empty / partial

@@ -98,7 +98,7 @@ for (const m of Object.values(mh).filter((x) => !x.labeledBySurvey && !x.outside
   const away = -nearestWaterSide(m.p, d);
   // elevations always with 2 decimals, as the as-builts print them ("12.20'", never "12.2'")
   const el = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : v);
-  const invLines = m.inv.map(([dir, v]) => `INV: ${el(v)}' (${dir})`).join('\\P');
+  const invLines = m.inv.map(([dir, v]) => `INV: ${el(v)}'${dir === 'ND' ? '' : ` (${dir})`}`).join('\\P');
     // a manhole whose as-built prints no RIM (the user waived it with N/D in the review) is labeled with its INV only
   const rimLine = m.rimNA || m.rim == null ? '' : `RIM: ${el(m.rim)}'\\P`;
   leader(EL, `EXIST. SAN MH \\P${rimLine}${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
