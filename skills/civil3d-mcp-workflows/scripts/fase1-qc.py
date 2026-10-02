@@ -32,6 +32,7 @@ ap.add_argument("--dwg"); ap.add_argument("--pdf"); ap.add_argument("--dump"); a
 ap.add_argument("--tol", type=float, default=3.0)
 ap.add_argument("--ink-limit", type=float, default=0.15, help="WARN when this fraction of a word of ours (glyph area) lies on survey symbols, fills or lines")
 ap.add_argument("--debug-shx", action="store_true", help="print every survey SHX text the stroke check found (ink strokes, hull, ink over our words)")
+ap.add_argument("--plan-labels", help="JSON list of native Civil 3D plan labels read live (planLabels of profileViewAnnotations): they become movable 'our labels'")
 ap.add_argument("--json", help="write the clashes + every movable label (box in PDF pt, text position, arrows) for fase1-declutter.py")
 a = ap.parse_args()
 proj_dir = os.path.abspath(a.dir)
@@ -90,6 +91,27 @@ for line in open(dump, encoding="utf-8", errors="replace"):
         layers[f[1] + ("|" + f[2] if not f[2].startswith("c=") else "")] = kv(f[2:] if f[2].startswith("c=") else f[3:])
     elif f[0] == "XREF":
         xrefs.append((f[1], f[2]))
+
+# ---------- native Civil 3D plan labels (read live; the headless dump cannot see their text/position) ----------
+# NoteLabel EOP / RW and StationOffsetLabel ALGN START / END become pseudo MLeaders (arrow = the label's anchor, text position = its dragged
+# location, same text the style prints) so ownership, the viewport-edge / under-asphalt / overlap checks and the declutter planner treat them like ours.
+if a.plan_labels and os.path.exists(a.plan_labels):
+    _pl = json.load(open(a.plan_labels, encoding="utf-8"))
+    _sol = sorted([l for l in _pl if l.get("type") == "StationOffsetLabel" and l.get("location")], key=lambda l: 0 if "START" in str(l.get("style", "")).upper() else 1)
+    for l in _pl:
+        loc = l.get("labelLocation"); h = l.get("handle", "?")
+        if not loc: continue
+        if l.get("type") == "NoteLabel":
+            an = l.get("anchor") or loc
+            txt = {"EOP": "EOP", "RW": "EXIST R/W"}.get(str(l.get("style", "")).upper(), str(l.get("style", "")))
+        elif l.get("type") == "StationOffsetLabel" and l.get("location"):
+            an = l["location"]; first = _sol[0]["location"] if _sol else an
+            station = math.hypot(an["x"] - first["x"], an["y"] - first["y"])
+            title = "ALIGNMENT START" if "START" in str(l.get("style", "")).upper() else "ALIGNMENT END" if "END" in str(l.get("style", "")).upper() else str(l.get("style", ""))
+            txt = f"{title}\\PSTA: {int(station // 100)}+{station % 100:05.2f}/OFF: 0.00'\\P({l.get('alignmentName', '')})\\PN: {an['y']:.2f}\\PE: {an['x']:.2f}"
+        else: continue
+        ents.append(dict(type="MULTILEADER", h=h, layer=l.get("layer", ""), x=str(an["x"]), y=str(an["y"]), txt=txt, txtpt=f"({loc['x']} {loc['y']} 0)", arrows=f"{an['x']},{an['y']};", h2="2.0", native="1", style=l.get("style", "")))
+    print(f"native plan labels: {sum(1 for e in ents if e.get('native'))} loaded as our labels")
 
 # ---------- viewport rectangle in model space ----------
 vp = max((v for v in vports if v["layout"] == "C-300" and v.get("layer") == "VPORT"), key=lambda v: float(v["w"]) * float(v["ht"]), default=None)

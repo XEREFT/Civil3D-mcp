@@ -30,9 +30,20 @@ await withApplicationConnection(async (client) => {
   if (norm(active.filePath ?? active.name) !== norm(expect)) die(`active drawing is "${basename(active.filePath ?? active.name)}", expected "${expect}": nothing changed`);
   if (/ FASE 1\.dwg$/i.test(active.filePath ?? active.name) && !has("real")) die("refusing the delivered FASE 1.dwg without --real (try a FASE1-BUILD-TEST copy first)");
   let ok = 0;
+  // Native Civil 3D plan labels (NoteLabel / StationOffsetLabel) are not MLeaders: updateTextContent cannot move them. Their handles come from the
+  // live label list; a move re-applies the same label spec (matched by type + style + anchor) with the new labelLocation.
+  const nativeByHandle = new Map();
+  try { for (const l of (await client.sendCommand("profileViewAnnotations", {})).planLabels ?? []) nativeByHandle.set(String(l.handle).toUpperCase(), l); } catch { /* old plugin: MLeaders only */ }
   for (const m of plan.moves) {
     try {
-      await client.sendCommand("updateTextContent", { handle: m.handle, x: m.x, y: m.y });
+      const nat = nativeByHandle.get(String(m.handle).toUpperCase());
+      if (nat) {
+        const spec = nat.type === "StationOffsetLabel"
+          ? { type: nat.type, style: nat.style, alignmentName: nat.alignmentName, location: nat.location, labelLocation: { x: m.x, y: m.y } }
+          : { type: nat.type, style: nat.style, anchor: nat.anchor, labelLocation: { x: m.x, y: m.y } };
+        const r = await client.sendCommand("profileViewApplyAnnotations", { labels: [spec] });
+        if (r.failedLabels) throw new Error(r.labels?.[0]?.error ?? "label not applied");
+      } else await client.sendCommand("updateTextContent", { handle: m.handle, x: m.x, y: m.y });
       console.log(`  OK   ${m.handle}  -> (${m.x}, ${m.y})  ${m.shiftFt} ft  [${m.why}]`); ok++;
     } catch (e) { console.log(`  FAIL ${m.handle}: ${e instanceof Error ? e.message : e}`); }
   }

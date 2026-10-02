@@ -11,10 +11,11 @@
 // 6. copies the PDF to <dwg folder>\_QC\<pdf-name>; an existing PDF is MOVED to _QC\_prev\<name>_<timestamp>.pdf (never deleted)
 // 7. updates <dwg folder>\project.json when it exists (lastVerified.audit/pdf, status delivered, deliverables, history)
 // Exit 1 if the audit FAILs or the PDF checks fail (the PDF is then NOT copied). Prints a READY / NOT READY verdict.
-import { existsSync, mkdirSync, copyFileSync, renameSync, statSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, copyFileSync, renameSync, statSync, readFileSync, writeFileSync } from "node:fs";
 import { join, dirname, basename } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { tmpdir } from "node:os";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
@@ -88,7 +89,24 @@ print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop}))
 //     street labels, xrefs, subject label = project.json (PA/POC), PDF text clashes. FAIL blocks READY; WARNs are listed.
 const c300 = results.find((r) => /C-300/i.test(r.layout));
 if (c300 && dumpPath && existsSync(dumpPath) && existsSync(join(dirname(dwg), "project.json"))) {
-  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath, ...(flag("qc-json") ? ["--json", flag("qc-json")] : [])],
+  // Native Civil 3D plan labels (NoteLabel EOP/RW, StationOffsetLabel) are invisible to the headless dump (entget gives only class markers), so
+  // when the plugin is up and the file is the active document, read them live and hand them to the QC as movable "our labels".
+  let planLabelsFile = null;
+  try {
+    const { withApplicationConnection } = await import(pathToFileURL(join(repo, "build/utils/ConnectionManager.js")).href);
+    const info = await withApplicationConnection(async (c) => {
+      const docs = ((await c.sendCommand("listOpenDocuments", {})).documents ?? []);
+      const act = docs.find((d) => d.isActive);
+      if (!act || String(act.filePath ?? "").toLowerCase() !== String(dwg).toLowerCase()) return null;
+      return await c.sendCommand("profileViewAnnotations", {});
+    });
+    if (info?.planLabels?.length) {
+      planLabelsFile = join(tmpdir(), `c3d-planlabels-${basename(dwg).replace(/[^\w\-]/g, "_")}.json`);
+      writeFileSync(planLabelsFile, JSON.stringify(info.planLabels));
+      log(`INFO native plan labels read live: ${info.planLabels.length}`);
+    }
+  } catch { /* plugin not reachable or old: QC runs without them */ }
+  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath, ...(planLabelsFile ? ["--plan-labels", planLabelsFile] : []), ...(flag("qc-json") ? ["--json", flag("qc-json")] : [])],
     { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   const qlines = (q.stdout ?? "").split("\n").filter((l) => /^(FAIL|WARN)/.test(l));
   for (const l of qlines) log(`  qc: ${l}`);

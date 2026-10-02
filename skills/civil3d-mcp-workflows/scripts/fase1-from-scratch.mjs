@@ -2,7 +2,7 @@
 // FASE 1 FROM SCRATCH, ONE COMMAND (no guide, no Claude credits): payload -> build -> plot + QC -> MLeader declutter loop -> report.
 //
 //   node fase1-from-scratch.mjs --dir "<project folder>" --dwg "<NAME> FASE1-BUILD-TESTn.dwg" --template "<template.dwg>"
-//        [--asbuilt <asbuilt.json>] [--blocks-from <package C-300.dwg>] [--no-labels] [--no-pl] [--no-titleblock]
+//        [--asbuilt <asbuilt.json>] [--blocks-from <package C-300.dwg>] [--no-labels] [--no-pl] [--no-titleblock] [--road-labels mleader]
 //        [--max-rounds 3] [--deliver] [--dry-run]
 //
 // Steps (each one is the script of the same name; see references/automation-backlog.md §B):
@@ -42,8 +42,8 @@ if (existsSync(target)) die(`${target} already exists: choose a new --dwg name (
 
 // ---- 1. payload ----
 log("\n== 1. payload");
-const pass = ["template", "asbuilt", "blocks-from", "topo", "spec"].flatMap((n) => (flag(n) ? [`--${n}`, flag(n)] : []))
-  .concat(["no-labels", "no-pl", "no-titleblock", "no-template"].filter(has).map((n) => `--${n}`));
+const pass = ["template", "asbuilt", "blocks-from", "topo", "spec", "road-labels"].flatMap((n) => (flag(n) ? [`--${n}`, flag(n)] : []))
+  .concat(["no-labels", "no-pl", "no-titleblock", "no-template", "no-road-labels"].filter(has).map((n) => `--${n}`));
 let r = run(node, [join(here, "fase1-build-payload.mjs"), "--dir", dir, "--dwg", dwgName, ...pass]);
 log(tail(r.stdout, 18)); if (r.status !== 0) die(`payload failed:\n${tail(r.stderr || r.stdout)}`, 1);
 if (has("dry-run")) { log("\nDRY RUN: payload built, nothing sent to Civil 3D."); process.exit(0); }

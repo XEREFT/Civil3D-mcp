@@ -8,7 +8,10 @@
 // utility labels so they read horizontally after the viewport twist. fase1-qc / the declutter loop move any that clash. Node 18, no deps.
 //
 //   node c300-road-labels.mjs --topo X-TOPO_dump.txt --spec spec.json [--standard formtech-c300.json] [--out road-labels.json]
-//        [--no-rw] [--no-eop] [--no-align] [--edge-max 16] [--min-len 20] [--push 14]
+//        [--native] [--no-rw] [--no-eop] [--no-align] [--edge-max 16] [--min-len 20] [--push 14]
+// --native: instead of MLeaders emit NATIVE Civil 3D labels as `planLabels` (NoteLabel styles EOP / RW on C-ANNO, StationOffsetLabel styles ALGN START / ALGN END on
+// C-ROAD-TEXT with the same override text as the delivered sheets; applied by fase1_build through profileViewApplyAnnotations without a profile view). The styles must
+// exist in the template. Native text is sized by the label style, and the text sits at labelLocation (default push 8 ft instead of 14).
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,7 +21,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 if (!args.topo || !args.spec) { console.error('usage: node c300-road-labels.mjs --topo <X-TOPO dump> --spec <spec.json> [--out f.json]'); process.exit(2); }
 const std = JSON.parse(fs.readFileSync(args.standard || path.join(here, '../references/standards/formtech-c300.json'), 'utf8'));
 const spec = JSON.parse(fs.readFileSync(args.spec, 'utf8'));
-const EDGE_MAX = Number(args['edge-max'] ?? 16), MIN_LEN = Number(args['min-len'] ?? 20), PUSH = Number(args.push ?? 14);
+const NATIVE = !!args.native;
+const EDGE_MAX = Number(args['edge-max'] ?? 16), MIN_LEN = Number(args['min-len'] ?? 20), PUSH = Number(args.push ?? (NATIVE ? 8 : 14));
 const TEXT_H = 2.0;
 
 const r4 = (v) => Math.round(v * 1e4) / 1e4;
@@ -54,10 +58,15 @@ const along = (v, frac) => { let want = polyLen(v) * frac; for (let i = 1; i < v
 const R = std.roles.existingUtilityLeader;
 const rot = r4(spec.twist.streetAngleDegrees * Math.PI / 180);
 const entities = [];
-const leader = (text, arrow, textPt) => entities.push({
-  kind: 'mleader', layer: R.layer, colorIndex: R.colorIndex, mLeaderStyle: R.mLeaderStyle, height: TEXT_H,
-  ...(R.annotative ? {} : { scale: R.scale }), rotation: rot, text, leaderX: r4(arrow[0]), leaderY: r4(arrow[1]), x: r4(textPt[0]), y: r4(textPt[1]),
-});
+const planLabels = [];
+const leader = (text, arrow, textPt, native) => {
+  if (NATIVE && native) { planLabels.push({ ...native, labelLocation: { x: r4(textPt[0]), y: r4(textPt[1]) } }); return; }
+  entities.push({
+    kind: 'mleader', layer: R.layer, colorIndex: R.colorIndex, mLeaderStyle: R.mLeaderStyle, height: TEXT_H,
+    ...(R.annotative ? {} : { scale: R.scale }), rotation: rot, text, leaderX: r4(arrow[0]), leaderY: r4(arrow[1]), x: r4(textPt[0]), y: r4(textPt[1]),
+  });
+};
+const note = (style, arrow) => ({ type: 'NoteLabel', style, layer: 'C-ANNO', anchor: { x: r4(arrow[0]), y: r4(arrow[1]) } });
 const counts = { rw: 0, eop: 0, align: 0 };
 
 // 1) EXIST R/W: the dim end that is NOT on a street CL
@@ -69,7 +78,7 @@ if (!args['no-rw']) {
     const rw = da.d < db.d ? dm.b : dm.a, cl = da.d < db.d ? dm.a : dm.b;
     if (seen.some((s) => len(sub(s, rw)) < 1)) continue; seen.push(rw);
     const out = unit(sub(rw, cl));
-    leader('EXIST R/W', rw, add(rw, mul(out, PUSH)));
+    leader('EXIST R/W', rw, add(rw, mul(out, PUSH)), note('RW', rw));
     counts.rw++;
   }
 }
@@ -84,24 +93,28 @@ if (!args['no-eop']) {
     if (!inView(p, 6)) continue;
     const n = perp(dir), cl = nearCl(p);
     const away = unit(dot(n, sub(p, cl.q)) >= 0 ? n : mul(n, -1));
-    leader('EOP', p, add(p, mul(away, PUSH)));
+    leader('EOP', p, add(p, mul(away, PUSH)), note('EOP', p));
     counts.eop++;
   }
 }
 
 // 3) ALIGNMENT START / END (station-offset note: STA, OFF, street name, N, E)
 if (!args['no-align']) {
-  const [s, e] = spec.alignment.points.map((q) => [q.x, q.y]);
-  const dir = unit(sub(e, s)), total = len(sub(e, s));
+  const [s0, e0] = spec.alignment.points.map((q) => [q.x, q.y]);
+  const dir = unit(sub(e0, s0)), total = len(sub(e0, s0));
   const name = spec.alignment.name.replace(/\|.*$/, '');
   const sta = (d) => `${Math.floor(d / 100)}+${(d % 100).toFixed(2).padStart(5, '0')}`;
-  const note = (title, d, p) => `${title}\\PSTA: ${sta(d)}/OFF: 0.00'\\P(${name})\\PN: ${p[1].toFixed(2)}\\PE: ${p[0].toFixed(2)}`;
+  const text = (title, d, p) => `${title}\\PSTA: ${sta(d)}/OFF: 0.00'\\P(${name})\\PN: ${p[1].toFixed(2)}\\PE: ${p[0].toFixed(2)}`;
+  // Civil 3D expressions the delivered sheets use in the station-offset label text (format codes of the label style, not project data)
+  const nativeText = (title) => `${title}\\PSTA: <[Station Value(Uft|FS|P2|RN|Sn|OF|AP|B2|TP|EN|W0|DZY)]>/OFF: <[Offset(Uft|P2|RN|AP|Sn|OF)]>'\\P(${name})\\PN: <[Northing(Uft|P2|RN|AP|Sn|OF)]>\\PE: <[Easting(Uft|P2|RN|AP|Sn|OF)]>`;
+  const sol = (style, title, p) => ({ type: 'StationOffsetLabel', style, layer: 'C-ROAD-TEXT', alignmentName: spec.alignment.name, markerStyle: '_No Markers',
+    location: { x: r4(p[0]), y: r4(p[1]) }, overrides: [{ index: 0, text: nativeText(title) }] });
   const below = mul(uy, -1);                        // the delivered sheets hang both notes under the alignment; START: the alignment start lies under the cross street's asphalt, so the text point goes 28 ft under the CL (the EOP texts of the street-end edges sit ~14 ft under it) and 13 ft back along -dir; with the landing behind the arrow the MLeader text hangs to the left (backwards), i.e. 41..13 ft before the start = the free pocket the delivered sheets use
-  leader(note('ALIGNMENT START', 0, s), s, add(add(s, mul(below, 28)), mul(dir, -13)));
-  leader(note('ALIGNMENT END', Math.round(total * 100) / 100, e), e, add(add(e, mul(below, 40)), mul(dir, -10)));
+  leader(text('ALIGNMENT START', 0, s0), s0, add(add(s0, mul(below, 28)), mul(dir, -13)), sol('ALGN START', 'ALIGNMENT START', s0));
+  leader(text('ALIGNMENT END', Math.round(total * 100) / 100, e0), e0, add(add(e0, mul(below, 40)), mul(dir, -10)), sol('ALGN END', 'ALIGNMENT END', e0));
   counts.align = 2;
 }
 
-const out = { createEntities: { entities }, summary: counts };
+const out = { createEntities: { entities }, ...(NATIVE ? { planLabels } : {}), summary: counts };
 if (args.out && args.out !== true) fs.writeFileSync(args.out, JSON.stringify(out));
-console.log(`road labels: ${counts.rw} EXIST R/W, ${counts.eop} EOP, ${counts.align} alignment ends (${entities.length} MLeaders on ${R.layer}, text ${TEXT_H} ft)`);
+console.log(`road labels: ${counts.rw} EXIST R/W, ${counts.eop} EOP, ${counts.align} alignment ends (${NATIVE ? `${planLabels.length} native Civil 3D labels` : `${entities.length} MLeaders on ${R.layer}, text ${TEXT_H} ft`})`);

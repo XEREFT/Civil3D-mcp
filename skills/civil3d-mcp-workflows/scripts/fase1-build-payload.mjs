@@ -105,12 +105,19 @@ payload.twists = [
 ];
 // Roadway labels (etapa 1.9, 2026-10-01): EXIST R/W at each survey R/W dim, EOP on each pavement edge, ALIGNMENT START/END notes — MLeaders on
 // C-ANNO from the survey + alignment (c300-road-labels.mjs); the delivered sheets use Civil 3D label objects the plugin cannot create.
-// Needs the X-TOPO dump (not with --spec alone). --no-road-labels skips. Added BEFORE the PL step so PL symbols keep clear of them.
+// Needs the X-TOPO dump (not with --spec alone). --no-road-labels skips; --road-labels mleader = MLeaders instead of the native Civil 3D labels (default). Added BEFORE the PL step so PL symbols keep clear of them.
 let roadNote = "none";
 if (!has("no-road-labels") && topoDump) {
   const roadOut = join(work, "road-labels.json"), specFile = join(work, "spec.json");
-  const r = spawnSync("node", [join(here, "c300-road-labels.mjs"), "--topo", topoDump, "--spec", specFile, "--out", roadOut], { encoding: "utf8" });
-  if (r.status === 0 && existsSync(roadOut)) { const rl = JSON.parse(readFileSync(roadOut, "utf8")).createEntities.entities; payload.entities = [...payload.entities, ...rl]; roadNote = r.stdout.trim(); }
+  // --road-labels native: real Civil 3D labels (NoteLabel EOP/RW, StationOffsetLabel ALGN START/END) in payload.planLabels instead of MLeaders;
+  // the styles + layers must exist in the template (the build fails at the "plan labels" step otherwise; pass --road-labels mleader for plain MLeaders). Default since 2026-10-02: native.
+  const native = flag("road-labels") !== "mleader";
+  const r = spawnSync("node", [join(here, "c300-road-labels.mjs"), "--topo", topoDump, "--spec", specFile, "--out", roadOut, ...(native ? ["--native"] : [])], { encoding: "utf8" });
+  if (r.status === 0 && existsSync(roadOut)) {
+    const out = JSON.parse(readFileSync(roadOut, "utf8"));
+    if (native) payload.planLabels = out.planLabels; else payload.entities = [...payload.entities, ...out.createEntities.entities];
+    roadNote = r.stdout.trim();
+  }
   else roadNote = `NOT added: ${(r.stderr || r.stdout || "c300-road-labels failed").trim().split("\n").pop()}`;
 } else if (!has("no-road-labels")) roadNote = "none (--spec without an X-TOPO dump)";
 // PL symbols (etapa 1.6, 2026-10-01): one per lot line shared by two county plat lots inside the C-300 viewport, from the
