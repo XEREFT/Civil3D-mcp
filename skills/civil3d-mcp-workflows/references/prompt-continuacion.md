@@ -1,4 +1,26 @@
-# Prompt de continuación VIGENTE (2026-10-01, tarde — motor "Fase 1 desde cero": QC con SHX + tinta ajena hechos; quedan 1.9, Studio y lo bloqueado) — pegar tal cual en un chat nuevo
+# Prompt de continuación VIGENTE (2026-10-02, noche — motor "Fase 1 desde cero" COMPLETO en VILLA ONE; queda validarlo con un proyecto NUEVO real) — pegar tal cual en un chat nuevo
+Antes de pegarlo (usuario): abrir un chat nuevo tras reiniciar Claude Desktop (para que el MCP vea `acad_select_entities`, `planLabels` y `profileViewName` opcional); Civil 3D abierto (si pregunta por «Unsigned Executable File», aprobar). Tener a mano la carpeta del proyecto nuevo (X-TOPO, X-UTIL, X-ARCH, POC.pdf, escaneos .tif de as-builts).
+
+```
+Seguimos con el motor "Fase 1 desde cero" (sin guía: X-TOPO + X-UTIL + X-ARCH + escaneos + Property Appraiser). Responde en español y sé económico con los tokens (usa las recetas y scripts, no rehagas a mano lo automatizado).
+
+Contexto grabado (no lo rederives): skill civil3d-mcp-workflows `references/automation-backlog.md` §B (bloques «1.9 NATIVO», «PA por calles», «1.4 U.E. HECHO sin plat», «Fase 1 Studio»); memorias `fase1-from-scratch-engine`, `pa-area-process`, `guide-is-target-only`, `fase1-use-runner`, `fase1-titleblock-source`, `asbuilts-always-scanned`, `github-publishing`. Estado al cerrar: plugin 5be0bc4 y skill 5921d65 en el fork (PR #16), todo sincronizado, integridad 0 FAIL.
+
+Decisiones ya tomadas (no preguntar): title block = plantilla de Goulds + valores del proyecto (nombre, dirección, proyecto, AGR del POC, hoja, fecha, JH; CF fijo); «la página» = Property Appraiser (SIEMPRE); as-builts SIEMPRE escaneados: OCR → revisión del usuario → solo valores confirmados; etiquetas EOP / EXIST R/W / ALIGNMENT START-END = objetos Civil 3D NATIVOS (estilos EOP, RW, ALGN START, ALGN END = estándar fijo en standards roles.planLabels; el usuario permitió tomar el estándar de etiquetas/estilos de la guía, los DATOS del proyecto NUNCA); la U.E. SOLO se dibuja con la línea y el ancho que el usuario confirme (pa-area.mjs propone candidatos; se le enseña con acad_select_entities; luego project.json site.ue y c300-easement.mjs); la búsqueda del lote es la rutina del usuario automatizada: calles del plano → «11800 227» → folios → tamaños legales de los lotes (pa-area.mjs).
+
+Hecho y validado en VILLA ONE: TODO en UN comando — node scripts/fase1-from-scratch.mjs --dir <carpeta> --dwg "<destino NUEVO>.dwg" --template <t.dwg> --asbuilt <asbuilt.json> --blocks-from <C-300 del paquete> (payload con PL + cotas R/W + etiquetas de utilidades + etiquetas de vía nativas + U.E. + title block → runner sin créditos → plot + fase1-qc.py → lazo de despeje). TEST23: build 29 pasos OK, auditoría 0 FAIL, QC 0 FAIL / 0 WARN / 19 OK. Fase 1 Studio: node scripts/fase1-studio.mjs --open (tablero, bandeja _ENTRADA, arrastrar archivos, PA, as-builts con revisión, Construir).
+
+Pasos de esta sesión (elige con el usuario; el 1 es lo único pendiente):
+1. PROYECTO NUEVO REAL (otra dirección): pedir la carpeta; Studio (_ENTRADA → «Crear proyecto») o /proyecto-nuevo → new-project.mjs (carpetas, xrefs, plantilla, project.json, POC, pa-site + pa-area). Mostrar al usuario la lista de folios posibles y la tabla de lotes (legal vs polígono; lote más chico que su plat = cesión de derecho de vía) y confirmar cuál es el lote del proyecto (punto del lote / dirección del sitio).
+2. As-builts: «Leer escaneos» (OCR) → revisión → subir el JSON confirmado → asbuilt.json (nunca valores sin confirmar).
+3. U.E.: pa-area propone líneas compartidas; dibujar la propuesta en una capa de prueba, seleccionarla con acad_select_entities, pedir confirmación de línea y ancho; registrar site.ue + decide; si no hay servidumbre, omitirla y anotarlo.
+4. Construir (fase1-from-scratch.mjs con nombre NUEVO), validar el title block con la otra dirección (c300-titleblock.mjs), QC; entregar solo si el usuario lo pide.
+5. Después: actualizar skill/agentes/memoria con lo aprendido; subir al fork solo si lo pide (scripts/sync-skill-to-fork.sh; plugin: commit + push a fork local/deploy-acad-plus-schema-fix, escaneo de secretos antes).
+
+Reglas que ya rigen: nunca datos de proyecto de la guía; construir con el runner / fase1-from-scratch.mjs (regla en .claude/settings.local.json); FASE 1, TEST2, TEST3 y la carpeta Propuesta de VILLA ONE no se tocan sin su OK; confirma antes de guardar/borrar archivos reales; respaldo antes de tocar un archivo real; para cerrar Civil 3D: scripts/close-civil3d.ps1 (-AllowSave / -Discard aceptan UN fragmento desde bash); herramientas de catálogo de UNA acción: los parameters de civil3d_request_approval NO llevan «action» (en civil3d_drawing sí); el GIS del condado a veces contesta vacío a la primera consulta (lib/gis.mjs reintenta). Archivos en la carpeta de VILLA ONE: TEST2, TEST3 (conservar), TEST18, TEST23 (bueno), _template-BUILD-TEST.dwg; no borrar sin preguntar.
+```
+
+# (anterior, 2026-10-01 tarde — YA EJECUTADO: QC con SHX + tinta ajena, 1.9 nativo, Studio, 1.4 U.E., PA por calles)
 Antes de pegarlo (usuario): abrir un chat nuevo (no hace falta reiniciar Claude Desktop: el plugin no cambió); Civil 3D abierto.
 
 ```
