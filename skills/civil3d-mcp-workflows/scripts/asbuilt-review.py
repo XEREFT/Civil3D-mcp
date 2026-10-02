@@ -107,9 +107,18 @@ def inv_text(inv):
     return "; ".join(f"{x['value']}" + (f" ({','.join(x['dirs'])})" if x.get("dirs") else "") for x in (inv or []))
 
 
+# rows that came from the SAME callout (asbuilt-extract.mjs `callout` id): shown together so the user sees which fragments belong to one structure / assembly
+by_callout = {}
+for n, r in enumerate(rows):
+    c = r["it"].get("callout")
+    if c is not None: by_callout.setdefault((r["scan"], c), []).append(n + 1)
+
 trs = []
 for n, r in enumerate(rows):
     it, sug = r["it"], r["sug"]
+    mates = [m for m in by_callout.get((r["scan"], it.get("callout")), []) if m != n + 1]
+    callout_html = (f'<br><small class="co">misma callout: fila{"s" if len(mates) > 1 else ""} ' + ", ".join(f'<a href="#r{m - 1}">{m}</a>' for m in mates) + "</small>") if mates else ""
+    if it.get("mergedFrom"): callout_html += f'<br><small class="co">{it["mergedFrom"]} fragmentos OCR ya unidos</small>'
     asc = it.get("assoc") or {}
     st = asc.get("status", "-")
     s_ = asc.get("suggested")
@@ -126,7 +135,7 @@ for n, r in enumerate(rows):
     lab_v, lab_c = sg("label"); stn_v, stn_c = sg("stationText"); det_v, det_c = sg("detail")
     trs.append(f"""
 <tr id="r{n}" class="st-{st}" data-scan="{val(r['scan'])}" data-idx="{r['idx']}">
- <td class="n">{n + 1}<br><small>{val(r['scan'])}</small></td>
+ <td class="n">{n + 1}<br><small>{val(r['scan'])}</small>{callout_html}</td>
  <td><img src="data:image/png;base64,{r['img']}" alt="crop"></td>
  <td class="f">
   <label>Tipo <input name="kind" list="kinds" class="{kind_cls.strip()}" value="{val(kind0)}" placeholder="MH, PIPE, TEE…"></label>
@@ -164,6 +173,7 @@ input.s{width:4em} input.w{width:22em} input.sg{color:var(--sg);font-style:itali
 .bar{position:sticky;top:0;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line);margin-bottom:8px;z-index:2}
 button{font:inherit;padding:4px 12px;cursor:pointer}
 input.bad{border:2px solid var(--bad);background:rgba(217,48,37,.10)} tr.bad td.f{outline:2px solid var(--bad);outline-offset:-2px}
+.co{color:var(--sg)}
 .need{color:var(--bad);font-size:12px;font-weight:600;margin-top:4px} .need.okk{color:var(--mut);font-weight:400}
 #problems{display:none;color:var(--bad);border:2px solid var(--bad);padding:6px 10px;margin:8px 0;max-height:30vh;overflow:auto} #problems li{cursor:pointer}
 #unconf{display:none;color:var(--mut);border:1px dashed var(--line);padding:6px 10px;margin:8px 0}

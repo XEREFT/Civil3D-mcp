@@ -111,17 +111,20 @@ for (const l of rows) {
 }
 const columns = [];
 for (const l of merged.sort((a, b) => a.box.y - b.box.y)) {
-  const col = columns.find((c) => Math.abs(c.x - l.box.x) <= 25 && l.box.y - c.lastBottom <= 2.2 * Math.max(l.box.h, 18));
+  // an N / E line sits under its callout even when the OCR dropped the RIM / INV lines in between (VILLA ONE MH#3: 70 px gap): allow a taller gap for those
+  const coordLine = /^\s*[I|l]?\s*[NE]\s*[.:]?\s*[0-9OoIlô]/.test(l.text);
+  const col = columns.find((c) => Math.abs(c.x - l.box.x) <= 25 && l.box.y - c.lastBottom <= (coordLine ? 5.5 : 2.2) * Math.max(l.box.h, 18));
   if (col) { col.lines.push(l); col.lastBottom = l.box.y + l.box.h; } else columns.push({ x: l.box.x, lastBottom: l.box.y + l.box.h, lines: [l] });
 }
 
 // ---------- items ----------
 const items = [];
-for (const col of columns) {
+for (const [colIdx, col] of columns.entries()) {
   let cur = null;
+  let part = 0;
   let colSta = null; // a column's later items (G.V., F.H.) sit at the station of its first line unless they print their own
   const flush = () => { if (cur && (cur.kind || cur.sta != null || cur.N != null || cur.rim != null || cur.inv.length || cur.pipe || cur.slope != null)) items.push(cur); cur = null; };
-  const start = (l) => { flush(); cur = { kind: null, text: [], sta: null, baseline: null, offset: null, side: null, N: null, E: null, rim: null, inv: [], pipe: null, slope: null, box: { ...l.box }, issues: [] }; };
+  const start = (l) => { flush(); cur = { kind: null, text: [], sta: null, baseline: null, offset: null, side: null, N: null, E: null, rim: null, inv: [], pipe: null, slope: null, box: { ...l.box }, issues: [], col: colIdx, part: part++ }; };
   for (const l of col.lines) {
     const t = l.text;
     const nMatch = /^\s*[I|l]?\s*N\s*[.:]?\s*([0-9OoIlô][0-9OoIlô ,.]{7,13})[^0-9A-Za-z]*$/.exec(t);
@@ -150,6 +153,58 @@ for (const col of columns) {
   flush();
 }
 for (const it of items) it.text = it.text.join(" | ");
+
+// ---------- callout grouping (2026-10-02) ----------
+// The line-level splitter above cuts a callout wherever a new station / description appears, so ONE manhole callout ("MH#6 / STA.6+74.51C 0.0' O/S / RIM EL=12.20' /
+// INV.EL=3.50'(E) / STA.10+11.78 C / N / E") became two items, each with half the data (VILLA ONE review: RIM in one item, N/E in another, INV nowhere). A column that holds a
+// structure callout (a RIM/INV line, an MH name) is ONE manhole: its items are merged into the first one, keeping EVERY printed station (a manhole prints one per baseline).
+// Other columns are assemblies (8"x6" TEE / W/6" G.V. / & F.H. ASSY, each with its own N/E): they stay separate items but share `callout` + `part`, so the review sheet can show them together.
+const isStructure = (it) => it.rim != null || it.inv.length || /\bMH\b|MANHOLE|\bM\.H\./i.test(it.text);
+const byCol = new Map();
+for (const it of items) { if (!byCol.has(it.col)) byCol.set(it.col, []); byCol.get(it.col).push(it); }
+const stationOf = (x) => (x.sta == null ? null : { sta: x.sta, baseline: x.baseline, offset: x.offset, side: x.side });
+const absorb = (head, x) => {          // x is another OCR fragment of the SAME callout as head
+  head.stations ??= []; for (const y of [head, x]) { const st = stationOf(y); if (st && !head.stations.some((z) => z.sta === st.sta && z.baseline === st.baseline)) head.stations.push(st); }
+  head.text += ` | ${x.text}`;
+  if (head.rim == null && x.rim != null) head.rim = x.rim;
+  for (const v of x.inv) if (!head.inv.some((y) => y.value === v.value && y.dirs.join() === v.dirs.join())) head.inv.push(v);
+  if (head.N == null && x.N != null) head.N = x.N; else if (x.N != null && Math.abs(x.N - head.N) > 1) head.issues.push(`two different N in one callout: ${head.N} / ${x.N}`);
+  if (head.E == null && x.E != null) head.E = x.E; else if (x.E != null && Math.abs(x.E - head.E) > 1) head.issues.push(`two different E in one callout: ${head.E} / ${x.E}`);
+  if (!head.pipe && x.pipe) head.pipe = x.pipe;
+  if (head.slope == null && x.slope != null) head.slope = x.slope;
+  if (head.offset == null && x.offset != null && head.sta == null) { head.sta = x.sta; head.baseline = x.baseline; head.offset = x.offset; head.side = x.side; }
+  for (const i of x.issues) if (!head.issues.includes(i)) head.issues.push(i);
+  const x0 = Math.min(head.box.x, x.box.x), y0 = Math.min(head.box.y, x.box.y);
+  head.box = { x: x0, y: y0, w: Math.max(head.box.x + head.box.w, x.box.x + x.box.w) - x0, h: Math.max(head.box.y + head.box.h, x.box.y + x.box.h) - y0 };
+  head.mergedFrom = (head.mergedFrom ?? 1) + 1;
+};
+const grouped = [];
+for (const [, list] of byCol) {
+  let out = [];
+  if (list.some(isStructure) && list.length > 1) {
+    // a structure column = ONE manhole: everything merges into its first item
+    const head = list[0]; for (const x of list.slice(1)) absorb(head, x); head.kind = "MH"; out = [head];
+  } else {
+    // an assembly column (TEE / G.V. / F.H. ...): a fragment WITHOUT a description of its own (no kind, pipe, RIM/INV) that follows an item still waiting for its
+    // coordinates is that item's continuation (second station line + N/E of the same tee / manhole); anything with its own description stays an item
+    for (const x of list) {
+      const prev = out[out.length - 1];
+      if (prev && !x.kind && !x.pipe && x.slope == null && x.rim == null && !x.inv.length && prev.N == null && !/LATERAL|CLEAN/i.test(x.text)) absorb(prev, x);
+      else out.push(x);
+    }
+  }
+  for (const it of out) {
+    it.callout = it.col;
+    if (it.mergedFrom) {
+      const prim = it.stations.find((st) => st.offset != null) ?? it.stations[0];
+      if (prim) { it.sta = prim.sta; it.baseline = prim.baseline; it.offset = prim.offset; it.side = prim.side; }
+      it.issues.push(`one callout: ${it.mergedFrom} OCR fragments merged (${it.stations.length} station(s) kept)`);
+    }
+    grouped.push(it);
+  }
+}
+items.length = 0; items.push(...grouped);
+for (const it of items) delete it.col;
 
 // ---------- pipe callouts read along the pipes (rotated passes) ----------
 // In a rotated pass the words' "raw" boxes are in the rotated (reading) frame, so fragments of one callout share a raw row there:
@@ -199,14 +254,18 @@ function fitSimilarity(pairs) {
 }
 const baselines = [];
 const byLetter = new Map();
-for (const it of items) {
+for (const it0 of items) {
+  // a merged manhole callout prints one station per baseline: each one with its own offset is an anchor of ITS baseline
+  const sts = it0.stations?.length ? it0.stations.filter((x) => x.offset != null && x.side != null).map((x) => ({ ...it0, ...x, _owner: it0 })) : [it0];
+  for (const it of sts) {
   if (it.sta == null || it.offset == null || it.side == null || it.N == null || it.E == null) continue;
   // only items that PRINT their own station are anchors: a G.V./F.H. under a TEE inherits the station, but its offset may be measured
   // along the branch, not square to the baseline (VILLA ONE: F.H. at 3+14.9 "6' O/S" sat 8 ft off the fit)
   if (it.inherited) continue;
   const key = it.baseline ?? "?";
   if (!byLetter.has(key)) byLetter.set(key, []);
-  byLetter.get(key).push({ it, s: it.sta, o: signed(it), E: it.E, N: it.N });
+  byLetter.get(key).push({ it: it._owner ?? it, s: it.sta, o: signed(it), E: it.E, N: it.N });
+  }
 }
 for (const [letter, pairs] of byLetter) {
   const info = { letter, anchors: pairs.length, scale: null, rotationDeg: null, maxResidualFt: null, residuals: [], usable: false };

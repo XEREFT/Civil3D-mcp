@@ -1606,6 +1606,28 @@
     "pattern": "as-built provenance"
    }
   ]
+ },
+{
+  "since": "2026-10-02",
+  "id": "extract-splits-callouts",
+  "area": "skill",
+  "status": "fixed",
+  "match": "asbuilt-extract parte un callout de manhole en varios ítems, cada uno con la mitad de los datos",
+  "symptom": "MH#6 salía como dos ítems (RIM en uno, N/E en otro) y MH#3 / la tee de 10+60 con la estación en un ítem y las coordenadas en otro; la revisión mostraba filas incompletas",
+  "cause": "el divisor por líneas abría un ítem nuevo ante cada estación o descripción nueva (un manhole imprime una estación por línea base) y una línea N/E separada por RIM/INV perdidos por el OCR quedaba en otra columna",
+  "fix": "asbuilt-extract.mjs: una columna con estructura (RIM / INV / MH) se une en UN solo manhole conservando todas sus estaciones (`stations`, cada una con offset es ancla de su línea base); en columnas de ensamblaje un fragmento sin descripción propia que sigue a un ítem sin N/E es su continuación; las líneas N/E toleran un hueco mayor; cada ítem lleva `callout`/`mergedFrom` y la hoja de revisión muestra las filas de la misma callout",
+  "checks": [
+   {
+    "type": "skill-grep",
+    "file": "scripts/asbuilt-extract.mjs",
+    "pattern": "callout grouping"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/asbuilt-review.py",
+    "pattern": "misma callout"
+   }
+  ]
  }
 ]
 }
