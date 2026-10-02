@@ -53,7 +53,7 @@ function pluginRoots() {
 const underRoots = (p) => pluginRoots().some((root) => win(p).toLowerCase().startsWith(root.toLowerCase().replace(/\\?$/, "\\")));
 
 // ---------- spec ----------
-let spec;
+let spec, topoDump;
 if (flag("spec")) {
   spec = JSON.parse(readFileSync(flag("spec"), "utf8"));
 } else {
@@ -70,6 +70,7 @@ if (flag("spec")) {
   if (r.status !== 0) die(`c300-build-spec.mjs failed:\n${(r.stderr || r.stdout || "").trim()}`);
   console.log(r.stdout.trim());
   spec = JSON.parse(readFileSync(specPath, "utf8"));
+  topoDump = dump;
 }
 
 // ---------- target + template ----------
@@ -102,6 +103,16 @@ payload.twists = [
   { layout: spec.twist.layout, streetAngleDegrees: spec.twist.streetAngleDegrees, centerX: spec.twist.centerX, centerY: spec.twist.centerY },
   { layout: "Model", streetAngleDegrees: spec.twist.streetAngleDegrees, centerX: r4((a.x + b.x) / 2), centerY: r4((a.y + b.y) / 2) },
 ];
+// Roadway labels (etapa 1.9, 2026-10-01): EXIST R/W at each survey R/W dim, EOP on each pavement edge, ALIGNMENT START/END notes — MLeaders on
+// C-ANNO from the survey + alignment (c300-road-labels.mjs); the delivered sheets use Civil 3D label objects the plugin cannot create.
+// Needs the X-TOPO dump (not with --spec alone). --no-road-labels skips. Added BEFORE the PL step so PL symbols keep clear of them.
+let roadNote = "none";
+if (!has("no-road-labels") && topoDump) {
+  const roadOut = join(work, "road-labels.json"), specFile = join(work, "spec.json");
+  const r = spawnSync("node", [join(here, "c300-road-labels.mjs"), "--topo", topoDump, "--spec", specFile, "--out", roadOut], { encoding: "utf8" });
+  if (r.status === 0 && existsSync(roadOut)) { const rl = JSON.parse(readFileSync(roadOut, "utf8")).createEntities.entities; payload.entities = [...payload.entities, ...rl]; roadNote = r.stdout.trim(); }
+  else roadNote = `NOT added: ${(r.stderr || r.stdout || "c300-road-labels failed").trim().split("\n").pop()}`;
+} else if (!has("no-road-labels")) roadNote = "none (--spec without an X-TOPO dump)";
 // PL symbols (etapa 1.6, 2026-10-01): one per lot line shared by two county plat lots inside the C-300 viewport, from the
 // Property Appraiser's Lot_poly (c300-pl-symbols.mjs) -> appended to the same createEntities batch. --no-pl skips; a web failure
 // only warns (the build still runs, the summary says PL 0).
@@ -111,7 +122,7 @@ if (!has("no-pl")) {
   // etapa 1.5: the symbols keep clear of the annotation already in the payload (R/W dim texts = their midpoints, street labels,
   // the subject label) — c300-pl-symbols.mjs slides a clashing symbol along its own lot line
   const avoid = payload.entities.flatMap((e) =>
-    e.kind === "aligned_dimension" ? [[(e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2]] : e.kind === "mtext" && e.x != null ? [[e.x, e.y]] : [])
+    e.kind === "aligned_dimension" ? [[(e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2]] : (e.kind === "mtext" || e.kind === "mleader") && e.x != null ? [[e.x, e.y]] : [])
     .map((p) => p.map((v) => v.toFixed(2)).join(",")).join(";");
   const r = spawnSync("node", [join(here, "c300-pl-symbols.mjs"), "--frontage", String(spec.twist.streetAngleDegrees),
     "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut, ...(avoid ? ["--avoid", avoid] : [])], { encoding: "utf8" });
@@ -174,6 +185,7 @@ payload -> ${out}
  twists      ${payload.twists.map((t) => `${t.layout} ${t.streetAngleDegrees}°`).join(", ")}
  titleBlock  ${titleNote}
  freeze      ${payload.freezeLayers.join(", ")}
+ road labels ${roadNote}
  PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
  utility labels ${labelNote}${payload.blockImports ? `\n block imports ${payload.blockImports.map((b) => b.blockName).join(", ")} <- ${basename(payload.blockImports[0].sourceFilePath)}` : ""}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}

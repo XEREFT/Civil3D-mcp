@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fase 1 Studio</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1c2430;--mute:#667085;--line:#dfe3e8;--ok:#127a4b;--warn:#a15c00;--bad:#b42318;--acc:#1f5fbf;--accbg:#e8f0fd}
+@media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222b;--ink:#e6e9ee;--mute:#9aa4b2;--line:#2c3440;--ok:#4cc38a;--warn:#e0a040;--bad:#f0807a;--acc:#7aa7f0;--accbg:#223049}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,Segoe UI,sans-serif}
+header{display:flex;gap:16px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:16px;margin:0}nav{display:flex;gap:6px}nav button{border:1px solid var(--line);background:none;color:var(--ink);padding:5px 12px;border-radius:6px;cursor:pointer}
+nav button.on{background:var(--accbg);border-color:var(--acc);color:var(--acc)}
+.pill{padding:2px 9px;border-radius:99px;font-size:12px;border:1px solid var(--line);color:var(--mute)}.pill.ok{color:var(--ok);border-color:var(--ok)}.pill.bad{color:var(--bad);border-color:var(--bad)}.pill.warn{color:var(--warn);border-color:var(--warn)}
+main{max-width:1180px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h3{margin:0 0 4px;font-size:15px}.mute{color:var(--mute)}.small{font-size:12px}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:6px;padding:7px 13px;cursor:pointer;font-weight:600}
+button.b.alt{background:var(--card);color:var(--acc);border:1px solid var(--acc)}button.b:disabled{opacity:.45;cursor:default}
+button.b.danger{background:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.chk{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line)}.chk:last-child{border:0}.dot{width:18px;text-align:center;font-weight:700}
+.dot.ok{color:var(--ok)}.dot.no{color:var(--bad)}.dot.soft{color:var(--warn)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--mute)}.drop.over{border-color:var(--acc);background:var(--accbg);color:var(--acc)}
+input[type=text]{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:6px 8px;min-width:200px}
+pre#log{background:#0f141a;color:#d6dde7;padding:12px;border-radius:8px;max-height:340px;overflow:auto;font:12px/1.4 Consolas,monospace;white-space:pre-wrap;margin:0}
+.two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}@media(max-width:860px){.two{grid-template-columns:1fr}}
+iframe{width:100%;height:620px;border:1px solid var(--line);border-radius:8px;background:#fff}img.prev{max-width:100%;border:1px solid var(--line);border-radius:8px}
+.tabs{display:flex;gap:6px;margin:6px 0}.tabs button{border:1px solid var(--line);background:none;color:var(--ink);padding:4px 11px;border-radius:6px;cursor:pointer}.tabs button.on{background:var(--accbg);color:var(--acc);border-color:var(--acc)}
+.hide{display:none}
+</style></head>
+<body>
+<header><h1>Fase 1 Studio</h1>
+<nav><button id="nav-board" class="on">Tablero</button><button id="nav-proj" disabled>Proyecto</button></nav>
+<span id="plug" class="pill">Civil 3D…</span><span class="mute small" id="root"></span>
+<span style="flex:1"></span><span id="jobbar" class="pill hide"></span></header>
+<main>
+<section id="board">
+  <div class="row"><button class="b" id="btn-batch">Auditar todos (sin Civil 3D)</button><span class="mute small">Revisa el último guardado de cada proyecto con Core Console y escribe un informe en _reports.</span></div>
+  <div id="inbox"></div>
+  <h2 style="font-size:15px">Proyectos</h2><div class="grid" id="cards"></div>
+</section>
+<section id="proj" class="hide">
+  <div class="row"><button class="b alt" id="back">← Tablero</button><h2 id="ptitle" style="margin:0;font-size:18px"></h2><span id="pstat" class="pill"></span></div>
+  <div class="two">
+    <div class="card"><h3>Lista de verificación</h3><div id="check"></div><div class="row"><button class="b" id="do-next">—</button></div></div>
+    <div class="card"><h3>Archivos</h3>
+      <div class="drop" id="drop">Arrastra aquí: <b>X-TOPO / X-UTIL / X-ARCH</b> (se clasifican por sus capas), <b>POC.pdf</b> y los <b>escaneos .tif</b></div>
+      <div id="dropmsg" class="small mute" style="margin-top:6px"></div>
+      <h3 style="margin-top:14px">Ajustes del proyecto</h3>
+      <div class="row"><input type="text" id="s-projectNo" placeholder="N.º de proyecto (26-04.047)"><input type="text" id="s-agr" placeholder="AGR (33810)"></div>
+      <div class="row"><input type="text" id="s-address" placeholder="Dirección del sitio (227XX SW 118TH AVENUE)" style="min-width:340px"></div>
+      <div class="row"><input type="text" id="s-lot" placeholder="Punto del lote: x,y (opcional)"><input type="text" id="s-blocks" placeholder="C-300 con EXIST ARROW / FH (ruta)" style="min-width:300px"></div>
+      <div class="row"><button class="b alt" id="save-set">Guardar ajustes</button></div>
+      <div class="row"><input type="text" id="s-tpl" placeholder="C-300 anterior (ruta) para crear _template.dwg" style="min-width:340px"><button class="b alt" id="mk-tpl">Crear plantilla</button></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Pasos</h3>
+    <div class="row">
+      <button class="b alt" data-run="poc">1 · Leer POC</button>
+      <button class="b alt" data-run="pa">2 · Property Appraiser</button>
+      <button class="b alt" data-run="prepare">3 · Preparar (spec)</button>
+      <button class="b alt" data-run="scans">4 · Leer escaneos (OCR)</button>
+    </div>
+    <div class="mute small">El paso 4 termina en una página de revisión: confirmas cada valor y subes el archivo exportado. Nada de los escaneos entra al dibujo sin tu confirmación.</div>
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Revisar as-builts</h3>
+    <div class="row"><button class="b alt" id="show-review">Abrir revisión</button>
+      <label class="small mute">Archivo exportado (asbuilt.confirmed.json): <input type="file" id="confirmed" accept=".json"></label></div>
+    <iframe id="review" class="hide"></iframe>
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Construir</h3>
+    <div class="row"><label><input type="checkbox" id="o-dry"> Solo simular (sin Civil 3D)</label>
+      <label><input type="checkbox" id="o-deliver"> Entregar (copia el PDF a _QC y actualiza project.json)</label>
+      <input type="text" id="o-dwg" class="hide" placeholder="Nombre final NUEVO, p. ej. NOMBRE @XEREFT FASE 1.dwg" style="min-width:340px"></div>
+    <div class="row"><button class="b" id="build">Construir Fase 1</button><button class="b alt" id="preview">Ver último plot</button>
+      <span class="mute small">Cada corrida crea un archivo de prueba nuevo (…FASE1-BUILD-TESTn.dwg); nunca sobrescribe. Requiere Civil 3D abierto sin dibujo.</span></div>
+    <img id="previmg" class="prev hide">
+  </div>
+  <div class="card" style="margin-top:12px"><h3>Registro</h3><pre id="log">(sin actividad)</pre></div>
+</section>
+</main>
+<script>
+const T="__TOKEN__";
+const $=s=>document.querySelector(s);
+const api=async(path,opt={})=>{const r=await fetch(path+(path.includes("?")?"&":"?")+"t="+T,{...opt,headers:{"x-token":T,...(opt.headers||{})}});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j};
+const post=(path,obj)=>api(path,{method:"POST",body:JSON.stringify(obj)});
+let cur=null, logFrom=0, poll=null;
+
+function show(v){$("#board").classList.toggle("hide",v!=="board");$("#proj").classList.toggle("hide",v!=="proj");$("#nav-board").classList.toggle("on",v==="board");$("#nav-proj").classList.toggle("on",v==="proj")}
+$("#nav-board").onclick=()=>{show("board");loadBoard()};$("#back").onclick=$("#nav-board").onclick;$("#nav-proj").onclick=()=>cur&&show("proj");
+
+async function loadBoard(){
+  const d=await api("/api/projects");$("#root").textContent=d.root;plugin(d.plugin);
+  $("#cards").innerHTML=d.projects.map(p=>`<div class="card"><h3>${esc(p.name)}</h3>
+    <div class="row"><span class="pill ${p.status==="delivered"?"ok":""}">${esc(p.status)}</span><span class="pill">fase ${p.phase??"?"}</span>${p.ready?'<span class="pill ok">listo para construir</span>':'<span class="pill warn">faltan datos</span>'}</div>
+    <div class="small mute">${p.ok}/${p.total} comprobaciones · ${p.scans} escaneo(s) · as-builts ${p.asbuilt?"✓":"—"} · ${p.builds} prueba(s)${p.audit?" · auditado "+p.audit:""}</div>
+    ${p.next?`<div class="small" style="margin-top:6px">Siguiente: <b>${esc(p.next)}</b></div>`:""}
+    <div class="row"><button class="b" data-open="${esc(p.dir)}">Abrir</button></div></div>`).join("")||'<div class="mute">No hay proyectos bajo la raíz.</div>';
+  document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openProject(b.dataset.open));
+  $("#inbox").innerHTML=`<h2 style="font-size:15px">Bandeja _ENTRADA</h2>`+
+    (d.inbox.length?d.inbox.map(i=>`<div class="card" style="margin-bottom:10px"><h3>${esc(i.name)} ${i.created?'<span class="pill ok">proyecto ya creado</span>':""}</h3>
+      <div class="small mute">${i.files.map(esc).join(" · ")||"(vacía)"}</div>
+      ${i.created?"":`<div class="row"><input type="text" data-f="no" placeholder="N.º de proyecto"><input type="text" data-f="agr" placeholder="AGR (si no sale del POC)"><input type="text" data-f="xy" placeholder="Punto del lote x,y (opcional)"><input type="text" data-f="tpl" placeholder="C-300 anterior para la plantilla (ruta)" style="min-width:320px"><button class="b" data-new="${esc(i.name)}">Crear proyecto</button></div>`}</div>`).join(""):'<div class="mute small">Vacía. Crea un proyecto nuevo abajo.</div>')+
+    `<div class="card" style="margin-bottom:14px"><h3>Proyecto nuevo</h3><div class="row"><input type="text" id="np-name" placeholder="Nombre del proyecto (VILLA TWO)"></div>
+      <div class="drop" id="npdrop">Arrastra aquí los 3 DWG, el POC.pdf y los escaneos (se guardan en _ENTRADA\\&lt;nombre&gt;)</div><div id="npmsg" class="small mute"></div></div>`;
+  document.querySelectorAll("[data-new]").forEach(b=>b.onclick=()=>{const c=b.closest(".card"),g=k=>c.querySelector(`[data-f=${k}]`).value.trim();
+    runJob({kind:"newproject",name:b.dataset.new,projectNo:g("no"),agr:g("agr"),xy:g("xy"),templateFrom:g("tpl")})});
+  wireDrop($("#npdrop"),$("#npmsg"),f=>{const n=$("#np-name").value.trim();if(!n)throw new Error("Escribe primero el nombre del proyecto");return `/api/upload?inbox=${encodeURIComponent(n)}&name=${encodeURIComponent(f.name)}`},()=>loadBoard());
+}
+function plugin(ok){const e=$("#plug");e.textContent=ok?"Civil 3D conectado":"Civil 3D sin conexión";e.className="pill "+(ok?"ok":"warn")}
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function openProject(dir){cur=dir;$("#nav-proj").disabled=false;await loadProject();show("proj")}
+async function loadProject(){
+  const p=await api("/api/project?dir="+encodeURIComponent(cur));plugin(p.plugin);
+  $("#ptitle").textContent=p.name;$("#pstat").textContent=p.status;$("#pstat").className="pill "+(p.status==="delivered"?"ok":"");
+  $("#check").innerHTML=p.items.map(i=>`<div class="chk"><span class="dot ${i.ok?"ok":i.soft?"soft":"no"}">${i.ok?"✓":i.soft?"•":"✗"}</span><div><div>${esc(i.label)}</div><div class="small mute">${esc(i.detail)}</div></div></div>`).join("");
+  const nx=p.items.find(i=>i.id===p.next);const map={dwgs:"Arrastra los DWG",project:"Crea el proyecto desde _ENTRADA",poc:"Leer POC",pa:"Property Appraiser",lot:"Escribe el punto del lote",addr:"Escribe la dirección del sitio",ids:"Completa N.º de proyecto y AGR",scans:"Arrastra los escaneos",asbuilt:"Leer escaneos",template:"Crea la plantilla (Ajustes)",blocks:"Indica el C-300 con los bloques"};
+  $("#do-next").textContent=p.ready?"Siguiente: construir":"Siguiente: "+(map[p.next]||"—");
+  $("#do-next").onclick=()=>{ if(p.ready)return $("#build").scrollIntoView({behavior:"smooth"}); const r={poc:"poc",pa:"pa",asbuilt:"scans",scans:null}[p.next]; r?runJob({kind:r,dir:cur}):$("#drop").scrollIntoView({behavior:"smooth"}) };
+  $("#s-projectNo").value=p.projectNo||"";$("#s-agr").value=p.agrNo||"";$("#s-lot").value=(p.site.lotPoint||[]).join(",");$("#s-address").value=p.address||"";$("#s-blocks").value=p.blocksFrom||"";
+  $("#review").dataset.has=p.review?"1":"";
+}
+document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>runJob({kind:b.dataset.run,dir:cur,xy:$("#s-lot").value.trim()||undefined}));
+$("#save-set").onclick=()=>{const v={};const a=$("#s-projectNo").value.trim(),g=$("#s-agr").value.trim(),l=$("#s-lot").value.trim(),b=$("#s-blocks").value.trim();
+  const ad=$("#s-address").value.trim();if(ad)v["subject.address"]=ad;if(a)v.projectNo=a;if(g)v.agrNo=g;if(l)v["site.lotPoint"]="["+l+"]";if(b)v["sources.blocksFrom"]=b;runJob({kind:"set",dir:cur,values:v})};
+$("#mk-tpl").onclick=()=>{const v=$("#s-tpl").value.trim();if(!v)return alert("Escribe la ruta del C-300 anterior");runJob({kind:"template",dir:cur,source:v})};
+$("#show-review").onclick=()=>{const f=$("#review");f.src="/review?dir="+encodeURIComponent(cur)+"&t="+T;f.classList.remove("hide")};
+$("#confirmed").onchange=async e=>{const f=e.target.files[0];if(!f)return;if(!confirm("Subir "+f.name+" y generar asbuilt.json (hace copia del anterior en _backup)?"))return;
+  const r=await api("/api/confirmed?dir="+encodeURIComponent(cur),{method:"POST",body:await f.text()});watch(r.id)};
+$("#o-deliver").onchange=e=>$("#o-dwg").classList.toggle("hide",!e.target.checked);
+$("#build").onclick=()=>{const deliver=$("#o-deliver").checked,dry=$("#o-dry").checked;
+  if(deliver&&!confirm("ENTREGAR: se usará el nombre final indicado y se actualizará project.json y _QC. ¿Seguro?"))return;
+  runJob({kind:"build",dir:cur,dryRun:dry,deliver,dwg:$("#o-dwg").value.trim()})};
+$("#preview").onclick=()=>{const i=$("#previmg");i.src="/api/preview?t="+T+"&r="+Date.now();i.classList.remove("hide");i.onerror=()=>{i.classList.add("hide");alert("Todavía no hay un plot.")}};
+$("#btn-batch").onclick=()=>runJob({kind:"batch"});
+
+wireDrop($("#drop"),$("#dropmsg"),f=>`/api/upload?dir=${encodeURIComponent(cur)}&name=${encodeURIComponent(f.name)}`,()=>loadProject());
+function wireDrop(el,msg,urlOf,after){
+  ["dragenter","dragover"].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();el.classList.add("over")}));
+  ["dragleave","drop"].forEach(ev=>el.addEventListener(ev,e=>{e.preventDefault();el.classList.remove("over")}));
+  el.addEventListener("drop",async e=>{msg.innerHTML="";for(const f of e.dataTransfer.files){
+    try{msg.innerHTML+=`<div>Subiendo ${esc(f.name)}…</div>`;const j=await api(urlOf(f),{method:"POST",body:f});msg.innerHTML+=`<div>${j.ok===false?"⚠ ":"✓ "}${esc(j.message)}</div>`}
+    catch(err){msg.innerHTML+=`<div style="color:var(--bad)">✗ ${esc(f.name)}: ${esc(err.message)}</div>`}}
+    after()});
+}
+async function runJob(o){try{const r=await post("/api/run",o);watch(r.id)}catch(e){alert(e.message)}}
+function watch(){logFrom=0;$("#log").textContent="";clearInterval(poll);poll=setInterval(tick,700);tick()}
+async function tick(){try{const j=await api("/api/job?from="+logFrom);const pre=$("#log"),bar=$("#jobbar");
+  if(j.text){pre.textContent+=j.text;pre.scrollTop=pre.scrollHeight}logFrom=j.next;
+  bar.classList.toggle("hide",!j.id);bar.textContent=(j.running?"⏳ ":j.code===0?"✓ ":"✗ ")+j.label+(j.running?` · ${j.seconds}s`:"");bar.className="pill "+(j.running?"warn":j.code===0?"ok":"bad");
+  if(!j.running){clearInterval(poll);poll=null;if(cur)loadProject();else loadBoard()}}catch(e){}}
+loadBoard();tick();
+</script></body></html>

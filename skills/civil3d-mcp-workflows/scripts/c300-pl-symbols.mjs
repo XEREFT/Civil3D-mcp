@@ -33,9 +33,20 @@ const q = new URLSearchParams({
   geometry: `${C[0] - reach},${C[1] - reach},${C[0] + reach},${C[1] + reach}`, geometryType: 'esriGeometryEnvelope', inSR: '2236',
   spatialRel: 'esriSpatialRelIntersects', outFields: 'BLK_TRT,LOT', returnGeometry: 'true', outSR: '2236', f: 'json',
 });
-const res = await fetch(`https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/7/query?${q}`);
-const j = await res.json();
-if (j.error) throw new Error(JSON.stringify(j.error));
+// The county GIS sometimes answers 200 with an empty feature list (seen 2026-10-02: two builds in a row came out with PL 0 and a
+// silent QC FAIL): retry a few times and fail loudly instead of printing "0 PL symbols".
+let j;
+for (let attempt = 1; attempt <= 4; attempt++) {
+  try {
+    const res = await fetch(`https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/7/query?${q}`);
+    j = await res.json();
+    if (j.error) throw new Error(JSON.stringify(j.error));
+    if (j.features?.length) break;
+    j = undefined;
+  } catch (e) { if (attempt === 4) throw e; }
+  await new Promise((r) => setTimeout(r, 1500 * attempt));
+}
+if (!j) throw new Error('Property Appraiser lot layer returned no features after 4 tries (service hiccup?): not producing 0 PL symbols silently');
 
 const lots = j.features.map((f) => ({ id: `B${String(f.attributes.BLK_TRT).trim()}L${String(f.attributes.LOT).trim()}`, r: f.geometry.rings[0] }));
 const edges = (l) => l.r.slice(0, -1).map((a, i) => ({ a, b: l.r[i + 1], L: Math.hypot(l.r[i + 1][0] - a[0], l.r[i + 1][1] - a[1]) })).filter((e) => e.L > 15);
