@@ -107,6 +107,19 @@ for (const h of ab.hydrants) {
   leader(EL, `EXIST FH\\P(PER ${ab.waterRef})\\P(TO REMAIN)`, p, add(add(p, mul(out, 12)), [6, 0]));
 }
 
+// 5) Existing appurtenances (asbuilt.json `appurtenances`, 2026-10-02): tees, G.V./C.V., plugs, corp stops, CPO, sewer laterals + clean-outs.
+//    One MLeader each, arrow on the as-built point, text with the station/offset as the scan prints it; text 14-26 ft off to the side of the nearest
+//    main (water items north of their main, sewer laterals south), staggered so neighbours do not stack; fase1-qc + the declutter loop finish the placement.
+const apps = (ab.appurtenances ?? []).slice().sort((p, q) => p.x - q.x);
+apps.forEach((a, i) => {
+  const ref = a.ref === 'sewer' ? ab.sewerRef : ab.waterRef;
+  const head = a.noExist ? a.label : `EXIST ${a.label}`;
+  const lines = [head, a.stationText, a.detail, a.noExist ? `(PER ${ref})` : `(PER ${ref})\\P(TO REMAIN)`].filter(Boolean);
+  const north = a.ref === 'sewer' ? -1 : 1;
+  const text = add([a.x, a.y], [6 + (i % 2) * 8, north * (16 + (i % 3) * 5)]);
+  leader(EL, lines.join('\\P'), [a.x, a.y], text);
+});
+
 const spec = { firstBlocks: firsts, createEntities: { entities } };
 const out = JSON.stringify(spec, null, 1);
 if (args.out) fs.writeFileSync(args.out, out);

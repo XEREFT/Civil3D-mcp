@@ -150,7 +150,27 @@ const hydrants = confirmed.filter((c) => /^FH$/i.test(c.kind ?? "") && c.N != nu
 // the node where most SAN tramos meet = the intersection manhole the labels lean on
 const degree = manholes.map((m) => sewerMains.filter((s) => s.from === m.id || s.to === m.id).length);
 const intersectionMh = manholes[degree.indexOf(Math.max(...degree))]?.id ?? null;
-const out = { frontageAngleDeg: frontage, intersectionMh, sewerRef, waterRef, manholes, sewerMains, waterMains, hydrants, unresolved,
+// ---------- existing appurtenances (2026-10-02, user: "rotula todos los accesorios existentes") ----------
+// Every confirmed item that carries a `label` (what the scan calls it: 8"x6" TEE, 6" G.V., 1" CORP. STOP, CPO#2 ..., 6" PVC ... LATERAL) becomes a labeled
+// installation: position = its printed N/E, else station + baseline fitted from the confirmed manholes/anchors of that baseline (laterals print only STA).
+// `stationText` is printed as the scan prints it ("STA.12+44.8 C, 8'O/S (R)"); `detail` is an extra line (slope / clean-out). X-UTIL has no symbol for
+// these, so the arrow lands on the as-built coordinate.
+// baselines are per plan sheet: the water as-built's baseline C is not the sewer as-built's baseline C, so anchors come from the SAME scan
+const baselineAnchors = (letter, scan) => confirmed.filter((c) => c.scan === scan && c.baseline === letter && c.sta != null && c.N != null && c.E != null).sort((x, y) => x.sta - y.sta);
+const baselinePos = (letter, sta, scan) => {
+  const an = baselineAnchors(letter, scan); if (an.length < 2) return null;
+  const a = an[0], b = an[an.length - 1], t = (sta - a.sta) / (b.sta - a.sta);
+  return [a.E + (b.E - a.E) * t, a.N + (b.N - a.N) * t];
+};
+const appurtenances = [];
+for (const c of confirmed.filter((c) => typeof c.label === "string" && c.label.trim())) {
+  let pos = c.N != null && c.E != null ? [c.E, c.N] : null, how = "printed N/E";
+  if (!pos && c.sta != null && c.baseline) { pos = baselinePos(c.baseline, c.sta, c.scan); how = `station ${c.sta} on baseline ${c.baseline} (on the main)`; }
+  if (!pos) { unresolved.push(`appurtenance "${c.label}" (${c.scan} item ${c.item}): no N/E and no baseline anchors to place it`); continue; }
+  appurtenances.push({ kind: c.kind ?? null, label: c.label.trim(), stationText: c.stationText ?? null, detail: c.detail ?? null, noExist: c.noExist === true,
+    ref: /^ES/i.test(c.scan) ? "sewer" : "water", x: +pos[0].toFixed(4), y: +pos[1].toFixed(4), sta: c.sta ?? null, baseline: c.baseline ?? null, placedBy: how, scan: c.scan, item: c.item });
+}
+const out = { frontageAngleDeg: frontage, intersectionMh, sewerRef, waterRef, manholes, sewerMains, waterMains, hydrants, appurtenances, unresolved,
   source: { confirmed: confirmedPath, confirmedAt: confirmedDoc.confirmedAt ?? null, simulated: confirmedDoc.simulated === true, util: utilPath, builtAt: new Date().toISOString() } };
 const outPath = flag("out") ?? "asbuilt.json";
 writeFileSync(outPath, JSON.stringify(out, null, 1));
@@ -158,10 +178,11 @@ writeFileSync(outPath, JSON.stringify(out, null, 1));
 {
   const keepDir = join(dirname(resolve(outPath)), "_asbuilts");
   mkdirSync(keepDir, { recursive: true });
-  copyFileSync(confirmedPath, join(keepDir, "asbuilt.confirmed.json"));
+  const keep = join(keepDir, "asbuilt.confirmed.json");
+  if (resolve(confirmedPath).toLowerCase() !== resolve(keep).toLowerCase()) copyFileSync(confirmedPath, keep);
   console.log(`confirmed review kept in ${keepDir}`);
 }
-console.log(`manholes ${manholes.length} (${manholes.filter((m) => m.rim != null).length} with RIM), sewer mains ${sewerMains.length}, water mains ${waterMains.length}, hydrants ${hydrants.length}, intersection ${intersectionMh} -> ${outPath}`);
+console.log(`manholes ${manholes.length} (${manholes.filter((m) => m.rim != null).length} with RIM), sewer mains ${sewerMains.length}, water mains ${waterMains.length}, hydrants ${hydrants.length}, appurtenances ${appurtenances.length}, intersection ${intersectionMh} -> ${outPath}`);
 for (const s of sewerMains) console.log(`  ${s.from} -> ${s.to} ${s.lengthFt} ft: ${s.text}  [${s.matchedBy}]`);
 for (const u of [...unresolved, ...manholes.filter((m) => m.unresolved).map((m) => `${m.id} at ${m.x},${m.y}: ${m.unresolved}`)]) console.log("  UNRESOLVED " + u);
 for (const m of manholes.filter((m) => m.deltaFt > 0.5)) console.log(`  NOTE ${m.id}: the as-built N/E is ${m.deltaFt} ft from the X-UTIL symbol; the label arrow follows the survey symbol`);
