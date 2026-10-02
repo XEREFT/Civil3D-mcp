@@ -32,7 +32,9 @@ im = Image.open(scan).convert("L")
 
 
 def candidate(it):
-    manhole = it.get("kind") == "MH" or (it.get("kind") is None and it.get("sta") is not None and it.get("N") is not None and not it.get("pipe"))
+    # a plain station + N/E callout is a manhole unless it prints an offset with a SIDE ("8' O/S (R)": a water tee / valve / corp stop, which print complete data)
+    manhole = it.get("kind") == "MH" or (it.get("kind") is None and it.get("sta") is not None and it.get("N") is not None and not it.get("pipe")
+                                         and it.get("side") not in ("R", "L"))
     return manhole and (it.get("rim") is None or not it.get("inv"))
 
 
