@@ -1446,6 +1446,79 @@
    "cause": "Civil 3D tardó en abrir un dibujo nuevo con otros dibujos abiertos (FASE 1, copias de prueba)",
    "fix": "esperar a que responda (plugin-rpc.mjs listOpenDocuments) y reintentar; queda un DrawingN.dwg sin cambios abierto, inofensivo",
    "checks": []
+  },
+  {
+   "since": "2026-10-02",
+   "id": "pl-symbols-silent-zero",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El build sale con «PL symbols 0» y el QC da FAIL «PL symbols - 0 in view»",
+   "symptom": "dos builds seguidos sin símbolos PL y sin ningún aviso",
+   "cause": "el GIS del condado (Property Appraiser, capa 7) a veces contesta 200 con la lista de features vacía y el script imprimía 0 símbolos",
+   "fix": "c300-pl-symbols.mjs reintenta 4 veces y lanza error si sigue vacío (el payload lo avisa como NOT added)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-pl-symbols.mjs",
+     "pattern": "returned no features after 4 tries"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "plan-labels-need-profile-view",
+   "area": "plugin",
+   "status": "fixed",
+   "match": "profileViewApplyAnnotations: «Required parameter profileViewName» al crear EOP / R/W / ALIGNMENT START",
+   "symptom": "no se podían crear NoteLabel/StationOffsetLabel en una hoja Fase 1 (no tiene vista de perfil)",
+   "cause": "la acción exigía profileViewName aunque las etiquetas de planta no dependen de él",
+   "fix": "profileViewName opcional: sin él solo aplica etiquetas de planta (CreatePlanLabel / ApplyPlanLabelsOnly); fase1_build planLabels + planLabelsFallback",
+   "checks": [
+    {
+     "type": "repo-grep",
+     "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
+     "pattern": "ApplyPlanLabelsOnly"
+    },
+    {
+     "type": "repo-grep",
+     "file": "src/tools/domains/fase1Build.ts",
+     "pattern": "planLabelsFallback"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "studio-classify-by-entities",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Studio clasifica el X-TOPO como X-ARCH",
+   "symptom": "al crear un proyecto desde _ENTRADA el X-TOPO salía como ARCH y faltaba el topo",
+   "cause": "el survey DEFINE una capa X-ARCH vacía; clasificar por nombres de capa se equivoca",
+   "fix": "classifyDwg cuenta ENTIDADES (survey >= 20 -> topo; X-UTIL-* -> util; X-ARCH sin lo anterior -> arch) y usa los nombres solo para desempatar",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-studio.mjs",
+     "pattern": "Entities decide, layer names only break ties"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "native-label-text-backslash-p",
+   "area": "skill",
+   "status": "info",
+   "match": "El texto de la nota de alineación sale «ALIGNMENT STARTPSTA:» sin saltos de línea",
+   "symptom": "c300-road-labels.mjs emite «STARTPSTA» en vez de «START\\PSTA»",
+   "cause": "un `\\P` con una sola barra dentro de una plantilla JS pierde la barra (el \\P de MText hay que escribirlo `\\P` en el fuente)",
+   "fix": "el texto sale ahora de standards roles.planLabels.stationOffset.textTemplate (JSON); al editar scripts con \\P comprueba el texto emitido",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "references/standards/formtech-c300.json",
+     "pattern": "textTemplate"
+    }
+   ]
   }
  ]
 }

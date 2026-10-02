@@ -115,7 +115,7 @@ if (!has("no-road-labels") && topoDump) {
   const r = spawnSync("node", [join(here, "c300-road-labels.mjs"), "--topo", topoDump, "--spec", specFile, "--out", roadOut, ...(native ? ["--native"] : [])], { encoding: "utf8" });
   if (r.status === 0 && existsSync(roadOut)) {
     const out = JSON.parse(readFileSync(roadOut, "utf8"));
-    if (native) payload.planLabels = out.planLabels; else payload.entities = [...payload.entities, ...out.createEntities.entities];
+    if (native) { payload.planLabels = out.planLabels; payload.planLabelsFallback = out.planLabelsFallback; } else payload.entities = [...payload.entities, ...out.createEntities.entities];
     roadNote = r.stdout.trim();
   }
   else roadNote = `NOT added: ${(r.stderr || r.stdout || "c300-road-labels failed").trim().split("\n").pop()}`;

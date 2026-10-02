@@ -336,6 +336,59 @@
      "text": "Label EVERY existing X-UTIL manhole inside the C-300 viewport with its as-built RIM/INV, including the connection manhole at the intersection (VILLA ONE MH#5 was missing in the guide and in FASE 1)."
     }
    ]
+  },
+  "planLabels": {
+   "status": "2026-10-02: read LIVE from the delivered FASE 1 (civil3d_profile_view_annotations planLabels) and used by c300-road-labels.mjs --native; the user stated these label styles are ALWAYS the same and may be taken from C-300_GUIA_COMO_DEBE_QUEDAR (style/label STANDARD only, never project data). Cross-check against the guide when Civil 3D is open.",
+   "api": "profileViewApplyAnnotations WITHOUT profileViewName (plan-labels-only mode, plugin f1e78b5); fase1_build option planLabels (+ planLabelsFallback = MLeader stand-ins for labels whose style the template lacks)",
+   "note": {
+    "eop": {
+     "type": "NoteLabel",
+     "style": "EOP",
+     "layer": "C-ANNO",
+     "printedText": "EOP",
+     "where": "pavement edge pieces of the survey (IMPROVEMENTS polylines within edgeMaxFt of a street CL, >= minLenFt, open); one label per piece"
+    },
+    "rw": {
+     "type": "NoteLabel",
+     "style": "RW",
+     "layer": "C-ANNO",
+     "printedText": "EXIST R/W",
+     "where": "the R/W end of each survey R/W dimension (layer DIM, CL -> R/W line)"
+    },
+    "dragged": true,
+    "anchorIsFeaturePoint": true
+   },
+   "stationOffset": {
+    "type": "StationOffsetLabel",
+    "layer": "C-ROAD-TEXT",
+    "markerStyle": "_No Markers",
+    "dragged": true,
+    "start": {
+     "style": "ALGN START",
+     "title": "ALIGNMENT START"
+    },
+    "end": {
+     "style": "ALGN END",
+     "title": "ALIGNMENT END"
+    },
+    "textTemplate": "{title}\\PSTA: <[Station Value(Uft|FS|P2|RN|Sn|OF|AP|B2|TP|EN|W0|DZY)]>/OFF: <[Offset(Uft|P2|RN|AP|Sn|OF)]>'\\P({street})\\PN: <[Northing(Uft|P2|RN|AP|Sn|OF)]>\\PE: <[Easting(Uft|P2|RN|AP|Sn|OF)]>",
+    "textTemplateNote": "override of text component 0; {street} = the alignment name without the |AVE/ST suffix; the expressions are Civil 3D format codes of the label style, not project data"
+   },
+   "placement": {
+    "edgeMaxFt": 16,
+    "minLenFt": 20,
+    "pushFt": 8,
+    "textHeightFt": 2.0,
+    "startNote": {
+     "belowFt": 28,
+     "alongFt": -13,
+     "why": "the alignment start lies under the cross street's asphalt; text hangs backwards when the landing is behind the arrow; 28 ft under the CL clears the street-end EOP texts"
+    },
+    "endNote": {
+     "belowFt": 40,
+     "alongFt": -10
+    }
+   }
   }
  },
  "viewport": {
