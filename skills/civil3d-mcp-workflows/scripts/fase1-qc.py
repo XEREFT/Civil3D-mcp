@@ -204,6 +204,15 @@ add("OK" if need <= got and not missing_files else "FAIL", "xrefs", f"{', '.join
 
 # ---------- cross-checked data (subject label vs project.json, filled from the Property Appraiser / POC) ----------
 subj = project.get("subject", {})
+# U.E. (etapa 1.4): when the project confirmed an easement (site.ue), the sheet needs its label, its 2 dashed lines and its two 5.00' dims
+_ue = (project.get("site") or {}).get("ue")
+if _ue:
+    _lab = [e for e in leaders if "U.E." in re.sub(r"\s+", " ", e.get("txt", "").replace("\\P", " "))]
+    _w = float(_ue.get("widthFt", 5))
+    _d5 = [d for d in dims if d.get("layer") == "C-ANNO" and abs(float(d.get("meas") or 0) - _w) < 0.05]
+    _lines = [e for e in ents if e["type"] == "LWPOLYLINE" and e.get("layer") == "C-ANNO" and "DASHED" in str(e.get("lt", "")).upper()]
+    add("OK" if _lab and len(_d5) >= 2 and len(_lines) >= 2 else "FAIL", "U.E. (site.ue)", f"{len(_lab)} label, {len(_d5)} dims of {_w:g} ft, {len(_lines)} dashed lines" + ("" if _lab and len(_d5) >= 2 and len(_lines) >= 2 else " - the confirmed easement is not (fully) on the sheet"))
+
 label = next((e.get("txt", "") for e in ents if e["type"] == "MTEXT" and "SUBJECT PROPERTY" in e.get("txt", "")), None)
 if not label: add("FAIL", "subject label", "no MTEXT with SUBJECT PROPERTY")
 else:

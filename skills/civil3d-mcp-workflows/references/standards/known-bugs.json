@@ -1541,6 +1541,27 @@
      "path": "scripts/pa-area.mjs"
     }
    ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "ue-needs-user-confirmed-line",
+   "area": "skill",
+   "status": "fixed",
+   "match": "La hoja Fase 1 sale sin servidumbre (U.E.) porque falta el plat",
+   "symptom": "el motor no dibujaba «EXIST 5' U.E.», las 2 líneas ni las cotas de 5.00'",
+   "cause": "la U.E. no está en el survey ni en el Property Appraiser: el plat dice cuál línea de lote la lleva y el usuario no tenía el plat",
+   "fix": "pa-area.mjs propone candidatos (líneas compartidas); el usuario confirma línea y ancho → project.json site.ue → c300-easement.mjs la construye desde la geometría real; fase1-qc exige las 3 piezas cuando site.ue existe. Sin confirmación no se dibuja",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/c300-easement.mjs"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-build-payload.mjs",
+     "pattern": "c300-easement.mjs"
+    }
+   ]
   }
  ]
 }

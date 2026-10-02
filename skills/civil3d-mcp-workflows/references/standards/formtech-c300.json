@@ -225,7 +225,8 @@
    "linetype": "DASHED2",
    "status": "verified 2026-09-25 on VILLA ONE: guide easement = geometry derived from survey R/W + legal description within 0.09 ft",
    "source": "recorded plat (U.E. width/which lot line); if the plat is not available the user may confirm the previous sheet's U.E., but the geometry is always rebuilt from survey R/W lines + legal lot dimensions (never copied)",
-   "placement": "two lines 5 ft each side of the lot line, from the frontage R/W line to the lot's rear line (legal depth); 5.00' aligned dims (BCC-1.0, C-ANNO) one each side ~58-64 ft from the R/W; MLeader 'EXIST 5' U.E.' (existingUtilityLeader recipe) with arrow on the lot line"
+   "placement": "two lines 5 ft each side of the lot line, from the frontage R/W line to the lot's rear line (legal depth); 5.00' aligned dims (BCC-1.0, C-ANNO) one each side ~58-64 ft from the R/W; MLeader 'EXIST 5' U.E.' (existingUtilityLeader recipe) with arrow on the lot line",
+   "builder": "2026-10-02: built by scripts/c300-easement.mjs from project.json site.ue (user-confirmed lot line + width) + the Property Appraiser lot polygons (pa-area.mjs); dims at ~58 and ~64 ft from the street end so the two 5.00' texts do not stack"
   },
   "existArrow": {
    "kind": "block",
@@ -378,7 +379,7 @@
     "edgeMaxFt": 16,
     "minLenFt": 20,
     "pushFt": 8,
-    "textHeightFt": 2.0,
+    "textHeightFt": 2,
     "startNote": {
      "belowFt": 28,
      "alongFt": -13,

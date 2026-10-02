@@ -120,6 +120,23 @@ if (!has("no-road-labels") && topoDump) {
   }
   else roadNote = `NOT added: ${(r.stderr || r.stdout || "c300-road-labels failed").trim().split("\n").pop()}`;
 } else if (!has("no-road-labels")) roadNote = "none (--spec without an X-TOPO dump)";
+// U.E. (etapa 1.4, 2026-10-02): when project.json site.ue is set (the USER confirmed which lot line carries the easement and its width; the plat decides that),
+// c300-easement.mjs builds the 2 dashed lines, the two 5.00' dims and the "EXIST 5' U.E." MLeader from the real lot geometry (pa-area.mjs report; it is run here
+// when the report is missing). Added BEFORE the PL step so PL symbols keep clear of the U.E. dims. --no-ue skips.
+let ueNote = "none (project.json site.ue not set: the easement is NOT drawn)";
+if (!has("no-ue") && project.site?.ue && topoDump) {
+  let rep = project.site?.paArea?.file;
+  if (!rep || !existsSync(rep)) {
+    spawnSync("node", [join(here, "pa-area.mjs"), "--dir", dir, "--write"], { encoding: "utf8", timeout: 600000 });
+    rep = JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).site?.paArea?.file;
+  }
+  const ueOut = join(work, "ue.json");
+  if (rep && existsSync(rep)) {
+    const r = spawnSync("node", [join(here, "c300-easement.mjs"), "--project", join(dir, "project.json"), "--report", rep, "--spec", join(work, "spec.json"), "--out", ueOut], { encoding: "utf8" });
+    if (r.status === 0 && existsSync(ueOut)) { payload.entities = [...payload.entities, ...JSON.parse(readFileSync(ueOut, "utf8")).createEntities.entities]; ueNote = r.stdout.trim(); }
+    else ueNote = `NOT drawn: ${(r.stderr || r.stdout || "c300-easement failed").trim().split("\n").pop()}`;
+  } else ueNote = "NOT drawn: no pa-area report (run pa-area.mjs --write)";
+}
 // PL symbols (etapa 1.6, 2026-10-01): one per lot line shared by two county plat lots inside the C-300 viewport, from the
 // Property Appraiser's Lot_poly (c300-pl-symbols.mjs) -> appended to the same createEntities batch. --no-pl skips; a web failure
 // only warns (the build still runs, the summary says PL 0).
@@ -193,6 +210,7 @@ payload -> ${out}
  titleBlock  ${titleNote}
  freeze      ${payload.freezeLayers.join(", ")}
  road labels ${roadNote}
+ U.E.        ${ueNote}
  PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
  utility labels ${labelNote}${payload.blockImports ? `\n block imports ${payload.blockImports.map((b) => b.blockName).join(", ")} <- ${basename(payload.blockImports[0].sourceFilePath)}` : ""}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}
