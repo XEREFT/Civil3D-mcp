@@ -102,7 +102,7 @@ if (c300 && dumpPath && existsSync(dumpPath) && existsSync(join(dirname(dwg), "p
     const info = await withApplicationConnection(async (c) => {
       const docs = ((await c.sendCommand("listOpenDocuments", {})).documents ?? []);
       const act = docs.find((d) => d.isActive);
-      if (!act || String(act.filePath ?? "").toLowerCase() !== String(dwg).toLowerCase()) return null;
+      if (!act || String(act.filePath ?? "").replace(/[\\/]+/g, "/").toLowerCase() !== String(dwg).replace(/[\\/]+/g, "/").toLowerCase()) return null;
       return await c.sendCommand("profileViewAnnotations", {});
     });
     if (info?.planLabels?.length) {
