@@ -114,7 +114,8 @@ const plan = tramos.map(([a, b]) => ({ a, b, from: idOf(a), to: idOf(b), L: dist
 const assign = (t, x, how) => {
   const pipe = (x.c.pipe ?? '8" PVC').replace(/^(\d+)"\s*PVC$/i, '$1" PVC (SDR-35)');
   if (x.c.slope == null) { unresolved.push(`SAN ${t.from}->${t.to}: matched callout has no slope`); return; }
-  sewerMains.push({ from: t.from, to: t.to, text: `EXIST ${pipe} SAN MAIN @ ${x.c.slope.toFixed(2)}% SLOPE`, lengthFt: +t.L.toFixed(1), matchedBy: how });
+  // scanLengthFt = the length the AS-BUILT prints for this run ("337'- 8" PVC ..."), between ITS structures; lengthFt = the X-UTIL segment (it stops where the survey does)
+  sewerMains.push({ from: t.from, to: t.to, text: `EXIST ${pipe} SAN MAIN @ ${x.c.slope.toFixed(2)}% SLOPE`, lengthFt: +t.L.toFixed(1), scanLengthFt: Number.isFinite(x.len) && x.len > 0 ? x.len : null, matchedBy: how });
   t.done = true;
 };
 // 1) by length (exact: scans keep lengths)

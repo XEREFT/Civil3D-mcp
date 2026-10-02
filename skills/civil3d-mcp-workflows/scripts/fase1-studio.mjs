@@ -160,7 +160,7 @@ function jobScans(dir) {
       if ((await run(node, [sc("asbuilt-extract.mjs"), "--ocr", ocr, "--out", draft])).code !== 0) return false;
       // second OCR pass per incomplete manhole callout (names, RIM, misread digits); a failure only means the user types more in the review
       const reocr = join(work, `${base}.reocr.json`);
-      if ((await run("python", [sc("asbuilt-reocr.py"), "--draft", draft, "--out", reocr])).code === 0) {
+      if ((await run("python", [sc("asbuilt-reocr.py"), "--draft", draft, "--out", reocr, "--ocr", ocr])).code === 0) {
         if ((await run(node, [sc("asbuilt-extract.mjs"), "--ocr", ocr, "--reocr", reocr, "--out", draft])).code !== 0) say("(la segunda lectura no se pudo fusionar: se usa la primera)");
       } else say("(segunda lectura OCR omitida)");
       if ((await run(node, [sc("asbuilt-associate.mjs"), "--draft", draft, "--util", utilDump, "--out", assoc])).code !== 0) return false;

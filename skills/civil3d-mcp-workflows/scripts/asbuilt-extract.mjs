@@ -242,7 +242,20 @@ if (reocrPath) {
       }
       if (idv) ids.push(idv); if (rimv != null) rims.push(rimv); if (invv) invs.push(invv);
     }
+    // rows read by asbuilt-glyphs.py (template matching: struck-through RIM / INV lines the Windows OCR returns nothing for); each counts as TWO readings
+    const gInv = [];
+    for (const g of c.glyphRows ?? []) {
+      if (g.kind === "RIM" && g.value > -20 && g.value < 80) { rims.push(g.value, g.value); }
+      if (g.kind === "INV") gInv.push({ value: g.value, dirs: g.dirs ?? [], low: g.lowConfidence === true });
+    }
     const notes = [];
+    for (const g of gInv) {
+      const first = it.inv[0];
+      if (!it.inv.length) { it.inv.push({ value: g.value, dirs: g.dirs }); notes.push(`INV ${g.value} (${g.dirs.join(",") || "no directions"}) read by the glyph reader (struck-through line)${g.low ? " - LOW CONFIDENCE (a digit may be missing / readings disagree): check the crop" : ""}`); }
+      else if (first && String(g.value).startsWith(String(first.value)) && (g.dirs.length > first.dirs.length || g.value !== first.value)) {
+        notes.push(`INV ${first.value} (${first.dirs.join(",")}) -> ${g.value} (${g.dirs.join(",")}) glyph reader`); it.inv[0] = g;
+      }
+    }
     const idV = vote(null, ids); if (idV && idV.votes >= 1) { it.id = idV.value; if (!/MH\s*#/i.test(it.text)) it.text = `${idV.value} | ${it.text}`; notes.push(`name ${idV.value}`); }
     const rimV = vote(it.rim, rims);
     if (rimV && !same(rimV.value, it.rim)) {

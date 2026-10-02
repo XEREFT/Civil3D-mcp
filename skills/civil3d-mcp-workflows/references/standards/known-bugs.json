@@ -1563,97 +1563,106 @@
     }
    ]
   },
-{
-  "since": "2026-10-02",
-  "id": "review-exports-incomplete-manholes",
-  "area": "skill",
-  "status": "fixed",
-  "match": "La revisión de as-builts exporta manholes sin RIM / INV / nombre y el modelo sale incompleto",
-  "symptom": "asbuilt-build dejaba 1 de 5 MH con RIM, INV sin direcciones, IDs MH-1… y un tramo sin etiqueta; las etiquetas de la hoja salían parciales",
-  "cause": "el OCR parte cada callout en fragmentos y pierde líneas (RIM / INV / nombre bajo el trazo de la flecha); la hoja de revisión dejaba exportar filas incompletas",
-  "fix": "asbuilt-review.py: campos obligatorios por tipo (MH: nombre, RIM, INV con direcciones, N, E; tubo: tubo + %; accesorios: etiqueta + posición), rojo + «Exportar» bloqueado, «Unir con fila nº» para fragmentos, sugerencias por palabra clave; fase1-qc: FAIL «as-built completeness» y «every existing appurtenance labeled»",
-  "checks": [
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-review.py",
-    "pattern": "REQUIRED FIELDS"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/fase1-qc.py",
-    "pattern": "as-built completeness"
-   }
-  ]
- },
- {
-  "since": "2026-10-02",
-  "id": "simulated-asbuilt-feeds-sheet",
-  "area": "skill",
-  "status": "fixed",
-  "match": "Un as-built «confirmado» simulado alimenta la hoja Fase 1",
-  "symptom": "VILLA ONE se construyó con asbuilt.confirmed.json marcado simulated:true guardado en %TEMP%",
-  "cause": "no había guardia: la regla «solo valores confirmados por el usuario» dependía de la disciplina de quien corría el flujo",
-  "fix": "asbuilt-build.mjs y fase1-build-payload.mjs rechazan simulated:true (--allow-simulated solo para pruebas); asbuilt-build guarda la revisión en <proyecto>/_asbuilts; fase1-qc da FAIL «as-built provenance»; la hoja exporta simulated:false + confirmedBy",
-  "checks": [
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-build.mjs",
-    "pattern": "REFUSED"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/fase1-qc.py",
-    "pattern": "as-built provenance"
-   }
-  ]
- },
-{
-  "since": "2026-10-02",
-  "id": "extract-splits-callouts",
-  "area": "skill",
-  "status": "fixed",
-  "match": "asbuilt-extract parte un callout de manhole en varios ítems, cada uno con la mitad de los datos",
-  "symptom": "MH#6 salía como dos ítems (RIM en uno, N/E en otro) y MH#3 / la tee de 10+60 con la estación en un ítem y las coordenadas en otro; la revisión mostraba filas incompletas",
-  "cause": "el divisor por líneas abría un ítem nuevo ante cada estación o descripción nueva (un manhole imprime una estación por línea base) y una línea N/E separada por RIM/INV perdidos por el OCR quedaba en otra columna",
-  "fix": "asbuilt-extract.mjs: una columna con estructura (RIM / INV / MH) se une en UN solo manhole conservando todas sus estaciones (`stations`, cada una con offset es ancla de su línea base); en columnas de ensamblaje un fragmento sin descripción propia que sigue a un ítem sin N/E es su continuación; las líneas N/E toleran un hueco mayor; cada ítem lleva `callout`/`mergedFrom` y la hoja de revisión muestra las filas de la misma callout",
-  "checks": [
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-extract.mjs",
-    "pattern": "callout grouping"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-review.py",
-    "pattern": "misma callout"
-   }
-  ]
- },
-{
-  "since": "2026-10-02",
-  "id": "ocr-first-pass-loses-callout-text",
-  "area": "skill",
-  "status": "mitigated",
-  "match": "El OCR de la primera pasada pierde el nombre, el RIM o dígitos de un callout de manhole",
-  "symptom": "MH sin nombre (MH#7…), MH#3 sin RIM, MH#6 con N 444513.2847 en vez de 444518.2847; el trazo de la flecha / la línea base tacha líneas (INV.EL=1.64'(E,W)) y no se leen",
-  "cause": "el texto del callout es chico (≈2 mm a escala de plot) y la primera pasada lee la hoja entera a tamaño nativo; el Windows OCR no lee líneas tachadas a ninguna escala ni quitando líneas largas (probado 2026-10-02)",
-  "fix": "asbuilt-reocr.py relee cada callout incompleto en su recorte ampliado 2x/3x y asbuilt-extract.mjs --reocr VOTA entre lecturas (llena nombre/RIM, corrige dígitos por mayoría, anota cada diferencia); lo no legible (INV tachados, MH#5) queda como campo OBLIGATORIO en la revisión que el usuario escribe a mano",
-  "checks": [
-   {
-    "type": "file-exists",
-    "path": "scripts/asbuilt-reocr.py"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-extract.mjs",
-    "pattern": "second OCR pass"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/fase1-studio.mjs",
-    "pattern": "asbuilt-reocr.py"
-   }
-  ]
- }
-]
+  {
+   "since": "2026-10-02",
+   "id": "review-exports-incomplete-manholes",
+   "area": "skill",
+   "status": "fixed",
+   "match": "La revisión de as-builts exporta manholes sin RIM / INV / nombre y el modelo sale incompleto",
+   "symptom": "asbuilt-build dejaba 1 de 5 MH con RIM, INV sin direcciones, IDs MH-1… y un tramo sin etiqueta; las etiquetas de la hoja salían parciales",
+   "cause": "el OCR parte cada callout en fragmentos y pierde líneas (RIM / INV / nombre bajo el trazo de la flecha); la hoja de revisión dejaba exportar filas incompletas",
+   "fix": "asbuilt-review.py: campos obligatorios por tipo (MH: nombre, RIM, INV con direcciones, N, E; tubo: tubo + %; accesorios: etiqueta + posición), rojo + «Exportar» bloqueado, «Unir con fila nº» para fragmentos, sugerencias por palabra clave; fase1-qc: FAIL «as-built completeness» y «every existing appurtenance labeled»",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-review.py",
+     "pattern": "REQUIRED FIELDS"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "as-built completeness"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "simulated-asbuilt-feeds-sheet",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Un as-built «confirmado» simulado alimenta la hoja Fase 1",
+   "symptom": "VILLA ONE se construyó con asbuilt.confirmed.json marcado simulated:true guardado en %TEMP%",
+   "cause": "no había guardia: la regla «solo valores confirmados por el usuario» dependía de la disciplina de quien corría el flujo",
+   "fix": "asbuilt-build.mjs y fase1-build-payload.mjs rechazan simulated:true (--allow-simulated solo para pruebas); asbuilt-build guarda la revisión en <proyecto>/_asbuilts; fase1-qc da FAIL «as-built provenance»; la hoja exporta simulated:false + confirmedBy",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-build.mjs",
+     "pattern": "REFUSED"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "as-built provenance"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "extract-splits-callouts",
+   "area": "skill",
+   "status": "fixed",
+   "match": "asbuilt-extract parte un callout de manhole en varios ítems, cada uno con la mitad de los datos",
+   "symptom": "MH#6 salía como dos ítems (RIM en uno, N/E en otro) y MH#3 / la tee de 10+60 con la estación en un ítem y las coordenadas en otro; la revisión mostraba filas incompletas",
+   "cause": "el divisor por líneas abría un ítem nuevo ante cada estación o descripción nueva (un manhole imprime una estación por línea base) y una línea N/E separada por RIM/INV perdidos por el OCR quedaba en otra columna",
+   "fix": "asbuilt-extract.mjs: una columna con estructura (RIM / INV / MH) se une en UN solo manhole conservando todas sus estaciones (`stations`, cada una con offset es ancla de su línea base); en columnas de ensamblaje un fragmento sin descripción propia que sigue a un ítem sin N/E es su continuación; las líneas N/E toleran un hueco mayor; cada ítem lleva `callout`/`mergedFrom` y la hoja de revisión muestra las filas de la misma callout",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-extract.mjs",
+     "pattern": "callout grouping"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-review.py",
+     "pattern": "misma callout"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "ocr-first-pass-loses-callout-text",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El OCR de la primera pasada pierde el nombre, el RIM o dígitos de un callout de manhole",
+   "symptom": "MH sin nombre (MH#7…), MH#3 sin RIM, MH#6 con N 444513.2847 en vez de 444518.2847; el trazo de la flecha / la línea base tacha líneas (INV.EL=1.64'(E,W)) y no se leen",
+   "cause": "el texto del callout es chico (≈2 mm a escala de plot) y la primera pasada lee la hoja entera a tamaño nativo; el Windows OCR no lee líneas tachadas a ninguna escala ni quitando líneas largas (probado 2026-10-02)",
+   "fix": "asbuilt-reocr.py relee cada callout incompleto en su recorte ampliado 2x/3x y asbuilt-extract.mjs --reocr VOTA entre lecturas (llena nombre/RIM, corrige dígitos por mayoría, anota cada diferencia); lo no legible (INV tachados, MH#5) queda como campo OBLIGATORIO en la revisión que el usuario escribe a mano | 2026-10-02 (later): asbuilt-glyphs.py lee las líneas TACHADAS (INV/RIM) por comparación de plantillas con las letras limpias del MISMO escaneo (≈2,200 glifos); VILLA ONE: los 4 INV/RIM tachados conocidos (MH#7, #5, #3, #6) salieron exactos; lecturas con <75 % de acuerdo o 1 decimal se marcan LOW CONFIDENCE",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-reocr.py"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-extract.mjs",
+     "pattern": "second OCR pass"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-studio.mjs",
+     "pattern": "asbuilt-reocr.py"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-glyphs.py"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-reocr.py",
+     "pattern": "glyph reader"
+    }
+   ]
+  }
+ ]
 }

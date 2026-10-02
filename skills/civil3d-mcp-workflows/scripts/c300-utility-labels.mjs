@@ -66,7 +66,9 @@ for (const s of ab.sewerMains) {
   const arrow = touchesHub
     ? (s.to === ab.intersectionMh ? add(B, mul(d, -40)) : add(A, mul(d, 40)))
     : add(A, mul(d, 15));
-  leader(EL, `${s.text}\\P(PER ${ab.sewerRef})\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
+  // the as-built prints each run with its length ("337'- 8" PVC SDR-35@ 0.40%"): print it too (standards existingUtilityLeader.printScanLength; the QC reads s.text inside the label)
+  const lenPrefix = EL.printScanLength !== false && s.scanLengthFt ? `${s.scanLengthFt}'- ` : '';
+  leader(EL, `${lenPrefix}${s.text}\\P(PER ${ab.sewerRef})\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
   // flow arrows 20 ft inside each end, only where the pipe is drawn in X-UTIL
   const flowRot = Math.atan2(d[1], d[0]) + 3.8636;
   const ends = [add(A, mul(d, 20))];

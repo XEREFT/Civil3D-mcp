@@ -187,6 +187,8 @@
    "backgroundScale": 1.2
   },
   "existingUtilityLeader": {
+   "printScanLength": true,
+   "printScanLengthRule": "2026-10-02 (user): each sewer-main label starts with the length the as-built prints for that run (\"337'- EXIST 8\" PVC (SDR-35) SAN MAIN @ 0.40% SLOPE\"), taken from asbuilt.json sewerMains[].scanLengthFt (the as-built's own length between its structures, NOT the X-UTIL segment, which stops where the survey does). Set false to print the standard text only.",
    "kind": "mleader",
    "layer": "C-ANNO",
    "colorIndex": 8,

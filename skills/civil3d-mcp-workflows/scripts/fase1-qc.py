@@ -299,6 +299,9 @@ else:
     if _ab.get("unresolved"): add("WARN", "as-built unresolved items", "; ".join(_ab["unresolved"][:6]))
     _far = [f"{m['id']} {m['deltaFt']} ft" for m in _ab.get("manholes", []) if (m.get("deltaFt") or 0) > 0.5 and in_view((m["x"], m["y"]))]
     if _far: add("WARN", "as-built vs survey manhole position", "as-built N/E differs from the X-UTIL symbol by > 0.5 ft (arrow follows the survey): " + ", ".join(_far))
+    _nolen = [f"{sm['from']}->{sm['to']} ({sm['scanLengthFt']}')" for sm in _ab.get("sewerMains", []) if sm.get("scanLengthFt")
+              and not any(_flat(sm["text"]) in _flat(e.get("txt", "")) and f"{sm['scanLengthFt']}'" in _flat(e.get("txt", "")) for e in leaders)]
+    if _nolen: add("WARN", "sewer-main labels print the as-built length", "label without the as-built length: " + "; ".join(_nolen) + " (labels from before 2026-10-02, or printScanLength false)")
     for sm in _ab.get("sewerMains", []):
         if not any(_flat(sm["text"]) in _flat(e.get("txt", "")) for e in leaders if "SAN MAIN" in _flat(e.get("txt", ""))) and any(in_view(p) for p in [(m_["x"], m_["y"]) for m_ in _ab["manholes"] if m_["id"] in (sm["from"], sm["to"])]):
             _bad.append(f"no label prints '{sm['text']}' ({sm['from']}->{sm['to']})")
