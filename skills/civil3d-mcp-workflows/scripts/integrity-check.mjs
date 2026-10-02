@@ -356,6 +356,8 @@ async function live(rpcQueue) {
     } else {
       if (!r.ok) { add("bugs", noDoc || c.skipIfError ? "SKIP" : "FAIL", id, `${c.method}: ${r.error.slice(0, 160)}`); continue; }
       const text = JSON.stringify(r.value, null, 2);
+      // skipIfEmpty: the check only makes sense when the active document has that data (e.g. a C-300 layout with viewports); an empty list = SKIP, not FAIL
+      if (c.skipIfEmpty && Array.isArray(r.value?.[c.skipIfEmpty]) && r.value[c.skipIfEmpty].length === 0) { add("bugs", "SKIP", id, `${c.method}: active document has no ${c.skipIfEmpty} (open a sheet with a C-300 layout to run this check)`); continue; }
       const miss = (c.contains ?? []).filter((s) => !text.includes(s));
       const warn = (c.warnIfContains ?? []).filter((s) => text.includes(s));
       add("bugs", miss.length ? "FAIL" : warn.length ? "WARN" : "OK", id, miss.length ? `${c.method} response lacks ${miss.join(", ")}` : warn.length ? `${c.method} returned ${warn.join(", ")} (documented bug condition is active)` : `${c.method} ok`);

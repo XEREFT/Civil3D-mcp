@@ -692,7 +692,8 @@
      "contains": [
       "annotationScale"
      ],
-     "skipIfError": true
+     "skipIfError": true,
+     "skipIfEmpty": "viewports"
     }
    ]
   },
