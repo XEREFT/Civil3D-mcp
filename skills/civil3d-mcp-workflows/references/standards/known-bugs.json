@@ -1628,6 +1628,32 @@
     "pattern": "misma callout"
    }
   ]
+ },
+{
+  "since": "2026-10-02",
+  "id": "ocr-first-pass-loses-callout-text",
+  "area": "skill",
+  "status": "mitigated",
+  "match": "El OCR de la primera pasada pierde el nombre, el RIM o dígitos de un callout de manhole",
+  "symptom": "MH sin nombre (MH#7…), MH#3 sin RIM, MH#6 con N 444513.2847 en vez de 444518.2847; el trazo de la flecha / la línea base tacha líneas (INV.EL=1.64'(E,W)) y no se leen",
+  "cause": "el texto del callout es chico (≈2 mm a escala de plot) y la primera pasada lee la hoja entera a tamaño nativo; el Windows OCR no lee líneas tachadas a ninguna escala ni quitando líneas largas (probado 2026-10-02)",
+  "fix": "asbuilt-reocr.py relee cada callout incompleto en su recorte ampliado 2x/3x y asbuilt-extract.mjs --reocr VOTA entre lecturas (llena nombre/RIM, corrige dígitos por mayoría, anota cada diferencia); lo no legible (INV tachados, MH#5) queda como campo OBLIGATORIO en la revisión que el usuario escribe a mano",
+  "checks": [
+   {
+    "type": "file-exists",
+    "path": "scripts/asbuilt-reocr.py"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/asbuilt-extract.mjs",
+    "pattern": "second OCR pass"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/fase1-studio.mjs",
+    "pattern": "asbuilt-reocr.py"
+   }
+  ]
  }
 ]
 }

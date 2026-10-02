@@ -158,6 +158,11 @@ function jobScans(dir) {
       const ocr = join(work, `${base}.ocr.json`), draft = join(work, `${base}.draft.json`), assoc = join(work, `${base}.assoc.json`);
       if ((await run("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", sc("scan-ocr.ps1"), "-Image", scan, "-Out", ocr])).code !== 0) return false;
       if ((await run(node, [sc("asbuilt-extract.mjs"), "--ocr", ocr, "--out", draft])).code !== 0) return false;
+      // second OCR pass per incomplete manhole callout (names, RIM, misread digits); a failure only means the user types more in the review
+      const reocr = join(work, `${base}.reocr.json`);
+      if ((await run("python", [sc("asbuilt-reocr.py"), "--draft", draft, "--out", reocr])).code === 0) {
+        if ((await run(node, [sc("asbuilt-extract.mjs"), "--ocr", ocr, "--reocr", reocr, "--out", draft])).code !== 0) say("(la segunda lectura no se pudo fusionar: se usa la primera)");
+      } else say("(segunda lectura OCR omitida)");
       if ((await run(node, [sc("asbuilt-associate.mjs"), "--draft", draft, "--util", utilDump, "--out", assoc])).code !== 0) return false;
       assocs.push(assoc);
     }

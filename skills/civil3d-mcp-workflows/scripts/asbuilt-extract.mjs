@@ -206,6 +206,63 @@ for (const [, list] of byCol) {
 items.length = 0; items.push(...grouped);
 for (const it of items) delete it.col;
 
+// ---------- second OCR pass (asbuilt-reocr.py) ----------
+// --reocr <file>: each INCOMPLETE manhole callout was re-read on its own enlarged crop. The readings VOTE with the first pass (first pass = one vote): a missing
+// field is filled, a value the majority of second readings contradicts is replaced; every difference is listed on the item. Struck-through lines stay unread.
+const reocrPath = flag("reocr");
+if (reocrPath) {
+  const re = JSON.parse(readFileSync(reocrPath, "utf8").replace(/^﻿/, ""));
+  const vote = (first, readings, plausible = () => true) => {
+    const counts = new Map();
+    const add = (v, w) => { if (v == null || !plausible(v)) return; const k = JSON.stringify(v); counts.set(k, { v, n: (counts.get(k)?.n ?? 0) + w }); };
+    add(first, 1); for (const r of readings) add(r, 1);
+    const best = [...counts.values()].sort((x, y) => y.n - x.n)[0];
+    return best ? { value: best.v, votes: best.n, total: readings.length + (first != null ? 1 : 0) } : null;
+  };
+  const same = (x, y) => JSON.stringify(x) === JSON.stringify(y);
+  let touched = 0;
+  for (const c of re.callouts ?? []) {
+    const it = items.find((x) => Math.abs(x.box.x - c.box.x) < 3 && Math.abs(x.box.y - c.box.y) < 3);
+    if (!it) continue;
+    const ids = [], rims = [], invs = [], Ns = [], Es = [];
+    for (const v of c.variants) {
+      const lines = v.lines.map((t) => t.trim()).filter(Boolean);
+      let idv = null, rimv = null, invv = null;
+      for (const l of lines) {
+        const m = /(?:^|[^A-Za-z])MH\s*#\s*(\d{1,3})\b/i.exec(l); if (m && idv == null) idv = `MH#${Number(m[1])}`;
+        const rl = l.replace(/(?<=[0-9])\s+(?=[0-9])/g, "");               // "RIM EL=1 2.20*" -> "RIM EL=12.20*"
+        const r = parseRim(rl); if (r != null && rimv == null && r > -20 && r < 80) rimv = Math.round(r * 100) / 100;
+        const iv = parseInv(l); if (iv && invv == null) invv = iv;
+        // coordinates: "N 444524:1610", "444518,2847" on its own line (label lines "N" / "E" can come first), digit groups split by spaces
+        const num = /^\s*(?:[NE]\s*[.:]?\s*)?([0-9OoIlô][0-9OoIlô ,.:_]{7,14}[0-9OoIlô])\s*$/.exec(l);
+        if (num) {
+          const val = fixCoordinate(num[1].replace(/[:_]/g, "."));
+          if (val != null) { if (it.N != null && Math.abs(val - it.N) < 100) Ns.push(val); else if (it.E != null && Math.abs(val - it.E) < 100) Es.push(val); }
+        }
+      }
+      if (idv) ids.push(idv); if (rimv != null) rims.push(rimv); if (invv) invs.push(invv);
+    }
+    const notes = [];
+    const idV = vote(null, ids); if (idV && idV.votes >= 1) { it.id = idV.value; if (!/MH\s*#/i.test(it.text)) it.text = `${idV.value} | ${it.text}`; notes.push(`name ${idV.value}`); }
+    const rimV = vote(it.rim, rims);
+    if (rimV && !same(rimV.value, it.rim)) {
+      if (it.rim == null) { it.rim = rimV.value; notes.push(`RIM ${rimV.value} (second pass)`); }
+      else if (rimV.votes >= 2) { notes.push(`RIM ${it.rim} -> ${rimV.value} (${rimV.votes}/${rimV.total} readings)`); it.rim = rimV.value; }
+    }
+    if (!it.inv.length) { const iV = vote(null, invs); if (iV) { it.inv.push(iV.value); notes.push(`INV ${iV.value.value} (${iV.value.dirs.join(",") || "no directions"}) from the second pass: check it`); } }
+    for (const [key, list] of [["N", Ns], ["E", Es]]) {
+      const v = vote(it[key], list, (x) => x > 100000);
+      if (v && !same(v.value, it[key])) {
+        if (it[key] == null) { it[key] = v.value; notes.push(`${key} ${v.value} (second pass)`); }
+        else if (v.votes >= 2 && v.votes > (it[key] === v.value ? 1 : 1)) { notes.push(`${key} ${it[key]} -> ${v.value} (${v.votes}/${v.total} readings)`); it[key] = v.value; }
+        else notes.push(`${key}: first pass ${it[key]}, second pass ${v.value}: check the crop`);
+      }
+    }
+    if (notes.length) { it.issues.push(`second OCR pass: ${notes.join("; ")}`); it.reocr = notes; touched++; }
+  }
+  console.log(`second OCR pass: ${touched} callout(s) completed or corrected`);
+}
+
 // ---------- pipe callouts read along the pipes (rotated passes) ----------
 // In a rotated pass the words' "raw" boxes are in the rotated (reading) frame, so fragments of one callout share a raw row there:
 // "249'." + "8" PVC SDR-35@ 0.38Z" on SW 118th Ave (VILLA ONE). Only pipe callouts are taken from these passes.
