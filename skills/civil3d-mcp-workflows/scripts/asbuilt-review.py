@@ -28,7 +28,26 @@ ap.add_argument("--assoc", action="append", required=True)
 ap.add_argument("--out", required=True)
 ap.add_argument("--pad", type=int, default=40)
 ap.add_argument("--pad-bottom", type=int, default=150, help="extra scan pixels below the OCR box (MH callouts continue with RIM / INV / N / E)")
+ap.add_argument("--util", help="X-UTIL dwg-dump: adds a \"Tramo X-UTIL\" column so a pipe callout of a scan that prints NO N/E (Goulds 33809) can be pointed at its X-UTIL tramo")
 a = ap.parse_args()
+
+TRAMOS = []          # [(id, system, label)]
+if a.util and os.path.exists(a.util):
+    for ln in open(a.util, encoding="utf-8", errors="replace"):
+        f = ln.strip().split("|")
+        if f[0] != "ENT" or len(f) < 4: continue
+        sysn = "SAN" if re.search(r"SAN|SEW", f[3], re.I) else "WAT" if re.search(r"WAT|WM|WTR", f[3], re.I) else None
+        if not sysn: continue
+        kv = {x[:x.index("=")]: x[x.index("=") + 1:] for x in f[4:] if "=" in x}
+        pts = []
+        if f[1] == "LINE":
+            m = re.search(r"\(([-\d.]+)\s+([-\d.]+)", kv.get("p2", ""))
+            if m and "x" in kv: pts = [(float(kv["x"]), float(kv["y"])), (float(m.group(1)), float(m.group(2)))]
+        elif f[1] == "LWPOLYLINE":
+            pts = [tuple(map(float, v.split(",")[:2])) for v in kv.get("v", "").split(";") if v]
+        for p1, p2 in zip(pts, pts[1:]):
+            L = ((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2) ** 0.5
+            if L > 1: TRAMOS.append((f"{sysn}|{p1[0]:.1f},{p1[1]:.1f}|{p2[0]:.1f},{p2[1]:.1f}", sysn, f"{sysn} {L:.0f} ft ({p1[0]:.0f},{p1[1]:.0f} → {p2[0]:.0f},{p2[1]:.0f})"))
 
 KEYWORDS = re.compile(r"\bTEE\b|G\.?\s?V\b|C\.?\s?V\b|\bPLUG\b|CORP|CPO\s*#|CLEAN\s*OUT|\bF\.?\s?H\b", re.I)
 APP_KINDS = ["TEE", "GV", "CV", "PLUG", "CORP", "CPO", "LATERAL", "SERVICE"]
@@ -132,6 +151,13 @@ for n, r in enumerate(rows):
         v = sug.get(key)
         return (val(v), " sg" if v else "")
 
+    tramo_html = ""
+    if TRAMOS and (it.get("pipe") or it.get("slope") is not None) and it.get("rim") is None and not it.get("inv"):
+        want = "SAN" if re.match(r"ES", r["scan"], re.I) else "WAT"
+        mine = [t for t in TRAMOS if t[1] == want]
+        pre = mine[0][0] if len(mine) == 1 else ""          # exactly one candidate tramo of the right system: suggested (blue), the user still confirms
+        opts = '<option value=""></option>' + "".join(f'<option value="{html.escape(t[0])}"{" selected" if t[0] == pre else ""}>{html.escape(t[2])}</option>' for t in TRAMOS)
+        tramo_html = f'<label>Tramo X-UTIL <select name="tramo" class="{"sg" if pre else ""}">{opts}</select></label>'
     lab_v, lab_c = sg("label"); stn_v, stn_c = sg("stationText"); det_v, det_c = sg("detail")
     trs.append(f"""
 <tr id="r{n}" class="st-{st}" data-scan="{val(r['scan'])}" data-idx="{r['idx']}">
@@ -151,6 +177,7 @@ for n, r in enumerate(rows):
   <label>Estación <input name="stationText" class="w{stn_c}" value="{stn_v}" placeholder="STA.12+44.8 C, 8' O/S (R)"></label>
   <label>Detalle <input name="detail" class="w{det_c}" value="{det_v}" placeholder='SLOPE 1/8"/FT W/ 6" PVC CLEAN OUT (TYP.)'></label>
   <label>Unir con fila nº <input name="mergeInto" class="s" value="" placeholder="12"></label>
+  {tramo_html}
   <div class="need" id="need{n}"></div>
  </td>
  <td class="a"><b class="badge">{html.escape(st)}</b> {val(asc.get('feature'))} {val(asc.get('distanceFt'))}{' ft' if asc.get('distanceFt') is not None else ''}
@@ -184,11 +211,11 @@ const KINDS_APP=['TEE','GV','CV','PLUG','CORP','CPO','LATERAL','SERVICE'];
 function useSug(n,N,E){const r=document.getElementById('r'+n);r.querySelector('[name=N]').value=N;r.querySelector('[name=E]').value=E;check();}
 function num(v){const x=parseFloat(String(v).replace(',','.'));return Number.isFinite(x)?x:null;}
 function inv(v){return String(v||'').split(';').map(s=>s.trim()).filter(Boolean).map(s=>{const m=/(-?[0-9.]+)\s*(?:\(([^)]*)\))?/.exec(s);return m?{value:num(m[1]),dirs:(m[2]||'').split(',').map(d=>d.trim().toUpperCase()).filter(Boolean)}:null}).filter(Boolean);}
-const FIELDS=['kind','id','rim','inv','N','E','sta','baseline','offset','side','pipe','slope','lengthFt','label','stationText','detail','mergeInto'];
-function rowData(r){const g=k=>r.querySelector('[name='+k+']').value.trim();
+const FIELDS=['kind','id','rim','inv','N','E','sta','baseline','offset','side','pipe','slope','lengthFt','label','stationText','detail','mergeInto','tramo'];
+function rowData(r){const g=k=>{const e=r.querySelector('[name='+k+']');return e?e.value.trim():'';};
  return {n:+r.id.slice(1),scan:r.dataset.scan,item:+r.dataset.idx,kind:g('kind').toUpperCase()||null,id:g('id')||null,rim:num(g('rim')),inv:inv(g('inv')),N:num(g('N')),E:num(g('E')),
   sta:num(g('sta')),baseline:g('baseline').toUpperCase()||null,offset:num(g('offset')),side:g('side').toUpperCase()||null,pipe:g('pipe')||null,slope:num(g('slope')),
-  lengthFt:num(g('lengthFt')),label:g('label')||null,stationText:g('stationText')||null,detail:g('detail')||null,merge:num(g('mergeInto'))};}
+  lengthFt:num(g('lengthFt')),label:g('label')||null,stationText:g('stationText')||null,detail:g('detail')||null,merge:num(g('mergeInto')),tramo:g('tramo')||null};}
 function merged(rows){ // fragments with "Unir con fila nº" complete their target and disappear
  const by=new Map(rows.map(x=>[x.n,x]));const out=[];
  rows.forEach(x=>{ if(x.merge&&by.has(x.merge-1)&&x.merge-1!==x.n){const t=by.get(x.merge-1);
@@ -231,7 +258,7 @@ function check(){
 function exportJson(){
  const {rows,bad}=check(); if(bad.length||!rows.length)return;
  const out=rows.map(x=>{const o={scan:x.scan,item:x.item,id:x.id,kind:effKind(x)||null,rim:x.rim,inv:x.inv,N:x.N,E:x.E,sta:x.sta,baseline:x.baseline,offset:x.offset,side:x.side,pipe:x.pipe,slope:x.slope};
-   if(x.lengthFt!=null)o.lengthFt=x.lengthFt; if(x.label)o.label=x.label; if(x.stationText)o.stationText=x.stationText; if(x.detail)o.detail=x.detail; if(x.kind==='CPO')o.noExist=true; return o;});
+   if(x.lengthFt!=null)o.lengthFt=x.lengthFt; if(x.label)o.label=x.label; if(x.stationText)o.stationText=x.stationText; if(x.detail)o.detail=x.detail; if(x.kind==='CPO')o.noExist=true; if(x.tramo)o.tramo=x.tramo; return o;});
  const blob=new Blob([JSON.stringify({confirmedAt:new Date().toISOString(),simulated:false,confirmedBy:'revision-asbuilts.html (usuario)',items:out},null,1)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='asbuilt.confirmed.json';a.click();
  document.getElementById('cnt').textContent=out.length+' confirmado(s) exportado(s)';}

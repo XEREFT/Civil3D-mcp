@@ -101,7 +101,7 @@ for (const m of manholes) {
   const near = sewerItems.filter((c) => c.N != null && c.E != null).map((c) => ({ c, d: dist([c.E, c.N], [m.x, m.y]) })).sort((x, y) => x.d - y.d)[0];
   if (near && near.d <= tol) mhImage.set(m.id, { scan: near.c.scan, p: centre(boxOf(near.c)) });
 }
-const pipeCalls = confirmed.filter((c) => (c.pipe || c.slope != null) && c.rim == null && !(c.inv?.length)).map((c) => ({
+const pipeCalls = confirmed.filter((c) => (c.pipe || c.slope != null) && c.rim == null && !(c.inv?.length) && !String(c.tramo ?? "").startsWith("WAT|")).map((c) => ({
   c, scan: c.scan, p: centre(boxOf(c)),
   // lengthFt typed in the review wins over the OCR text (OCR often drops the "337'-" fragment of the callout)
   len: Number(c.lengthFt ?? (/(\d{2,4})\s*['’]\s*[-–.]?\s*(?:\d{1,2}|[eU])\s*["”]/.exec(textOf(c)) ?? [])[1]),
@@ -118,6 +118,13 @@ const assign = (t, x, how) => {
   sewerMains.push({ from: t.from, to: t.to, text: `EXIST ${pipe} SAN MAIN @ ${x.c.slope.toFixed(2)}% SLOPE`, lengthFt: +t.L.toFixed(1), scanLengthFt: Number.isFinite(x.len) && x.len > 0 ? x.len : null, matchedBy: how });
   t.done = true;
 };
+// 0) assigned in the review ("Tramo X-UTIL" column, for as-builts that print no N/E: the user points each pipe callout at its X-UTIL tramo; id "SAN|x1,y1|x2,y2")
+const tramoOf = (id) => { const m = /^(SAN|WAT)\|([-\d.]+),([-\d.]+)\|([-\d.]+),([-\d.]+)$/.exec(String(id ?? "")); return m ? { sys: m[1], a: [+m[2], +m[3]], b: [+m[4], +m[5]] } : null; };
+const sameTramo = (t, a, b) => (dist(t.a, a) < 3 && dist(t.b, b) < 3) || (dist(t.a, b) < 3 && dist(t.b, a) < 3);
+for (const t of plan) {
+  const x = pipeCalls.find((x) => !used.has(x) && x.c.tramo && (() => { const q = tramoOf(x.c.tramo); return q && q.sys === "SAN" && sameTramo(q, t.a, t.b); })());
+  if (x) { used.add(x); assign(t, x, "assigned in the review"); }
+}
 // 1) by length (exact: scans keep lengths)
 for (const t of plan) {
   const x = pick(pipeCalls.filter((x) => !used.has(x) && Number.isFinite(x.len) && Math.abs(x.len - t.L) <= 3).map((x) => ({ x, score: Math.abs(x.len - t.L) })));
@@ -145,7 +152,12 @@ for (const t of plan.filter((t) => !t.done)) unresolved.push(`SAN ${t.from}->${t
 // ---------- water ----------
 const wmCall = confirmed.map((c) => textOf(c)).map((t) => /(\d{1,2})\s*["”]\s*(DIP|PVC|C\.?I\.?|AC)\b[^|]*W\.?M/i.exec(t)).find(Boolean);
 const wmText = wmCall ? `EXIST ${wmCall[1]}" ${wmCall[2].toUpperCase().replace(/\./g, "")} WATER MAIN` : "EXIST WATER MAIN";
-const waterMains = seg.WAT.map(([a, b]) => ({ a: a.map((v) => +v.toFixed(4)), b: b.map((v) => +v.toFixed(4)), text: wmText }));
+const wmAssigned = confirmed.filter((c) => String(c.tramo ?? "").startsWith("WAT|") && c.pipe).map((c) => ({ q: tramoOf(c.tramo), c })).filter((x) => x.q);
+const waterMains = seg.WAT.map(([a, b]) => {
+  const as = wmAssigned.find((x) => sameTramo(x.q, a, b));            // "16" DIP" typed / confirmed for THIS tramo in the review
+  const text = as ? `EXIST ${as.c.pipe.replace(/\./g, "")} WATER MAIN` : wmText;
+  return { a: a.map((v) => +v.toFixed(4)), b: b.map((v) => +v.toFixed(4)), text };
+});
 const hydrants = confirmed.filter((c) => /^FH$/i.test(c.kind ?? "") && c.N != null && c.E != null).map((c) => ({ x: c.E, y: c.N }));
 
 // the node where most SAN tramos meet = the intersection manhole the labels lean on

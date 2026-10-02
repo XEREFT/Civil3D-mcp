@@ -167,7 +167,7 @@ function jobScans(dir) {
       assocs.push(assoc);
     }
     const review = join(STUDIO_TMP, slug, "review.html");
-    const r = await run("python", [sc("asbuilt-review.py"), ...assocs.flatMap((a) => ["--assoc", a]), "--out", review]);
+    const r = await run("python", [sc("asbuilt-review.py"), ...assocs.flatMap((a) => ["--assoc", a]), "--util", utilDump, "--out", review]);
     if (r.code === 0) say("\nListo: abre la tarjeta «Revisar as-builts» → «Abrir revisión», confirma fila por fila, Exportar, y sube el archivo exportado (asbuilt.confirmed.json).");
     return r.code === 0;
   });

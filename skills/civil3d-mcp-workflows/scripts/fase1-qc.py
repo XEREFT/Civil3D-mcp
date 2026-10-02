@@ -236,6 +236,9 @@ if rw and _tdump:
             if _m:
                 _q = [tuple(map(float, s.split(",")[:2])) for s in _m.group(1).split(";") if s]
                 _pls += list(zip(_q, _q[1:]))
+            elif _ln.startswith("ENT|LINE|"):       # some surveys draw their property lines as plain LINEs (Goulds 33809), not polylines
+                _m2 = re.search(r"\|x=([-\d.]+)\|y=([-\d.]+)\|p2=\(([-\d.]+) ([-\d.]+)", _ln)
+                if _m2: _pls.append(((float(_m2[1]), float(_m2[2])), (float(_m2[3]), float(_m2[4]))))
     _uew = float(((project.get("site") or {}).get("ue") or {}).get("widthFt", 5))
     _bad_rw, _bad_len, _nosrc, _n_rw, _n_sep, _n_ue = [], [], [], 0, 0, 0
     for d in rw:
