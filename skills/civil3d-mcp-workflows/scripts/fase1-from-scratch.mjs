@@ -43,7 +43,7 @@ if (existsSync(target)) die(`${target} already exists: choose a new --dwg name (
 // ---- 1. payload ----
 log("\n== 1. payload");
 const pass = ["template", "asbuilt", "blocks-from", "topo", "spec", "road-labels"].flatMap((n) => (flag(n) ? [`--${n}`, flag(n)] : []))
-  .concat(["no-labels", "no-pl", "no-titleblock", "no-template", "no-road-labels", "no-ue"].filter(has).map((n) => `--${n}`));
+  .concat(["no-labels", "no-pl", "no-titleblock", "no-template", "no-road-labels", "no-ue", "no-sep", "allow-simulated"].filter(has).map((n) => `--${n}`));
 let r = run(node, [join(here, "fase1-build-payload.mjs"), "--dir", dir, "--dwg", dwgName, ...pass]);
 log(tail(r.stdout, 18)); if (r.status !== 0) die(`payload failed:\n${tail(r.stderr || r.stdout)}`, 1);
 if (has("dry-run")) { log("\nDRY RUN: payload built, nothing sent to Civil 3D."); process.exit(0); }
@@ -55,9 +55,12 @@ const buildLines = String(r.stdout).split("\n").filter((l) => /^ (OK|FAIL|SKIPPE
 log(buildLines.map((l) => l.slice(0, 150)).join("\n"));
 if (r.status !== 0) die("\nBUILD FAILED: nothing after the failing step ran. Trash the half-built target, fix, rerun.", 1);
 
+// ---- 2b. short dimensions whose text DIMFIT threw off their line (e.g. the 6.00' SAN-WM separation dim): put the text back, save ----
+{ const fx = run(node, [join(here, "fase1-fix-dims.mjs"), "--expect", targetBase]); log(`\n== 2b. dimension texts: ${tail(fx.stdout, 3)}`); }
+
 // ---- 3 + 4. plot + QC, then the declutter loop ----
 const qcJson = join(work, "qc.json"), planJson = join(work, "plan.json");
-const finish = (extra = []) => run(node, [join(here, "fase1-finish.mjs"), "--dwg", target, "--qc-json", qcJson, ...extra]);
+const finish = (extra = []) => run(node, [join(here, "fase1-finish.mjs"), "--dwg", target, "--qc-json", qcJson, ...(flag("asbuilt") ? ["--asbuilt", resolve(flag("asbuilt"))] : []), ...extra]);
 let round = 0, f;
 for (;;) {
   log(`\n== 3. plot + QC (round ${round})`);

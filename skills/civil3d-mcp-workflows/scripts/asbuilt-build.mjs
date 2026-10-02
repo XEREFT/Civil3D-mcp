@@ -10,8 +10,8 @@
 //   waterMains  X-UTIL WAT segments; text from the confirmed water-main callout ("8" DIP WM") else the standard default.
 //   hydrants    confirmed FH items (their N/E).
 // Only CONFIRMED values are used (as-builts are scans: never an unconfirmed OCR number). Prints what it could not resolve. Node 18+.
-import { readFileSync, writeFileSync } from "node:fs";
-import { basename } from "node:path";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
@@ -22,7 +22,13 @@ if (!confirmedPath || !utilPath || !Number.isFinite(frontage)) {
   process.exit(2);
 }
 const tol = Number(flag("tol") ?? 15);
-const confirmed = JSON.parse(readFileSync(confirmedPath, "utf8")).items ?? [];
+const confirmedDoc = JSON.parse(readFileSync(confirmedPath, "utf8"));
+const confirmed = confirmedDoc.items ?? [];
+// A review that was only SIMULATED (a test of the chain, not the user's confirmation) must never feed a deliverable (user rule: only confirmed values).
+if (confirmedDoc.simulated === true && !process.argv.includes("--allow-simulated")) {
+  console.error(`REFUSED: ${confirmedPath} is marked "simulated": true (not the user's confirmation). Review the scans in the as-builts review sheet (fase1-studio) and export the real asbuilt.confirmed.json, or pass --allow-simulated for a throwaway test build.`);
+  process.exit(3);
+}
 const assoc = Object.fromEntries(all("assoc").map((p) => { const d = JSON.parse(readFileSync(p, "utf8")); return [basename(d.scan), d]; }));
 const textOf = (c) => assoc[c.scan]?.items?.[c.item]?.text ?? "";
 const refOf = (scan) => basename(scan).replace(/\.[^.]+$/, "");
@@ -74,6 +80,8 @@ const manholes = nodes.map((p) => {
   return {
     id: c?.id || (idText ? `MH#${idText[1]}` : `MH-${++auto}`), x: +p[0].toFixed(4), y: +p[1].toFixed(4),
     rim: c?.rim ?? null, inv: (c?.inv ?? []).flatMap((iv) => (iv.dirs?.length ? iv.dirs : ["?"]).map((dir) => [dir.toUpperCase(), iv.value])),
+    // the arrow always lands on the X-UTIL symbol (x,y); deltaFt = how far the as-built's own N/E is from it (> 0.5 ft = worth a look, survey and as-built disagree)
+    deltaFt: c ? +dist([near.c.E, near.c.N], p).toFixed(2) : null,
     labeledBySurvey: false, outsideXUtil: false, ...(c ? {} : { unresolved: "no confirmed RIM/INV within tolerance" }),
   };
 });
@@ -142,9 +150,17 @@ const hydrants = confirmed.filter((c) => /^FH$/i.test(c.kind ?? "") && c.N != nu
 const degree = manholes.map((m) => sewerMains.filter((s) => s.from === m.id || s.to === m.id).length);
 const intersectionMh = manholes[degree.indexOf(Math.max(...degree))]?.id ?? null;
 const out = { frontageAngleDeg: frontage, intersectionMh, sewerRef, waterRef, manholes, sewerMains, waterMains, hydrants, unresolved,
-  source: { confirmed: confirmedPath, util: utilPath, builtAt: new Date().toISOString() } };
+  source: { confirmed: confirmedPath, confirmedAt: confirmedDoc.confirmedAt ?? null, simulated: confirmedDoc.simulated === true, util: utilPath, builtAt: new Date().toISOString() } };
 const outPath = flag("out") ?? "asbuilt.json";
 writeFileSync(outPath, JSON.stringify(out, null, 1));
+// Keep the confirmed review next to the project (the Studio keeps it in %TEMP%, which gets cleaned): <out dir>/_asbuilts/asbuilt.confirmed.json
+{
+  const keepDir = join(dirname(resolve(outPath)), "_asbuilts");
+  mkdirSync(keepDir, { recursive: true });
+  copyFileSync(confirmedPath, join(keepDir, "asbuilt.confirmed.json"));
+  console.log(`confirmed review kept in ${keepDir}`);
+}
 console.log(`manholes ${manholes.length} (${manholes.filter((m) => m.rim != null).length} with RIM), sewer mains ${sewerMains.length}, water mains ${waterMains.length}, hydrants ${hydrants.length}, intersection ${intersectionMh} -> ${outPath}`);
 for (const s of sewerMains) console.log(`  ${s.from} -> ${s.to} ${s.lengthFt} ft: ${s.text}  [${s.matchedBy}]`);
 for (const u of [...unresolved, ...manholes.filter((m) => m.unresolved).map((m) => `${m.id} at ${m.x},${m.y}: ${m.unresolved}`)]) console.log("  UNRESOLVED " + u);
+for (const m of manholes.filter((m) => m.deltaFt > 0.5)) console.log(`  NOTE ${m.id}: the as-built N/E is ${m.deltaFt} ft from the X-UTIL symbol; the label arrow follows the survey symbol`);

@@ -52,7 +52,8 @@ await withApplicationConnection(async (client) => {
   if (txt.__error) add("WARN", "text scan", txt.__error);
   else {
     const strip = (t) => String(t ?? "").replace(/\\P/g, " ").replace(/\\[A-Za-z][^;\\]*;/g, "").replace(/[{}]/g, "");
-    const isProp = (t) => /\bPROP\b|\bPROPOSED\b/i.test(strip(t));
+    // ONE rule for PROP wording: the plugin's compiled copy (allowed existing-facility phrases included), so script and native audit never drift
+    const { isPropText: isProp } = await import(pathToFileURL(join(repo, "build/tools/domains/fase1PropNotes.js")).href);
     const model = (txt.entities ?? []).filter((e) => e.space === "model" && isProp(e.text));
     const paper = (txt.entities ?? []).filter((e) => e.space === "paper" && isProp(e.text));
     if (model.length) {

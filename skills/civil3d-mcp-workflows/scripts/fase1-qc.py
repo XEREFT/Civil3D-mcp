@@ -28,7 +28,7 @@ from collections import Counter
 HERE = os.path.dirname(os.path.abspath(__file__))
 ap = argparse.ArgumentParser()
 ap.add_argument("--dir", required=True)
-ap.add_argument("--dwg"); ap.add_argument("--pdf"); ap.add_argument("--dump"); ap.add_argument("--util-dump")
+ap.add_argument("--dwg"); ap.add_argument("--pdf"); ap.add_argument("--dump"); ap.add_argument("--util-dump"); ap.add_argument("--asbuilt", help="asbuilt.json to verify the label values against (default: <project>/asbuilt.json or project.json sources.asbuilt)")
 ap.add_argument("--tol", type=float, default=3.0)
 ap.add_argument("--ink-limit", type=float, default=0.15, help="WARN when this fraction of a word of ours (glyph area) lies on survey symbols, fills or lines")
 ap.add_argument("--debug-shx", action="store_true", help="print every survey SHX text the stroke check found (ink strokes, hull, ink over our words)")
@@ -222,6 +222,99 @@ else:
     pb = str(subj.get("pb") or "").replace("PG-", "").split()
     if pb and not all(x in label for x in pb): probs.append(f"P.B. {subj.get('pb')} not in the label")
     add("FAIL" if probs else "OK", "subject label = project.json (PA / POC)", "; ".join(probs) or f"folio {subj.get('folio')}, {subj.get('gpd')} GPD, P.B. {subj.get('pb')}")
+
+# ---------- DATA VERIFICATION: the VALUES on the sheet against the source files (2026-10-02 audit; the checks above only look for presence) ----------
+_flat = lambda t: re.sub(r"\s+", " ", (t or "").replace("\\P", " ")).strip()
+# (a) dimensions in C-ANNO: R/W dims (~25 ft) must start on the survey PROPERTY_LINE; U.E. dims are the confirmed easement width; the others must
+#     join an existing sewer line to an existing water line (utility separation: 8.00' / 6.00' on VILLA ONE) -- anything else has no source.
+_tdump = base_dump_of(os.path.join(proj_dir, "X-TOPO.dwg"))
+if rw and _tdump:
+    _pls = []
+    for _ln in open(_tdump, encoding="utf-8", errors="replace"):
+        if _ln.startswith("ENT|") and _ln.split("|")[3] == "PROPERTY_LINE":
+            _m = re.search(r"\|v=([^|]*)", _ln)
+            if _m:
+                _q = [tuple(map(float, s.split(",")[:2])) for s in _m.group(1).split(";") if s]
+                _pls += list(zip(_q, _q[1:]))
+    _uew = float(((project.get("site") or {}).get("ue") or {}).get("widthFt", 5))
+    _bad_rw, _bad_len, _nosrc, _n_rw, _n_sep, _n_ue = [], [], [], 0, 0, 0
+    for d in rw:
+        p13, p14 = pt(d.get("p13")), pt(d.get("p14")); meas = float(d.get("meas") or 0)
+        if not (p13 and p14): continue
+        if abs(meas - dist(p13, p14)) > 0.05: _bad_len.append(f"{d.get('h')} says {meas:.2f} but its points are {dist(p13, p14):.2f} apart")
+        on_pl = lambda p: any(seg_dist(p, A, B) <= 0.05 for A, B in _pls)
+        on_san = lambda p: any(seg_dist(p, A, B) <= 0.05 for A, B in tramos)
+        on_wat = lambda p: any(seg_dist(p, A, B) <= 0.05 for A, B in wat)
+        if abs(meas - 25) < 0.5:
+            _n_rw += 1
+            if not (on_pl(p13) or on_pl(p14)): _bad_rw.append(f"{d.get('h')} ({meas:.2f}')")
+        elif abs(meas - _uew) < 0.05: _n_ue += 1
+        elif (on_san(p13) and on_wat(p14)) or (on_wat(p13) and on_san(p14)): _n_sep += 1
+        else: _nosrc.append(f"{d.get('h')} ({meas:.2f}')")
+    add("FAIL" if _bad_rw or _bad_len else "OK", "dimension values = geometry (R/W on PROPERTY_LINE)",
+        "; ".join((["R/W dim not on a survey R/W line: " + ", ".join(_bad_rw)] if _bad_rw else []) + _bad_len) or f"{_n_rw} R/W dims on the survey R/W line, {_n_ue} U.E. dims, {_n_sep} utility-separation dims (SAN to WM)")
+    # engine rule: one C-ANNO R/W dim per survey R/W dim (X-TOPO DIM / _NPLT-TXT, ~25 ft) inside the viewport, at the surveyor's own points
+    _sv = []
+    for _ln in open(_tdump, encoding="utf-8", errors="replace"):
+        if _ln.startswith("DIM|Model"):
+            _d = kv(_ln.strip().split("|")[2:])
+            if abs(float(_d.get("meas") or 0) - 25) < 0.5 and pt(_d.get("p13")) and pt(_d.get("p14")) and in_view(pt(_d["tm"] if pt(_d.get("tm")) else _d["p13"])): _sv.append((_d.get("h"), pt(_d["p13"]), pt(_d["p14"])))
+    _mine = [(pt(d["p13"]), pt(d["p14"])) for d in rw if abs(float(d.get("meas") or 0) - 25) < 0.5 and pt(d.get("p13")) and pt(d.get("p14"))]
+    _same = lambda q, r: (dist(q[0], r[0]) < 0.5 and dist(q[1], r[1]) < 0.5) or (dist(q[0], r[1]) < 0.5 and dist(q[1], r[0]) < 0.5)
+    _miss = [h for h, p1, p2 in _sv if not any(_same((p1, p2), m) for m in _mine)]
+    _extra = [i for i, m in enumerate(_mine) if not any(_same(m, (p1, p2)) for _, p1, p2 in _sv)]
+    add("WARN" if _miss or _extra else "OK", "R/W dims = survey R/W dims (1:1)", (f"{len(_miss)} survey dim(s) not mirrored ({', '.join(_miss)}); " if _miss else "") + (f"{len(_extra)} of ours are not at a survey dim's points" if _extra else "") or f"{len(_sv)} survey R/W dims in view, each mirrored once")
+    if _nosrc: add("WARN", "dimensions without a source", ", ".join(_nosrc) + " touch neither a R/W line, the U.E. width nor an existing SAN/WM pair")
+# (b) as-built values in the labels: RIM / INV / pipe + slope / water-main text of asbuilt.json (the user's confirmed review) = what is printed
+_abp = a.asbuilt or next((os.path.join(proj_dir, p) for p in [(project.get("sources") or {}).get("asbuilt"), "asbuilt.json", "_asbuilts/asbuilt.json"] if p and os.path.exists(os.path.join(proj_dir, p))), None)
+if not _abp: add("WARN", "label values = as-builts", "no asbuilt.json in the project folder (or project.json sources.asbuilt): RIM / INV / slopes not verified")
+else:
+    _ab = json.load(open(_abp, encoding="utf-8")); _bad, _chk = [], 0
+    _src = dict(_ab.get("source") or {})
+    if _src.get("simulated") is None and _src.get("confirmed") and os.path.exists(_src["confirmed"]):    # asbuilt.json from before 2026-10-02 carries no flags
+        try: _c = json.load(open(_src["confirmed"], encoding="utf-8")); _src["simulated"] = _c.get("simulated") is True; _src["confirmedAt"] = _src.get("confirmedAt") or _c.get("confirmedAt")
+        except Exception: pass
+    if _src.get("simulated"): add("FAIL", "as-built provenance", "asbuilt.json was built from a SIMULATED review (source.simulated): not the user's confirmation")
+    elif not _src.get("confirmedAt"): add("WARN", "as-built provenance", "asbuilt.json has no source.confirmedAt (no record of the user's confirmation)")
+    else: add("OK", "as-built provenance", f"confirmed {_src['confirmedAt']}")
+    for m in _ab.get("manholes", []):
+        if m.get("rim") is None and not m.get("inv"): continue
+        mp = (m["x"], m["y"])
+        if not in_view(mp): continue
+        lab = [e for e in leaders if "SAN MH" in _flat(e.get("txt", "")) and any(dist(q, mp) <= a.tol for q in arrows(e))]
+        if not lab: continue                      # a missing label is already a FAIL above
+        t = _flat(lab[0]["txt"]); _chk += 1
+        rim = re.search(r"RIM:\s*([\d.]+)", t); invs = sorted((d_, float(v)) for v, d_ in re.findall(r"INV:\s*([\d.]+)'\s*\((\w)\)", t))
+        if m.get("rim") is not None and (not rim or abs(float(rim.group(1)) - m["rim"]) > 0.005): _bad.append(f"{m['id']} RIM label {rim.group(1) if rim else 'none'} vs as-built {m['rim']}")
+        if sorted((d_, float(v)) for d_, v in m.get("inv", [])) != invs: _bad.append(f"{m['id']} INV label {invs} vs as-built {m.get('inv')}")
+    _far = [f"{m['id']} {m['deltaFt']} ft" for m in _ab.get("manholes", []) if (m.get("deltaFt") or 0) > 0.5 and in_view((m["x"], m["y"]))]
+    if _far: add("WARN", "as-built vs survey manhole position", "as-built N/E differs from the X-UTIL symbol by > 0.5 ft (arrow follows the survey): " + ", ".join(_far))
+    for sm in _ab.get("sewerMains", []):
+        if not any(_flat(sm["text"]) in _flat(e.get("txt", "")) for e in leaders if "SAN MAIN" in _flat(e.get("txt", ""))) and any(in_view(p) for p in [(m_["x"], m_["y"]) for m_ in _ab["manholes"] if m_["id"] in (sm["from"], sm["to"])]):
+            _bad.append(f"no label prints '{sm['text']}' ({sm['from']}->{sm['to']})")
+    for wm in _ab.get("waterMains", []):
+        if any(in_view(p) for p in (wm["a"], wm["b"])) and not any(_flat(wm["text"]) in _flat(e.get("txt", "")) and f"(PER {_ab.get('waterRef')})" in _flat(e.get("txt", "")) for e in leaders):
+            _bad.append(f"no label prints '{wm['text']}' (PER {_ab.get('waterRef')})")
+    add("FAIL" if _bad else "OK", "label values = as-builts (RIM / INV / pipe / slope / WM)", "; ".join(_bad) or f"{_chk} manhole labels + {len(_ab.get('sewerMains', []))} sewer mains + {len(_ab.get('waterMains', []))} water mains match {os.path.basename(_abp)}")
+# (c) alignment labels: START/END N/E agree with the printed station (length) -- the alignment itself is read live by fase1_audit
+_sta = {}
+for e in ents:
+    t = _flat(e.get("txt", ""))
+    for k in ("START", "END"):
+        m_ = re.search(rf"ALIGNMENT {k} STA: (\d+)\+(\d+\.\d+).*?N: ([\d.]+) E: ([\d.]+)", t)
+        if m_: _sta[k] = (int(m_.group(1)) * 100 + float(m_.group(2)), float(m_.group(4)), float(m_.group(3)))
+if len(_sta) == 2:
+    _len = math.hypot(_sta["END"][1] - _sta["START"][1], _sta["END"][2] - _sta["START"][2]); _dst = _sta["END"][0] - _sta["START"][0]
+    add("OK" if abs(_len - _dst) <= 0.5 else "FAIL", "alignment labels: station vs coordinates", f"N/E length {_len:.2f} ft vs station difference {_dst:.2f} ft")
+else: add("WARN", "alignment labels: station vs coordinates", "START/END text labels not found in the dump (native labels: pass --plan-labels)")
+# (d) the lot on the sheet vs the Property Appraiser lot (pa-area report): a measured lot smaller than its plat = probable R/W dedication
+_paf = ((project.get("site") or {}).get("paArea") or {}).get("file")
+if _paf and os.path.exists(_paf):
+    _pa = json.load(open(_paf, encoding="utf-8")); _sl = _pa.get("subject") if isinstance(_pa.get("subject"), dict) else {}
+    _sl = next((l for l in _pa.get("lots", []) if l.get("subject")), _sl)
+    if _sl.get("delta") and max(abs(x) for x in _sl["delta"]) > 5:
+        add("WARN", "lot vs plat (Property Appraiser)", f"folio {_sl.get('folio')}: legal {_sl.get('legalSize')} ft vs measured {_sl.get('measuredSize')} ft ({_sl.get('delta')}): {_sl.get('sizeCheck')} -> confirm with the plat; not printed on the sheet")
+    else: add("OK", "lot vs plat (Property Appraiser)", f"folio {_sl.get('folio')}: measured lot within 5 ft of the legal size")
 
 # ---------- legibility on the PDF ----------
 if os.path.exists(pdf):

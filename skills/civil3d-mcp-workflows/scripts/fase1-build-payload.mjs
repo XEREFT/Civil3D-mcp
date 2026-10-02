@@ -171,6 +171,15 @@ if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
   const labels = JSON.parse(readFileSync(labelsOut, "utf8"));
   const asb = JSON.parse(readFileSync(asbuiltPath, "utf8"));
   const warn = [];
+  // Provenance: the as-built values must be the USER's confirmation (never a simulated review) and live in the project, not in %TEMP%.
+  // older asbuilt.json files (before 2026-10-02) carry no flags: look at the confirmed review they were built from
+  if (asb.source?.simulated === undefined && asb.source?.confirmed && existsSync(asb.source.confirmed)) {
+    try { const c = JSON.parse(readFileSync(asb.source.confirmed, "utf8")); asb.source.simulated = c.simulated === true; asb.source.confirmedAt ??= c.confirmedAt; } catch { /* unreadable: handled by the warnings below */ }
+  }
+  if (asb.source?.simulated === true && !has("allow-simulated")) die(`REFUSED: ${asbuiltPath} was built from a SIMULATED as-built review (source.simulated). Confirm the scans in fase1-studio (review sheet) and rebuild asbuilt.json, or pass --allow-simulated for a throwaway test.`);
+  if (asb.source?.simulated === true) warn.push("as-built review is SIMULATED (--allow-simulated): do not deliver");
+  if (!asb.source?.confirmedAt) warn.push("asbuilt.json has no source.confirmedAt (no record of the user's confirmation)");
+  if (resolve(asbuiltPath).toLowerCase().startsWith(resolve(tmpdir()).toLowerCase())) warn.push("asbuilt.json lives in %TEMP% (volatile): copy it into the project folder");
   if (Math.abs((asb.frontageAngleDeg ?? NaN) - spec.twist.streetAngleDegrees) > 0.5) warn.push(`asbuilt frontage ${asb.frontageAngleDeg} deg vs sheet ${spec.twist.streetAngleDegrees} deg: label rotation will not match the sheet`);
   const blocksFrom = flag("blocks-from") ?? project.sources?.blocksFrom;
   const labelEntities = [...Object.values(labels.firstBlocks ?? {}), ...(labels.createEntities?.entities ?? [])];
@@ -180,6 +189,16 @@ if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
     payload.blockImports = blockNames.map((blockName) => ({ blockName, sourceFilePath: win(resolve(dir, blocksFrom)) }));
   } else warn.push(`no --blocks-from / project.json sources.blocksFrom: ${blockNames.join(", ")} must already be in the template`);
   payload.entities = [...payload.entities, ...labelEntities];
+  // Existing water/sewer separation dims (2026-10-02, standards roles.utilitySeparationDimension): from the same asbuilt.json geometry; --no-sep skips.
+  if (!has("no-sep")) {
+    const sepOut = join(work, "sep.json");
+    const rs = spawnSync("node", [join(here, "c300-utility-separation.mjs"), "--asbuilt", asbuiltPath, "--spec", join(work, "spec.json"), "--out", sepOut], { encoding: "utf8" });
+    if (rs.status === 0 && existsSync(sepOut)) {
+      const sepEnts = JSON.parse(readFileSync(sepOut, "utf8")).createEntities?.entities ?? [];
+      payload.entities = [...payload.entities, ...sepEnts];
+      if (sepEnts.length) warn.push(`${sepEnts.length} SAN-WM separation dim(s)`);
+    } else warn.push(`separation dims NOT added: ${(rs.stderr || rs.stdout || "c300-utility-separation failed").trim().split("\n").pop()}`);
+  }
   payload.layers = { ...payload.layers, ...Object.fromEntries([...new Set(labelEntities.map((e) => e.layer))].filter((n) => n && std.layers[n] && !(n in payload.layers)).map((n) => [n, std.layers[n]])) };
   const kinds = {}; for (const e of labelEntities) kinds[e.kind] = (kinds[e.kind] || 0) + 1;
   labelNote = `${labelEntities.length} entities ${JSON.stringify(kinds)} from ${asbuiltPath}${warn.length ? "  WARN: " + warn.join("; ") : ""}`;

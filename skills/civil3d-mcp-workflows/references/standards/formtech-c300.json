@@ -218,6 +218,19 @@
    "annotative": true,
    "scaleNote": "Formtech-1.0 is ANNOTATIVE: overall scale 20 comes from CANNOSCALE 1\" = 20' — never pass scale (setting MLeader.Scale on an annotative leader throws eInvalidContext)"
   },
+  "utilitySeparationDimension": {
+   "kind": "aligned_dimension",
+   "layer": "C-ANNO",
+   "dimStyle": "BCC-1.0",
+   "textOffsetFromLineFt": 0.3,
+   "dimTad": 4,
+   "dimTxtDirection": true,
+   "maxParallelAngleDeg": 5,
+   "minParallelOverlapFt": 40,
+   "maxSeparationFt": 15,
+   "stepBackFromIntersectionFt": 22,
+   "rule": "EXISTING utilities are always shown with their properties (user 2026-10-02): where an existing water main and an existing sewer main run parallel (<= 5 deg, overlap >= 40 ft, <= 15 ft apart) one aligned dim gives their horizontal separation (8.00' / 6.00' on VILLA ONE FASE 1; both ends lie on the X-UTIL lines, so the value is verifiable: fase1-qc 'dimension values = geometry'). Placed 22 ft back from the intersection manhole along the overlap, so the text clears the intersection labels. Short dim: explicit dimLineX/dimLineY at the midpoint + 0.3 ft (short-dimension rule). Script: c300-utility-separation.mjs (from asbuilt.json geometry, never from the guide)."
+  },
   "easementLine": {
    "kind": "polyline",
    "layer": "C-ANNO",
@@ -320,7 +333,7 @@
    "decisions": [
     "2026-09-28: nothing that says PROP or PROPOSED stays in a Fase 1 file: the subject label 'PROP ONE (1) 5,200 SF' line and every MD-WASD bullet/paragraph that says PROP/PROPOSED were removed (scripts/fase1-strip-prop-notes.mjs); template notes parked off-sheet that said PROP/PROPOSED were erased"
    ],
-   "mdWaspNotes": "MD-WASD NOTES MText on C-300: every bullet that says PROP/PROPOSED goes, and the 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block too (its only predicate says PROPOSED ACTIVITY); PROP notes parked off the ARCH D sheet (x > 36) are erased; whatever sat on the shortened note (the '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs, layer PDF_Geometry) moves up by the note's bottom shift. Done natively by civil3d_workflow_fase1_build (rules: src/tools/domains/fase1PropNotes.ts); manual path: scripts/fase1-strip-prop-notes.mjs + acad_update_text_content + scripts/fase1-notes-shift.py.",
+   "mdWaspNotes": "MD-WASD NOTES MText on C-300: every DESIGN bullet that says PROP/PROPOSED goes (clean-outs, 'IF PROP. SAN SEWER...'); the two standard EXISTING-facility notes STAY since 2026-10-02 (user: existing networks and the notes that govern them are never removed): the 'ALL EXISTING MAINS BEING IMPACTED...' bullet and the 'THE FOLLOWING ACTIVITIES ON EXISTING WATER SERVICES...' block (allowed phrases: ALLOWED_PROPOSED_PHRASES in fase1PropNotes.ts); PROP notes parked off the ARCH D sheet (x > 36) are erased; whatever sat on the shortened note (the '(NOT PART OF M-WASD NOTES NOR APPROVAL)' glyphs, layer PDF_Geometry) moves up by the note's bottom shift. Done natively by civil3d_workflow_fase1_build (rules: src/tools/domains/fase1PropNotes.ts); manual path: scripts/fase1-strip-prop-notes.mjs + acad_update_text_content + scripts/fase1-notes-shift.py.",
    "freezeXrefLayers": {
     "layers": [
      "X-TOPO|DIM"

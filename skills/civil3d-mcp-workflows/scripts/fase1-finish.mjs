@@ -24,6 +24,9 @@ const here = dirname(fileURLToPath(import.meta.url));
 const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp").replace(/\\/g, "/");
 const layouts = (flag("layouts") ?? "C-300").split(",").map((s) => s.trim()).filter(Boolean);
 const log = (m) => console.log(m);
+// allowed existing-facility phrases that say PROPOSED (single source: plugin src/tools/domains/fase1PropNotes.ts, compiled copy)
+const { ALLOWED_PROPOSED_PHRASES } = await import(pathToFileURL(join(repo, "build/tools/domains/fase1PropNotes.js")).href);
+const ALLOWED_PROP_JSON = JSON.stringify(ALLOWED_PROPOSED_PHRASES.map((r) => r.source));
 let bad = 0;
 const verdict = (level, what, detail = "") => { if (level === "FAIL") bad++; log(`${level.padEnd(4)} ${what}${detail ? "  —  " + detail : ""}`); };
 
@@ -74,9 +77,11 @@ for b in d[0].get_text("dict")["blocks"]:
         for s in l["spans"]:
             if s["text"].strip() and s["size"] < 5: tiny += 1
 txt = d[0].get_text()
-prop = [l for l in txt.splitlines() if re.search(r"\\bPROP\\b|\\bPROPOSED\\b", l, re.I)]
+flat = re.sub(r"\\s+", " ", txt)
+for ph in json.loads(sys.argv[2]): flat = re.sub(ph, " ", flat, flags=re.I)   # allowed existing-facility phrases (plugin: fase1PropNotes.ts), may wrap across PDF lines
+prop = [m.group(0) for m in re.finditer(r".{0,40}\\bPROP\\b.{0,40}|.{0,40}\\bPROPOSED\\b.{0,40}", flat, re.I)]
 print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop}))
-`, pdf], { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
+`, pdf, ALLOWED_PROP_JSON], { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   if (py.status !== 0) { verdict("FAIL", `pdf ${layout}`, (py.stderr || "python/pymupdf failed").slice(-200)); continue; }
   const { n, tiny, prop } = JSON.parse(py.stdout.trim().split("\n").pop());
   verdict(Number(n) < 50 ? "FAIL" : "OK", `pdf ${layout} words`, `${n} words${Number(n) < 50 ? " — looks BLANK (sheet viewport lost? see c300 §9.8)" : ""}`);
@@ -106,7 +111,7 @@ if (c300 && dumpPath && existsSync(dumpPath) && existsSync(join(dirname(dwg), "p
       log(`INFO native plan labels read live: ${info.planLabels.length}`);
     }
   } catch { /* plugin not reachable or old: QC runs without them */ }
-  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath, ...(planLabelsFile ? ["--plan-labels", planLabelsFile] : []), ...(flag("qc-json") ? ["--json", flag("qc-json")] : [])],
+  const q = run("python", [join(here, "fase1-qc.py"), "--dir", dirname(dwg), "--dwg", dwg, "--pdf", c300.pdf, "--dump", dumpPath, ...(planLabelsFile ? ["--plan-labels", planLabelsFile] : []), ...(flag("qc-json") ? ["--json", flag("qc-json")] : []), ...(flag("asbuilt") ? ["--asbuilt", flag("asbuilt")] : [])],
     { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   const qlines = (q.stdout ?? "").split("\n").filter((l) => /^(FAIL|WARN)/.test(l));
   for (const l of qlines) log(`  qc: ${l}`);

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Backs this skill up to the fork branch `skill/civil3d-mcp-workflows` (XEREFT/Civil3D-mcp, PUBLIC repo; the skill holds firm
 # standards + project data — the user accepted that). The skill folder is NOT a git repo, so the branch is refreshed through a
-# temporary worktree (procedure from memory `github-publishing`). PUSHES to the fork: run it ONLY when the user asks for it.
+# temporary worktree (procedure from memory `github-publishing`). PUSHES to the fork: the user authorized it PERMANENTLY (2026-10-02, continuous improvement): run it at the end of every session that changed the skill/scripts/memory, without waiting to be asked.
 #   bash sync-skill-to-fork.sh "<commit message>" --yes        (without --yes it stops after committing locally in the worktree)
 set -euo pipefail
 MSG="${1:?commit message required}"
