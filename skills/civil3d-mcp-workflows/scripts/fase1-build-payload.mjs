@@ -166,7 +166,7 @@ let labelNote = "none (no asbuilt.json: pass --asbuilt, or put it in the project
 const asbuiltPath = flag("asbuilt") ?? [project.sources?.asbuilt, join(dir, "asbuilt.json")].filter(Boolean).map((p) => resolve(dir, p)).find((p) => existsSync(p));
 if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
   const labelsOut = join(work, "labels.json");
-  const r = spawnSync("node", [join(here, "c300-utility-labels.mjs"), "--asbuilt", asbuiltPath, "--out", labelsOut], { encoding: "utf8" });
+  const r = spawnSync("node", [join(here, "c300-utility-labels.mjs"), "--asbuilt", asbuiltPath, "--spec", join(work, "spec.json"), "--out", labelsOut], { encoding: "utf8" });
   if (r.status !== 0 || !existsSync(labelsOut)) die(`c300-utility-labels.mjs failed:\n${(r.stderr || r.stdout || "").trim()}`);
   const labels = JSON.parse(readFileSync(labelsOut, "utf8"));
   const asb = JSON.parse(readFileSync(asbuiltPath, "utf8"));

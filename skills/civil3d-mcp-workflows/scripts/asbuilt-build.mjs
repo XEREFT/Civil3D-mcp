@@ -57,6 +57,21 @@ const k = (p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`;
 const endCount = new Map();
 for (const [a, b] of seg.SAN) for (const p of [a, b]) endCount.set(k(p), { p, n: (endCount.get(k(p))?.n ?? 0) + 1 });
 for (const { p, n } of endCount.values()) if (n >= 2 && !nodes.some((q) => dist(p, q) < 2)) nodes.push(p);
+// Survey manhole symbols (X-TOPO blocks MH-SS-flat-2 / SMH ...) that sit ON an X-UTIL SAN line are manholes too (2026-10-02, Goulds 33809: its X-UTIL draws the sewer
+// line but no manhole circle; the surveyor drew the manhole as a symbol). --topo <X-TOPO_dump.txt> adds them as nodes.
+if (flag("topo")) {
+  const segD = (q, a, b) => { const d = [b[0] - a[0], b[1] - a[1]], l2 = d[0] ** 2 + d[1] ** 2 || 1, t = Math.max(0, Math.min(1, ((q[0] - a[0]) * d[0] + (q[1] - a[1]) * d[1]) / l2)); return Math.hypot(q[0] - a[0] - d[0] * t, q[1] - a[1] - d[1] * t); };
+  let added = 0;
+  for (const line of readFileSync(flag("topo"), "utf8").split(/\r?\n/)) {
+    const f = line.split("|"); if (f[0] !== "ENT" || f[1] !== "INSERT") continue;
+    const kv = Object.fromEntries(f.slice(4).filter((x) => x.includes("=")).map((x) => [x.slice(0, x.indexOf("=")), x.slice(x.indexOf("=") + 1)]));
+    const nm = `${kv.block} ${kv.btxt ?? ""}`;
+    if (!/\bMH\b|\bSMH\b|MH-|MANHOLE/i.test(nm) || /CATCH|STORM|DMH/i.test(nm)) continue;
+    const q = [Number(kv.x), Number(kv.y)];
+    if (seg.SAN.some(([a, b]) => segD(q, a, b) <= 8) && !nodes.some((n) => dist(n, q) < 2)) { nodes.push(q); added++; }
+  }
+  if (added) console.log(`${added} survey manhole symbol(s) on the X-UTIL SAN line added as manholes`);
+}
 // split SAN segments at nodes lying on them (X-UTIL draws MH5 -> 860023.9 as ONE polyline through MH7)
 const onSeg = (p, a, b) => {
   const d = [b[0] - a[0], b[1] - a[1]], L = Math.hypot(...d), t = ((p[0] - a[0]) * d[0] + (p[1] - a[1]) * d[1]) / (L * L);
@@ -79,7 +94,7 @@ const manholes = nodes.map((p) => {
   const idText = c ? /MH\s*#\s*(\d+)/i.exec(textOf(c)) : null;
   return {
     id: c?.id || (idText ? `MH#${idText[1]}` : `MH-${++auto}`), x: +p[0].toFixed(4), y: +p[1].toFixed(4),
-    rim: c?.rim ?? null, inv: (c?.inv ?? []).flatMap((iv) => (iv.dirs?.length ? iv.dirs : ["?"]).map((dir) => [dir.toUpperCase(), iv.value])),
+    rim: c?.rim ?? null, rimNA: c?.rimNA === true, inv: (c?.inv ?? []).flatMap((iv) => (iv.dirs?.length ? iv.dirs : ["?"]).map((dir) => [dir.toUpperCase(), iv.value])),
     // the arrow always lands on the X-UTIL symbol (x,y); deltaFt = how far the as-built's own N/E is from it (> 0.5 ft = worth a look, survey and as-built disagree)
     deltaFt: c ? +dist([near.c.E, near.c.N], p).toFixed(2) : null,
     labeledBySurvey: false, outsideXUtil: false, ...(c ? {} : { unresolved: "no confirmed RIM/INV within tolerance" }),

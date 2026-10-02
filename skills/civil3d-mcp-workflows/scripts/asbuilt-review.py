@@ -69,6 +69,8 @@ def suggest(it):
     if off: station += (", " if station else "") + f"{off.group(1)}' O/S ({off.group(2)})"
     if re.search(r"SEWER\s*LATERAL|CLEAN\s*OUT", u) and re.search(r"6\s*[\"”]\s*PVC", u):
         out = dict(kind="LATERAL", label='6" PVC (SDR-35) SAN. SEWER LATERAL', detail='SLOPE ?"/FT W/ 6" PVC CLEAN OUT (TYP.)' if "CLEAN" in u else "")
+    elif re.search(r"SAN\.?\s*LAT|SANITARY\s*LAT|SAN\s*UAT|SAN\s*LA\b", u):       # plan-and-profile sheets label each lateral "SAN LAT." with its station
+        out = dict(kind="LATERAL", label='6" PVC SAN. LAT.', detail="")
     elif (m := re.search(r"(\d+)\s*[\"”]?\s*X\s*(\d+)\s*[\"”]?\s*TEE", u)):
         out = dict(kind="TEE", label=f'{m.group(1)}"x{m.group(2)}" TEE')
     elif "TEE" in u:
@@ -166,7 +168,7 @@ for n, r in enumerate(rows):
  <td class="f">
   <label>Tipo <input name="kind" list="kinds" class="{kind_cls.strip()}" value="{val(kind0)}" placeholder="MH, PIPE, TEE…"></label>
   <label>Nombre <input name="id" value="{val(mh_id(it.get('text', '')))}" placeholder="MH#5"></label>
-  <label>RIM <input name="rim" value="{val(it.get('rim'))}"></label>
+  <label>RIM <input name="rim" value="{val(it.get('rim'))}" placeholder="N/D si el plano no lo trae"></label>
   <label>INV <input name="inv" value="{val(inv_text(it.get('inv')))}" placeholder="2.15 (E,W,S)"></label>
   <label>N <input name="N" value="{val(it.get('N'))}"></label>
   <label>E <input name="E" value="{val(it.get('E'))}"></label>
@@ -215,7 +217,7 @@ const FIELDS=['kind','id','rim','inv','N','E','sta','baseline','offset','side','
 function rowData(r){const g=k=>{const e=r.querySelector('[name='+k+']');return e?e.value.trim():'';};
  return {n:+r.id.slice(1),scan:r.dataset.scan,item:+r.dataset.idx,kind:g('kind').toUpperCase()||null,id:g('id')||null,rim:num(g('rim')),inv:inv(g('inv')),N:num(g('N')),E:num(g('E')),
   sta:num(g('sta')),baseline:g('baseline').toUpperCase()||null,offset:num(g('offset')),side:g('side').toUpperCase()||null,pipe:g('pipe')||null,slope:num(g('slope')),
-  lengthFt:num(g('lengthFt')),label:g('label')||null,stationText:g('stationText')||null,detail:g('detail')||null,merge:num(g('mergeInto')),tramo:g('tramo')||null};}
+  rimNA:/^n\/?d$/i.test(g('rim')),lengthFt:num(g('lengthFt')),label:g('label')||null,stationText:g('stationText')||null,detail:g('detail')||null,merge:num(g('mergeInto')),tramo:g('tramo')||null};}
 function merged(rows){ // fragments with "Unir con fila nº" complete their target and disappear
  const by=new Map(rows.map(x=>[x.n,x]));const out=[];
  rows.forEach(x=>{ if(x.merge&&by.has(x.merge-1)&&x.merge-1!==x.n){const t=by.get(x.merge-1);
@@ -224,7 +226,7 @@ function merged(rows){ // fragments with "Unir con fila nº" complete their targ
  rows.forEach(x=>{ if(!x._gone) out.push(x); }); return out; }
 function effKind(x){return x.kind|| (x.rim!=null||x.inv.length ? 'MH' : (x.pipe||x.slope!=null ? 'PIPE' : ''));}
 function missing(x){const k=effKind(x),m=[];
- if(k==='MH'){ if(!x.id)m.push('id'); if(x.rim==null)m.push('rim'); if(!x.inv.length||x.inv.some(v=>v.value==null))m.push('inv'); else if(x.inv.some(v=>!v.dirs.length))m.push('inv'); if(x.N==null)m.push('N'); if(x.E==null)m.push('E'); }
+ if(k==='MH'){ if(!x.id)m.push('id'); if(x.rim==null&&!x.rimNA)m.push('rim'); if(!x.inv.length||x.inv.some(v=>v.value==null))m.push('inv'); else if(x.inv.some(v=>!v.dirs.length))m.push('inv'); if(x.N==null)m.push('N'); if(x.E==null)m.push('E'); }
  else if(k==='PIPE'){ if(!x.pipe)m.push('pipe'); if(x.slope==null)m.push('slope'); }
  else if(k==='FH'){ if(x.N==null)m.push('N'); if(x.E==null)m.push('E'); }
  else if(KINDS_APP.includes(k)){ if(!x.label||/\?/.test(x.label))m.push('label'); const pos=(x.N!=null&&x.E!=null)||(x.sta!=null&&x.baseline); if(!pos){m.push('N');m.push('E');m.push('sta');m.push('baseline');} }
@@ -258,7 +260,7 @@ function check(){
 function exportJson(){
  const {rows,bad}=check(); if(bad.length||!rows.length)return;
  const out=rows.map(x=>{const o={scan:x.scan,item:x.item,id:x.id,kind:effKind(x)||null,rim:x.rim,inv:x.inv,N:x.N,E:x.E,sta:x.sta,baseline:x.baseline,offset:x.offset,side:x.side,pipe:x.pipe,slope:x.slope};
-   if(x.lengthFt!=null)o.lengthFt=x.lengthFt; if(x.label)o.label=x.label; if(x.stationText)o.stationText=x.stationText; if(x.detail)o.detail=x.detail; if(x.kind==='CPO')o.noExist=true; if(x.tramo)o.tramo=x.tramo; return o;});
+   if(x.lengthFt!=null)o.lengthFt=x.lengthFt; if(x.label)o.label=x.label; if(x.stationText)o.stationText=x.stationText; if(x.detail)o.detail=x.detail; if(x.kind==='CPO')o.noExist=true; if(x.tramo)o.tramo=x.tramo; if(x.rimNA)o.rimNA=true; return o;});
  const blob=new Blob([JSON.stringify({confirmedAt:new Date().toISOString(),simulated:false,confirmedBy:'revision-asbuilts.html (usuario)',items:out},null,1)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='asbuilt.confirmed.json';a.click();
  document.getElementById('cnt').textContent=out.length+' confirmado(s) exportado(s)';}

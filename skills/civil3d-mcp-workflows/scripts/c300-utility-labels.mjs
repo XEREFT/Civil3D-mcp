@@ -57,6 +57,9 @@ const nearestWaterSide = (a, d) => {
   return sideOf(w, a, d);
 };
 
+// (PER <as-built>) line: only when the project has that as-built (a project with no water as-built must not print "(PER null)")
+const per = (ref) => (ref ? `\\P(PER ${ref})` : '');
+
 // 1) Sewer mains: label + flow arrows
 const EL = R.existingUtilityLeader;
 for (const s of ab.sewerMains) {
@@ -68,7 +71,7 @@ for (const s of ab.sewerMains) {
     : add(A, mul(d, 15));
   // the as-built prints each run with its length ("337'- 8" PVC SDR-35@ 0.40%"): print it too (standards existingUtilityLeader.printScanLength; the QC reads s.text inside the label)
   const lenPrefix = EL.printScanLength !== false && s.scanLengthFt ? `${s.scanLengthFt}'- ` : '';
-  leader(EL, `${lenPrefix}${s.text}\\P(PER ${ab.sewerRef})\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
+  leader(EL, `${lenPrefix}${s.text}${per(ab.sewerRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
   // flow arrows 20 ft inside each end, only where the pipe is drawn in X-UTIL
   const flowRot = Math.atan2(d[1], d[0]) + 3.8636;
   const ends = [add(A, mul(d, 20))];
@@ -84,7 +87,7 @@ for (const w of ab.waterMains) {
   const d = unit(sub(w.b, w.a)), L = len(sub(w.b, w.a));
   const arrow = add(w.a, mul(d, Math.min(90, L / 2)));
   const sewerSide = sideOf(hub, w.a, d) || 1;
-  leader(EL, `${w.text}\\P(PER ${ab.waterRef})\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), -14 * sewerSide)), mul(d, 8)));
+  leader(EL, `${w.text}${per(ab.waterRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), -14 * sewerSide)), mul(d, 8)));
 }
 
 // 3) Manholes not labeled by the survey
@@ -96,7 +99,9 @@ for (const m of Object.values(mh).filter((x) => !x.labeledBySurvey && !x.outside
   // elevations always with 2 decimals, as the as-builts print them ("12.20'", never "12.2'")
   const el = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : v);
   const invLines = m.inv.map(([dir, v]) => `INV: ${el(v)}' (${dir})`).join('\\P');
-  leader(EL, `EXIST. SAN MH \\PRIM: ${el(m.rim)}'\\P${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
+    // a manhole whose as-built prints no RIM (the user waived it with N/D in the review) is labeled with its INV only
+  const rimLine = m.rimNA || m.rim == null ? '' : `RIM: ${el(m.rim)}'\\P`;
+  leader(EL, `EXIST. SAN MH \\P${rimLine}${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
 }
 
 // 4) Hydrants: block + label, text 12 ft further from the street CL (the hub street line)
@@ -106,17 +111,26 @@ for (const h of ab.hydrants) {
   const e = { kind: 'block', blockName: FH.blockName, layer: FH.layer, scale: FH.scale, rotation: FH.rotation, x: r4(h.x), y: r4(h.y) };
   if (!firsts.fh) firsts.fh = e; else entities.push(e);
   const out = unit(sub(p, [p[0], hub[1] + (p[0] - hub[0]) * Math.tan(1.0 * D2R)]));
-  leader(EL, `EXIST FH\\P(PER ${ab.waterRef})\\P(TO REMAIN)`, p, add(add(p, mul(out, 12)), [6, 0]));
+  leader(EL, `EXIST FH${per(ab.waterRef)}\\P(TO REMAIN)`, p, add(add(p, mul(out, 12)), [6, 0]));
 }
 
 // 5) Existing appurtenances (asbuilt.json `appurtenances`, 2026-10-02): tees, G.V./C.V., plugs, corp stops, CPO, sewer laterals + clean-outs.
 //    One MLeader each, arrow on the as-built point, text with the station/offset as the scan prints it; text 14-26 ft off to the side of the nearest
 //    main (water items north of their main, sewer laterals south), staggered so neighbours do not stack; fase1-qc + the declutter loop finish the placement.
-const apps = (ab.appurtenances ?? []).slice().sort((p, q) => p.x - q.x);
+// --spec spec.json: only the appurtenances inside the C-300 viewport (+ 25 ft) get a label -- a plan-and-profile as-built lists laterals along 400+ ft of main (Goulds 33809)
+let specIn = () => true, skippedOut = 0;
+if (args.spec) {
+  const sp = JSON.parse(fs.readFileSync(args.spec, 'utf8'));
+  const T = ((sp.twist.resultingTwistDeg ?? (360 - sp.twist.streetAngleDegrees)) * Math.PI) / 180, uxv = [Math.cos(-T), Math.sin(-T)], uyv = [-uxv[1], uxv[0]];
+  const [vw, vh] = std.viewport.size, ctr = [sp.twist.centerX, sp.twist.centerY];
+  specIn = (q) => { const d = sub(q, ctr); return Math.abs(dot(d, uxv)) <= (vw * 20) / 2 + 25 && Math.abs(dot(d, uyv)) <= (vh * 20) / 2 + 25; };
+}
+const apps = (ab.appurtenances ?? []).filter((a) => { const ok = specIn([a.x, a.y]); if (!ok) skippedOut++; return ok; }).sort((p, q) => p.x - q.x);
+if (skippedOut) console.log(`${skippedOut} appurtenance(s) outside the C-300 viewport: not labeled`);
 apps.forEach((a, i) => {
   const ref = a.ref === 'sewer' ? ab.sewerRef : ab.waterRef;
   const head = a.noExist ? a.label : `EXIST ${a.label}`;
-  const lines = [head, a.stationText, a.detail, a.noExist ? `(PER ${ref})` : `(PER ${ref})\\P(TO REMAIN)`].filter(Boolean);
+  const lines = [head, a.stationText, a.detail, ref ? (a.noExist ? `(PER ${ref})` : `(PER ${ref})\\P(TO REMAIN)`) : (a.noExist ? null : '(TO REMAIN)')].filter(Boolean);
   const north = a.ref === 'sewer' ? -1 : 1;
   const text = add([a.x, a.y], [6 + (i % 2) * 8, north * (16 + (i % 3) * 5)]);
   leader(EL, lines.join('\\P'), [a.x, a.y], text);

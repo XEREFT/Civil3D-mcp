@@ -152,6 +152,12 @@ function jobScans(dir) {
     const d = await run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", sc("dwg-dump.ps1"), join(dir, "X-UTIL.dwg"), "-OutDir", work]);
     const utilDump = d.out.trim().split(/\r?\n/).pop();
     if (d.code !== 0 || !existsSync(utilDump)) { say("dwg-dump de X-UTIL falló"); return false; }
+    // survey (X-TOPO) dump: its manhole / valve / hydrant SYMBOLS pair with as-built callouts that print only a station (asbuilt-georef-symbols.mjs)
+    let topoDump = null;
+    if (existsSync(join(dir, "X-TOPO.dwg"))) {
+      const dt = await run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", sc("dwg-dump.ps1"), join(dir, "X-TOPO.dwg"), "-OutDir", work]);
+      const tp = dt.out.trim().split(/\r?\n/).pop(); if (dt.code === 0 && existsSync(tp)) topoDump = tp; else say("(dwg-dump de X-TOPO falló: sin emparejamiento con símbolos del topográfico)");
+    }
     const assocs = [];
     for (const scan of scans) {
       const base = basename(scan).replace(/\.[^.]+$/, "");
@@ -163,6 +169,7 @@ function jobScans(dir) {
       if ((await run("python", [sc("asbuilt-reocr.py"), "--draft", draft, "--out", reocr, "--ocr", ocr])).code === 0) {
         if ((await run(node, [sc("asbuilt-extract.mjs"), "--ocr", ocr, "--reocr", reocr, "--out", draft])).code !== 0) say("(la segunda lectura no se pudo fusionar: se usa la primera)");
       } else say("(segunda lectura OCR omitida)");
+      if (topoDump) { const g = await run(node, [sc("asbuilt-georef-symbols.mjs"), "--draft", draft, "--topo", topoDump, "--util", utilDump]); if (g.code !== 0) say("(emparejamiento con símbolos del topográfico omitido)"); }
       if ((await run(node, [sc("asbuilt-associate.mjs"), "--draft", draft, "--util", utilDump, "--out", assoc])).code !== 0) return false;
       assocs.push(assoc);
     }
@@ -172,6 +179,7 @@ function jobScans(dir) {
     return r.code === 0;
   });
 }
+const topoDumpOf = (work) => listDir(work, /X-TOPO.*_dump\.txt$/i).map((f) => join(work, f))[0];
 function jobAsbuilt(dir, confirmed) {
   return startJob(`as-builts → asbuilt.json · ${basename(dir)}`, async ({ run, say }) => {
     const slug = slugOf(dir), work = join(STUDIO_TMP, slug, "scan");
@@ -183,7 +191,7 @@ function jobAsbuilt(dir, confirmed) {
     const sewer = refs.find((r) => /^ES/i.test(r)), water = refs.find((r) => /^E(?!S)/i.test(r));
     const out = join(dir, "asbuilt.json");
     if (existsSync(out)) { mkdirSync(join(dir, "_backup"), { recursive: true }); copyFileSync(out, join(dir, "_backup", `asbuilt.${Date.now()}.json`)); say("(copia de asbuilt.json anterior en _backup)"); }
-    const r = await run(node, [sc("asbuilt-build.mjs"), "--confirmed", confirmed, ...assocs.flatMap((a) => ["--assoc", a]), "--util", utilDump, "--frontage", String(spec.twist.streetAngleDegrees),
+    const r = await run(node, [sc("asbuilt-build.mjs"), "--confirmed", confirmed, ...assocs.flatMap((a) => ["--assoc", a]), "--util", utilDump, ...(topoDumpOf(work) ? ["--topo", topoDumpOf(work)] : []), "--frontage", String(spec.twist.streetAngleDegrees),
       ...(sewer ? ["--sewer-ref", sewer] : []), ...(water ? ["--water-ref", water] : []), "--out", out]);
     return r.code === 0;
   });

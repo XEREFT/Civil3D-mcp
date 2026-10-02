@@ -291,8 +291,8 @@ else:
         if m.get("rim") is not None and (not rim or abs(float(rim.group(1)) - m["rim"]) > 0.005): _bad.append(f"{m['id']} RIM label {rim.group(1) if rim else 'none'} vs as-built {m['rim']}")
         if sorted((d_, float(v)) for d_, v in m.get("inv", [])) != invs: _bad.append(f"{m['id']} INV label {invs} vs as-built {m.get('inv')}")
     # completeness: every manhole of X-UTIL inside the viewport needs RIM + INV (with directions) from the confirmed as-built, else its label prints empty / partial
-    _inc = [f"{m['id']}: " + ", ".join(x for x, miss in (("no RIM", m.get("rim") is None), ("no INV", not m.get("inv")), ("INV without direction", any(d_ == "?" for d_, _ in m.get("inv", [])))) if miss)
-            for m in _ab.get("manholes", []) if in_view((m["x"], m["y"])) and not m.get("outsideXUtil") and (m.get("rim") is None or not m.get("inv") or any(d_ == "?" for d_, _ in m.get("inv", [])))]
+    _inc = [f"{m['id']}: " + ", ".join(x for x, miss in (("no RIM", m.get("rim") is None and not m.get("rimNA")), ("no INV", not m.get("inv")), ("INV without direction", any(d_ == "?" for d_, _ in m.get("inv", [])))) if miss)
+            for m in _ab.get("manholes", []) if in_view((m["x"], m["y"])) and not m.get("outsideXUtil") and ((m.get("rim") is None and not m.get("rimNA")) or not m.get("inv") or any(d_ == "?" for d_, _ in m.get("inv", [])))]
     add("FAIL" if _inc else "OK", "as-built completeness (manholes in view)", "; ".join(_inc) + " -> complete them in the review (the scan prints them) and rebuild asbuilt.json" if _inc else "every manhole in view has RIM + INV with directions")
     # existing appurtenances (tees, G.V./C.V., plugs, corp stops, CPO, laterals): each one inside the viewport needs its own MLeader (label text + arrow on its point)
     _ap = [a_ for a_ in _ab.get("appurtenances", []) if in_view((a_["x"], a_["y"]))]
@@ -309,7 +309,7 @@ else:
         if not any(_flat(sm["text"]) in _flat(e.get("txt", "")) for e in leaders if "SAN MAIN" in _flat(e.get("txt", ""))) and any(in_view(p) for p in [(m_["x"], m_["y"]) for m_ in _ab["manholes"] if m_["id"] in (sm["from"], sm["to"])]):
             _bad.append(f"no label prints '{sm['text']}' ({sm['from']}->{sm['to']})")
     for wm in _ab.get("waterMains", []):
-        if any(in_view(p) for p in (wm["a"], wm["b"])) and not any(_flat(wm["text"]) in _flat(e.get("txt", "")) and f"(PER {_ab.get('waterRef')})" in _flat(e.get("txt", "")) for e in leaders):
+        if any(in_view(p) for p in (wm["a"], wm["b"])) and not any(_flat(wm["text"]) in _flat(e.get("txt", "")) and (not _ab.get('waterRef') or f"(PER {_ab.get('waterRef')})" in _flat(e.get("txt", ""))) for e in leaders):
             _bad.append(f"no label prints '{wm['text']}' (PER {_ab.get('waterRef')})")
     add("FAIL" if _bad else "OK", "label values = as-builts (RIM / INV / pipe / slope / WM)", "; ".join(_bad) or f"{_chk} manhole labels + {len(_ab.get('sewerMains', []))} sewer mains + {len(_ab.get('waterMains', []))} water mains match {os.path.basename(_abp)}")
 # (c) alignment labels: START/END N/E agree with the printed station (length) -- the alignment itself is read live by fase1_audit
