@@ -75,8 +75,10 @@ export function validateProject(dir) {
   if (![1, 2, 3, 4].includes(p.phase)) add("WARN", `phase should be 1..4 (got ${p.phase})`);
   if (!["new", "in-progress", "delivered"].includes(p.status)) add("WARN", `status should be new|in-progress|delivered (got ${p.status})`);
   const d = p.deliverables ?? {};
-  if (d.dwg && !existsSync(join(dir, d.dwg))) add("ERROR", `deliverables.dwg not found: ${d.dwg}`);
-  if (d.pdf && !existsSync(join(dir, d.pdf))) add("ERROR", `deliverables.pdf not found: ${d.pdf}`);
+  // a project that is not delivered yet (status new / in-progress) has no deliverable file: only a WARN (GOULDS 33809 was a FAIL in the integrity check the day it was created)
+  const lvl = p.status === "delivered" ? "ERROR" : "WARN";
+  if (d.dwg && !existsSync(join(dir, d.dwg))) add(lvl, `deliverables.dwg not found: ${d.dwg}${lvl === "WARN" ? " (project not delivered yet)" : ""}`);
+  if (d.pdf && !existsSync(join(dir, d.pdf))) add(lvl, `deliverables.pdf not found: ${d.pdf}${lvl === "WARN" ? " (project not delivered yet)" : ""}`);
   if (d.dwg && d.pdf && existsSync(join(dir, d.dwg)) && existsSync(join(dir, d.pdf)) && statSync(join(dir, d.pdf)).mtimeMs + 2000 < statSync(join(dir, d.dwg)).mtimeMs) {
     add("WARN", "the DWG was saved after its PDF was plotted: run fase1-finish.mjs");
   }

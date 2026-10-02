@@ -62,7 +62,8 @@ export function parseOffset(text) {
   return Number.isFinite(off) ? { offset: off, side } : null;
 }
 export function parseRim(text) {
-  const m = /RIM\s*(?:EL)?\s*[=.:]?\s*(-?[0-9OoIlô]+[.,][0-9OoIlô]+)/i.exec(text);
+  // "RIM EL=9.69'" | "RIM EL 9.45" | "RIM a- 9.73" / "RIM &10.35" (the OCR turns "EL=" into junk characters): up to 4 non-digit characters may sit between RIM and the number
+  const m = /RIM[^0-9]{0,8}?([0-9OoIlô]+[.,][0-9OoIlô]+)/i.exec(text);       // a RIM is never negative: the '-' of "a-10.35" is the OCR of "EL="
   return m ? Number(fixNumber(m[1].replace(",", "."))) : null;
 }
 export function parseInv(text) {
@@ -257,7 +258,10 @@ if (reocrPath) {
       }
     }
     const idV = vote(null, ids); if (idV && idV.votes >= 1) { it.id = idV.value; if (!/MH\s*#/i.test(it.text)) it.text = `${idV.value} | ${it.text}`; notes.push(`name ${idV.value}`); }
-    const rimV = vote(it.rim, rims);
+    // when the first-pass text of this callout prints a RIM-looking number ("RIM a-10.35"), a second-pass RIM must be one of the numbers it prints
+    const printed = [...String(it.text).matchAll(/(-?\d{1,2}[.,]\d{2})(?!\d)/g)].map((m) => Number(m[1].replace(",", ".")));
+    const rimsOk = printed.length ? rims.filter((v) => printed.some((q) => Math.abs(q - v) < 0.006)) : rims;
+    const rimV = vote(it.rim, rimsOk);
     if (rimV && !same(rimV.value, it.rim)) {
       if (it.rim == null) { it.rim = rimV.value; notes.push(`RIM ${rimV.value} (second pass)`); }
       else if (rimV.votes >= 2) { notes.push(`RIM ${it.rim} -> ${rimV.value} (${rimV.votes}/${rimV.total} readings)`); it.rim = rimV.value; }

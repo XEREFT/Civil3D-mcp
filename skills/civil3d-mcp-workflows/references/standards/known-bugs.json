@@ -1663,6 +1663,56 @@
      "pattern": "glyph reader"
     }
    ]
-  }
- ]
+  },
+{
+  "since": "2026-10-02",
+  "id": "spec-parallel-street-hangs-civil3d",
+  "area": "skill",
+  "status": "fixed",
+  "match": "El spec de la hoja sale con una alineación de miles de millones de pies y Civil 3D se cuelga al construir",
+  "symptom": "GOULDS 33809: alineación de 2,231,804,600 ft, viewport centrado en 1e9 ft, PL symbols sin crear; al abrir la plantilla y dibujar, Civil 3D quedó sin responder más de 10 minutos",
+  "cause": "c300-build-spec trataba como «calle transversal» cualquier otra calle del survey, incluida una PARALELA a la fachada (SW 124 AVE junto a SW 125 AVE): su intersección está en el infinito y la «intersección lejana» quedaba a 1e9 ft",
+  "fix": "c300-build-spec.mjs: solo cuentan como transversales las calles con ángulo ≥ 30° respecto a la fachada y cuya intersección cae a ≤ 700 ft del lote; guardia final: alineación > 3,000 ft o fuera de 3,000 ft del lote = error «absurd geometry» y no se construye nada",
+  "checks": [
+   {
+    "type": "skill-grep",
+    "file": "scripts/c300-build-spec.mjs",
+    "pattern": "angDiff\\(s\\.deg, front\\.deg\\) >= 30"
+   },
+   {
+    "type": "skill-grep",
+    "file": "scripts/c300-build-spec.mjs",
+    "pattern": "SANITY GUARD"
+   }
+  ]
+ },
+ {
+  "since": "2026-10-02",
+  "id": "rw-dims-on-nplt-layer",
+  "area": "skill",
+  "status": "fixed",
+  "match": "El motor copia solo 1 cota R/W del topográfico cuando las cotas están en la capa _NPLT-TXT",
+  "symptom": "GOULDS 33809: 1 cota R/W en la hoja en vez de 13",
+  "cause": "las cotas se tomaban solo de la capa DIM del X-TOPO; cada topógrafo usa otra (VILLA ONE: DIM; Goulds: _NPLT-TXT)",
+  "fix": "c300-build-spec.mjs decide por GEOMETRÍA: cota > 1 ft en DIM o _NPLT-TXT con un extremo sobre un PROPERTY_LINE (≤ 0.2 ft), sin duplicados; VILLA ONE sigue en 13, Goulds pasó de 1 a 13",
+  "checks": [
+   {
+    "type": "skill-grep",
+    "file": "scripts/c300-build-spec.mjs",
+    "pattern": "seenDims"
+   }
+  ]
+ },
+ {
+  "since": "2026-10-02",
+  "id": "asbuilts-without-coordinates",
+  "area": "skill",
+  "status": "open",
+  "match": "Los as-builts escaneados solo traen estación y offset RT/LT, sin N/E ni letras de línea base: ningún ítem queda ubicado",
+  "symptom": "GOULDS 33809 (E11158-7, E11826-1, ES7843-7, ES8206-1): 0 de 87 ítems ubicados; el X-UTIL trae un solo tramo SAN de 130 ft y uno WAT de 155 ft, sin manholes",
+  "cause": "el flujo georreferencia con anclas (estación + offset + N/E impresos, ajuste por línea base); estos planos viejos no imprimen N/E y el X-UTIL no tiene símbolos con que emparejar estaciones",
+  "fix": "PENDIENTE: pedir al usuario una ancla por escaneo (un punto con estación conocida: «STA x+yy = este manhole / hidrante del X-TOPO») o emparejar por secuencia con símbolos del X-TOPO; mientras tanto la revisión permite teclear N/E y la hoja sale sin esas etiquetas (el QC marca FAIL por X-UTIL sin rotular)",
+  "checks": []
+ }
+]
 }

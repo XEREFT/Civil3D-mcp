@@ -148,8 +148,16 @@ for (const st of streets) {
 const num = (project.address.match(/SW\s+(\d+\w*)/i) || [])[1];
 const front = streets.find((s) => num && s.name.includes(num.toUpperCase()));
 if (!front) throw new Error(`frontage street for "${project.address}" not found among ${streets.map((s) => s.name).join(', ')}`);
-const cross = streets.filter((s) => s !== front);
 const lot = project.lotPoint;
+// Cross streets = the OTHER streets that really cross the frontage near the site. A street running parallel to it (Goulds 33809: SW 124 AVE next to SW 125 AVE) meets it only
+// at infinity (the first version put the alignment start 2,231,804,600 ft away and hung Civil 3D), and an intersection hundreds of feet outside the survey window is not a
+// street corner of this sheet: skip both.
+const angDiff = (a, b) => Math.min(Math.abs(a - b), 180 - Math.abs(a - b));
+const cross = streets.filter((s) => s !== front && angDiff(s.deg, front.deg) >= 30).filter((c) => {
+  const p = intersect(front.origin, front.u, c.origin, c.u);
+  return Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.hypot(p[0] - lot[0], p[1] - lot[1]) <= 700;
+});
+if (!cross.length) throw new Error(`no cross street within 700 ft of the lot meets ${front.name} at an angle >= 30 deg (streets in the window: ${streets.map((s) => `${s.name} ${s.deg.toFixed(1)} deg`).join(', ')}): the survey window may need site.window / the X-TOPO centerlines may be incomplete`);
 
 // Orient the frontage direction to [0,180) — the convention both reference sheets follow (91.51°, 0.9°)
 const theta = norm180(front.deg);
@@ -198,7 +206,20 @@ pushCl(alStart, add(far.int, mul(uLot, -ext.lengthFromIntersectionFt)));
 //    (model angle + twist), points to the right; dimTad 4 + dimTxtDirection as the approved FASE 1 dims (package DSTYLE).
 const dim = S.rowDimension;
 const sheetAngle = (p, q) => { let a = (Math.atan2(q[1] - p[1], q[0] - p[0]) * 180) / Math.PI + twistDeg; a = ((a % 360) + 540) % 360 - 180; return a; };
-for (const e of ents.filter((x) => !args['no-rw-dims'] && x.type === 'DIMENSION' && x.layer === 'DIM' && +x.meas > 1)) {
+// Which survey dims are R/W dims is decided by GEOMETRY, not by layer name: surveyors put them on DIM (VILLA ONE) or on _NPLT-TXT (Goulds 33809, where DIM holds 1 dim and
+// _NPLT-TXT the 12 that matter). A dim counts when it measures > 1 ft, lies on one of those layers and one of its ends sits on a PROPERTY_LINE segment (<= 0.2 ft) of the window;
+// duplicates (same two ends, any layer) are dropped. Without any PROPERTY_LINE segment in the window the layer rule alone decides (as before).
+const propSegs = ents.filter((x) => x.type === 'LINE' && x.layer === 'PROPERTY_LINE').map((x) => [x.p, pt(x.p2)]).filter(([a, b]) => a && b);
+const onSeg = (q, [a, b]) => { const d = sub(b, a), l2 = dot(d, d) || 1, t = Math.max(0, Math.min(1, dot(sub(q, a), d) / l2)); return len(sub(q, add(a, mul(d, t)))) <= 0.2; };
+const seenDims = new Set();
+const rwDims = ents.filter((x) => {
+  if (args['no-rw-dims'] || x.type !== 'DIMENSION' || !(+x.meas > 1) || !['DIM', '_NPLT-TXT'].includes(x.layer)) return false;
+  const q1 = x.p, q2 = pt(x.p2); if (!q2) return false;
+  if (propSegs.length && !propSegs.some((sg) => onSeg(q1, sg) || onSeg(q2, sg))) return false;
+  const key = [q1, q2].map((q) => q.map((v) => v.toFixed(1)).join(',')).sort().join('|');
+  if (seenDims.has(key)) return false; seenDims.add(key); return true;
+});
+for (const e of rwDims) {
   let p1 = e.p, p2 = pt(e.p2);
   if (!p2) continue;
   const s = sheetAngle(p1, p2);
@@ -257,6 +278,12 @@ const sCenter = (sFar + sLot + 25 * Math.sign(sLot - sFar)) / 2;
 const center = add(front.origin, mul(u, sCenter));
 
 const usedLayers = [...new Set(entities.map((e) => e.layer))];
+// SANITY GUARD (2026-10-02): a degenerate survey (parallel streets, a single centerline) once produced an alignment 2,231,804,600 ft long and a viewport centered 1e9 ft away, which
+// HUNG Civil 3D for minutes when the build tried to draw it. Never hand such a spec on: everything must lie within a few thousand feet of the lot.
+{
+  const far = [alStart, alEnd].some((q) => !Number.isFinite(q[0]) || !Number.isFinite(q[1]) || Math.hypot(q[0] - lot[0], q[1] - lot[1]) > 3000);
+  if (far || alLen > 3000) throw new Error(`absurd geometry: alignment ${alLen.toFixed(0)} ft from ${alStart.map(Math.round)} to ${alEnd.map(Math.round)} (lot ${lot.map(Math.round)}): the survey centerlines of this site are incomplete or ambiguous -- nothing built`);
+}
 const spec = {
   project: project.name,
   streets: streets.map((s) => ({ name: s.name, angleDeg: r4(s.deg), frontage: s === front })),
