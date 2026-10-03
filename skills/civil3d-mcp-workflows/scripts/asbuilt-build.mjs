@@ -173,6 +173,19 @@ const waterMains = seg.WAT.map(([a, b]) => {
   const text = as ? `EXIST ${as.c.pipe.replace(/\./g, "")} WATER MAIN` : wmText;
   return { a: a.map((v) => +v.toFixed(4)), b: b.map((v) => +v.toFixed(4)), text };
 });
+// As-built water fittings (tees, G.V., C.V., crosses, plugs, hydrants, services) whose printed N/E are far from every X-UTIL WAT line: the as-built main continues past where the
+// survey stopped drawing it (VILLA ONE 2026-10-02: hydrant 511 ft past the end of X-UTIL WAT). Reported only: the base is not edited and no line is invented.
+const waterFittingsOffXUtil = (() => {
+  if (!seg.WAT.length) return [];
+  const d2seg = (p, [a, b]) => { const dx = b[0] - a[0], dy = b[1] - a[1], t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy || 1))); return Math.hypot(p[0] - (a[0] + dx * t), p[1] - (a[1] + dy * t)); };
+  const out = [];
+  for (const c of confirmed) {
+    if (/^ES/i.test(c.scan ?? "") || c.N == null || c.E == null || !/^(TEE|GV|CV|CROSS|PLUG|FH|SERVICE|CORP)$/i.test(c.kind ?? "")) continue;
+    const dMin = Math.min(...seg.WAT.map((s) => d2seg([c.E, c.N], s)));
+    if (dMin > 40) out.push({ kind: c.kind, x: +c.E.toFixed(2), y: +c.N.toFixed(2), sta: c.sta ?? null, baseline: c.baseline ?? null, distFt: +dMin.toFixed(1) });
+  }
+  return out;
+})();
 const hydrants = confirmed.filter((c) => /^FH$/i.test(c.kind ?? "") && c.N != null && c.E != null).map((c) => ({ x: c.E, y: c.N }));
 
 // the node where most SAN tramos meet = the intersection manhole the labels lean on
@@ -198,7 +211,7 @@ for (const c of confirmed.filter((c) => typeof c.label === "string" && c.label.t
   appurtenances.push({ kind: c.kind ?? null, label: c.label.trim(), stationText: c.stationText ?? null, detail: c.detail ?? null, noExist: c.noExist === true,
     ref: /^ES/i.test(c.scan) ? "sewer" : "water", x: +pos[0].toFixed(4), y: +pos[1].toFixed(4), sta: c.sta ?? null, baseline: c.baseline ?? null, placedBy: how, scan: c.scan, item: c.item });
 }
-const out = { frontageAngleDeg: frontage, intersectionMh, sewerRef, waterRef, manholes, sewerMains, waterMains, hydrants, appurtenances, unresolved,
+const out = { frontageAngleDeg: frontage, intersectionMh, sewerRef, waterRef, manholes, sewerMains, waterMains, waterFittingsOffXUtil, hydrants, appurtenances, unresolved,
   source: { confirmed: confirmedPath, confirmedAt: confirmedDoc.confirmedAt ?? null, simulated: confirmedDoc.simulated === true, util: utilPath, builtAt: new Date().toISOString() } };
 const outPath = flag("out") ?? "asbuilt.json";
 writeFileSync(outPath, JSON.stringify(out, null, 1));

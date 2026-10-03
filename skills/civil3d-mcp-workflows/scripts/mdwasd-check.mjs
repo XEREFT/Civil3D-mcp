@@ -97,6 +97,13 @@ for (const h of ab.hydrants ?? []) {
   if (dist != null && dist > S.water.fireHydrantLateral.maxLengthFt) add_('INFO', 'UC-005 A.28', `FH at ${f1(p[0])},${f1(p[1])} is ${f1(dist)} ft from the nearest water main in asbuilt.json (hydrant lateral max ${S.water.fireHydrantLateral.maxLengthFt} ft)`, 'either the lateral is longer than the standard or the main serving it is missing from asbuilt.json: check the scan');
 }
 
+// ---- 5b) as-built water fittings beyond the X-UTIL WAT lines (asbuilt-build.mjs -> waterFittingsOffXUtil): the main continues in the as-built but not in the survey
+const offX = ab.waterFittingsOffXUtil ?? [];
+if (offX.length) {
+  const far = Math.max(...offX.map((f) => f.distFt));
+  add_('INFO', 'UC-005 B.6', `${offX.length} as-built water fitting(s) (${[...new Set(offX.map((f) => f.kind))].join(", ")}) lie up to ${f1(far)} ft beyond the X-UTIL WAT lines`, 'the as-built main continues past the end of the survey line: nothing is drawn or moved (survey is the base); tell the user, who decides whether the X-UTIL gap is reported or the main is drawn from the printed N/E');
+}
+
 // ---- 5a) sewer laterals (SS 1.0 / UC-310): 6 in minimum, slope >= 1/8 in per ft, when the as-built prints them
 for (const a of ab.appurtenances ?? []) {
   if (a.ref !== 'sewer' || !/LAT/i.test(a.label ?? '')) continue;

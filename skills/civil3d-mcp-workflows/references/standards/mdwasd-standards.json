@@ -329,6 +329,19 @@
         "SS 22.0 clean-out",
         "UC-310 gravity sewer service laterals"
       ]
+    },
+    "SS 2.0 sheet 1 (06/06/2025) double sanitary service lateral with clean-out": {
+      "doubleWye": "6x6x6x6 in double wye on the main (45 degree bend), 6 in PVC lateral at 1.04 % minimum slope; main 8 in minimum (existing or proposed gravity sewer)",
+      "cleanouts": "one 6 in clean-out per lateral per WASD SS 1.0, 6 ft each side of the lot line and 2.5 ft from the R/W (or easement) line toward the street",
+      "lateralEndPastRWFt": 2.0,
+      "cleanoutFromRWFt": 2.5,
+      "cleanoutFromLotLineFt": 6,
+      "verified": "read from the PDF 2026-10-02 (the 2.0 ft dimension is R/W line to the lateral end/plug, the 2.5 ft one is R/W line to the clean-out; an earlier note said 2.0 ft from the R/W)",
+      "crossRef": [
+        "SS 1.0",
+        "SS 22.0 clean-out",
+        "SS 2.0 sheet 2 (cover 30 in, lids)"
+      ]
     }
   },
   "detailsIndex": {

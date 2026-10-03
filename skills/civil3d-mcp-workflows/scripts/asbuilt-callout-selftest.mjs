@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+// Self-test of asbuilt-add-callout.mjs (+ the off-X-UTIL fitting INFO of mdwasd-check) on a temp project; no Civil 3D needed. Exit 1 on any failure.
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+const here = dirname(fileURLToPath(import.meta.url));
+const d = mkdtempSync(join(tmpdir(), "callout-selftest-"));
+mkdirSync(join(d, "_reports", "scan"), { recursive: true }); mkdirSync(join(d, "_asbuilts"), { recursive: true });
+const J = (f, o) => writeFileSync(join(d, f), JSON.stringify(o));
+J("_reports/scan/E1-1.assoc.json", { items: [{ kind: "FH", text: "x" }] });
+J("_asbuilts/asbuilt.confirmed.json", { confirmed: [], notConfirmed: [], items: [] });
+J("asbuilt.json", { waterRef: null, waterMains: [{ a: [0, 0], b: [100, 0], text: "EXIST WATER MAIN" }], hydrants: [], appurtenances: [], manholes: [], sewerMains: [], waterFittingsOffXUtil: [{ kind: "TEE", x: 700, y: 0, distFt: 600 }] });
+let bad = 0;
+const t = (name, ok) => { console.log(`${ok ? "OK  " : "FAIL"} ${name}`); if (!ok) bad++; };
+const run = (a) => spawnSync(process.execPath, a, { encoding: "utf8" });
+let r = run([join(here, "asbuilt-add-callout.mjs"), "--dir", d, "--scan", "E1-1", "--text", `419' 8" DIP WM`, "--box", "1,2,3,4"]);
+t("--by is required", r.status === 2);
+r = run([join(here, "asbuilt-add-callout.mjs"), "--dir", d, "--scan", "E1-1", "--text", `419' 8" DIP WM`, "--box", "1,2,3,4", "--by", "selftest"]);
+t("callout added", r.status === 0);
+const ab = JSON.parse(readFileSync(join(d, "asbuilt.json"), "utf8"));
+t(`generic water main relabeled (${ab.waterMains[0].text})`, ab.waterMains[0].text === 'EXIST 8" DIP WATER MAIN' && ab.waterRef === "E1-1");
+const c = JSON.parse(readFileSync(join(d, "_asbuilts", "asbuilt.confirmed.json"), "utf8"));
+t("confirmed json has item + audit line", c.items.length === 1 && /selftest/.test(c.confirmed[0]));
+const a1 = JSON.parse(readFileSync(join(d, "_reports", "scan", "E1-1.assoc.json"), "utf8"));
+t("assoc has the new item at index 1", a1.items[1]?.text === `419' 8" DIP WM`);
+r = run([join(here, "asbuilt-add-callout.mjs"), "--dir", d, "--scan", "E1-1", "--text", `419' 8" DIP WM`, "--box", "1,2,3,4", "--by", "selftest"]);
+t("idempotent (no duplicate item)", JSON.parse(readFileSync(join(d, "_asbuilts", "asbuilt.confirmed.json"), "utf8")).items.length === 1);
+r = run([join(here, "mdwasd-check.mjs"), "--asbuilt", join(d, "asbuilt.json")]);
+t("mdwasd-check INFO for fittings beyond the X-UTIL WAT lines", /beyond the X-UTIL WAT lines/.test(r.stdout));
+process.exit(bad ? 1 : 0);

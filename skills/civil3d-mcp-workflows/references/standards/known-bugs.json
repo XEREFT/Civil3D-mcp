@@ -1833,6 +1833,74 @@
      "pattern": "ambiguous this close to perpendicular"
     }
    ]
+  },
+  {
+   "id": "close-civil3d-multi-discard",
+   "status": "mitigated",
+   "area": "skill",
+   "match": "close-civil3d.ps1 con varios fragmentos en -Discard se detiene con 'dialog needs the user' en una copia que si debia descartar",
+   "symptom": "Goulds: -Discard 'c3d-dwg-dump;FASE 1 BUILD;_template' paro en el prompt 'Save changes to ...BUILD.dwg?'; con UN fragmento ('_template.dwg') si funciono",
+   "cause": "causa exacta no reproducida; sospecha: conversion object[]->string[] / separadores / mayusculas en la comparacion",
+   "fix": "el script ahora separa por ; o |, fuerza string[], compara sin distinguir mayusculas e imprime lo parseado en la linea STOP; fase1-redeliver.mjs llama una vez por fragmento",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/close-civil3d.ps1",
+     "pattern": "OrdinalIgnoreCase"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-redeliver.mjs",
+     "pattern": "one fragment per call"
+    }
+   ],
+   "since": "2026-10-02"
+  },
+  {
+   "id": "scan-pipe-callout-missing-from-review",
+   "status": "mitigated",
+   "area": "skill",
+   "match": "El main de agua queda sin tamano ('EXIST WATER MAIN') aunque el as-built escaneado lo imprime (8\" DIP WM)",
+   "symptom": "Goulds 33809: E11826-1 trae \"419' 8\" DIP WM\" y \"278' 8\" DIP WM\" pero el assoc/revision no los tiene (el OCR de primera pasada los perdio) y mdwasd-check da WARN UC-005 A.12",
+   "cause": "los callouts de tuberia no entraron como items del draft (el reocr tampoco: 0 callouts); solo estaban en el .ocr.json crudo",
+   "fix": "asbuilt-find-callouts.py lista las lineas OCR con DIP/PVC/WM sin item en el assoc y recorta la imagen; se lee el recorte y asbuilt-add-callout.mjs (--by obligatorio) lo agrega al assoc + confirmed y rotula el main generico; asbuilt-callout-selftest.mjs lo prueba",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-find-callouts.py"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-add-callout.mjs"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-callout-selftest.mjs"
+    }
+   ],
+   "since": "2026-10-02"
+  },
+  {
+   "id": "asbuilt-water-main-beyond-xutil",
+   "status": "mitigated",
+   "area": "skill",
+   "match": "Un hidrante o accesorio de agua del as-built queda a cientos de pies de la linea de agua del X-UTIL (INFO UC-005 A.28)",
+   "symptom": "VILLA ONE: hidrante a 511 ft del main registrado; el escaneo dibuja el main de 8\" siguiendo mas alla del fin del X-UTIL WAT (la falla esta en el survey, no en el as-built)",
+   "cause": "el X-UTIL del survey termina antes que el main del as-built; los accesorios con N/E impresos quedan fuera de la linea",
+   "fix": "asbuilt-build.mjs guarda waterFittingsOffXUtil (accesorios con N/E a > 40 ft de toda linea WAT) y mdwasd-check lo reporta como INFO; no se dibuja ni se mueve nada: el usuario decide (reportar el hueco o dibujar el main desde las N/E)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-build.mjs",
+     "pattern": "waterFittingsOffXUtil"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/mdwasd-check.mjs",
+     "pattern": "beyond the X-UTIL WAT lines"
+    }
+   ],
+   "since": "2026-10-02"
   }
  ]
 }
