@@ -1,0 +1,203 @@
+{
+  "_source": "Miami-Dade Water and Sewer Department (MDWASD) 'Water and Sewer Design & Construction Standards' -- https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722 . Read 2026-10-02: UC-005 (Project Approval, R-7 2/2015), Standard Details GS 0.5, GS 1.5 (10/1/2017), WS 2.21 sheets 1-3, UC-250, UC-310, UC-075. These are the county-wide (government) rules: they govern BOTH existing/current data cleanup AND design proposals. Where a rule says 'proposed', it is the design rule; for Fase 1 (existing conditions only) the same numbers are used to LABEL / CHECK what exists, never to draw design.",
+  "_howToUse": "scripts/mdwasd-check.mjs reads this file; fase1-qc.py calls it; c300-mdwasd-easement.mjs draws the easement for mains that sit on private property. Never edit a number here without the section it came from. Source of truth = the PDFs; if MDWASD revises a section (check the revision stamp on the page), update the value + 'rev' here and in plugin src/standards/data/mdwasd_rules.json.",
+  "easements": {
+    "section": "UC-005 1.05 A.8-A.11, A.15, A.21; WS 2.21",
+    "waterMainWidthFt": 12,
+    "waterMainOffsetEachSideFt": 6,
+    "sewerMainWidthFt": 15,
+    "sewerMainOffsetEachSideFt": 7.5,
+    "bothMinWidthFt": 23.5,
+    "bothOffsets": {
+      "waterFt": 6,
+      "sewerFt": 7.5,
+      "separationWaterToSewerFt": 10
+    },
+    "singleMainLocation": "centered in the easement (A.15)",
+    "label": {
+      "water": "twelve (12) feet MDWASD easement",
+      "sewer": "fifteen (15) feet MDWASD easement",
+      "linetype": "dark dashed lines"
+    },
+    "noStructuresOrTrees": "none inside the easement incl. its vertical projection; overhead utilities/structures only with >= 25 ft clearance (A.9)",
+    "accessoriesOutside": "meters, fire hydrants and other MDWASD accessories go OUTSIDE the main easement with their own separate easement (A.11); in private property the meters are part of an MDWASD easement (B.5)",
+    "ws221": {
+      "serviceAndFireHydrant": {
+        "eachSideOfWaterMainFt": 6,
+        "eachSideOfServiceLineFt": 6,
+        "beyondMeterBoxFt": 2.5,
+        "hydrantLateralEachSideFt": 6,
+        "beyondHydrantFt": 6
+      },
+      "turbineMeter8or10in": {
+        "eachSideOfWaterMainFt": 6,
+        "alongServiceBeforeCenterFt": 12,
+        "alongServiceAfterCenterFt": 10,
+        "halfWidthAcrossFt": 7
+      }
+    },
+    "stripDerivedFromThisFile": "easement = centerline offset +/- offsetEachSide; the strip is drawn on C-ANNO as DASHED2 polylines (same recipe as c300-easement.mjs)",
+    "platUE": "A recorded-plat utility easement (U.E., e.g. 5 ft on a lot line) is NOT an MDWASD easement: it keeps coming from the plat + user confirmation (c300-easement.mjs). MDWASD easements apply only to mains on private property."
+  },
+  "separation": {
+    "section": "GS 1.5 sheets 1-2 (F.A.C. 62-555.314), UC-005 A.16",
+    "waterToGravitySewer": {
+      "horizontalPreferredFt": 10,
+      "horizontalMinFt": 6,
+      "note": "6 ft only where the water main is >= 6 in above the top of the gravity sewer (note 3); else 10 ft wall to wall"
+    },
+    "waterToForceMain": {
+      "horizontalPreferredFt": 10,
+      "horizontalMinFt": 6,
+      "note": "6 ft min case by case"
+    },
+    "waterToStormOrReclaimed": {
+      "horizontalMinFt": 3,
+      "storm10ftNote": "10 ft wall to wall preferred between potable and storm/wastewater/force (note 2)"
+    },
+    "waterToVacuumSewer": {
+      "horizontalPreferredFt": 10,
+      "horizontalMinFt": 3
+    },
+    "waterToOnSiteSewageTreatment": {
+      "horizontalMinFt": 10
+    },
+    "otherUtilityOrDrainageFace2Face": {
+      "horizontalMinFt": 5,
+      "note": "any water/sewer main to any utility or drainage not covered by 62-555.314 (UC-005 A.16)"
+    },
+    "crossingVerticalMinIn": 12,
+    "crossingVerticalMinInSewerAbove": 6,
+    "crossingNote": "water main above sewer: 12 in (invert of upper to crown of lower); if not possible, DIP both, joints equidistant (>= 10 ft between joints), 6 in min. Laterals/services: 12 in, else 20 ft DIP WM centered / 10 ft PVC casing for services. Cross perpendicular whenever possible.",
+    "ductileCrossingLengthFt": 20,
+    "waterAboveSewerAlwaysPreferred": true
+  },
+  "sewer": {
+    "section": "UC-005 C.1-C.7, UC-250, UC-310",
+    "maxManholeSpacingFt": 400,
+    "manholeShows": [
+      "manhole number",
+      "invert elevation of pipe",
+      "direction of flow",
+      "rim elevation on top of the manhole",
+      "pipe size",
+      "pipe material",
+      "slope",
+      "distance to next manhole"
+    ],
+    "terminalManholeCoverFt": 4,
+    "terminalManholeSlopeRule": "0.4% to compute the depth (pump station sites)",
+    "coverGrassAreas": {
+      "lt2_5": "DIP under reinforced concrete slab",
+      "between2_5and6": "DIP, or C900 PVC (SDR35 under a non-reinforced slab) if approved",
+      "between6and14": "PVC OK if approved, no slab",
+      "gt14": "DIP required"
+    },
+    "coverPaved": {
+      "lt3_5": "DIP or C900 PVC if approved",
+      "lt2_5": "DIP + reinforced concrete slab"
+    },
+    "dropConnectionWhenLateralEntersMhAboveInvertFt": 2,
+    "lateral": "branch fitting = tee w/ modified riser when sewer top >= 7 ft deep, else wye (SS 1.0/2.0); plug at the point shown; green-painted 2x2x2 ft stake at the lateral end; location measured and recorded before covering (UC-310 3.01)",
+    "showFlowDirection": true
+  },
+  "water": {
+    "section": "UC-005 B.1-B.7, A.12, A.22, A.28; UC-075",
+    "valveSpacingFt": 660,
+    "valveSpacingNote": "resilient-seat gate valves every 660 ft; butterfly same for >= 42 in; transmission >= 20 in: valve every 1/2 mile",
+    "serviceLineMaxFt": 50,
+    "fireHydrantLateral": {
+      "maxLengthFt": 50,
+      "nominalDiameterIn": 6
+    },
+    "coverMinIn": {
+      "le12": 30,
+      "from16to24": 36,
+      "gt24": 36,
+      "note": "less cover than this => reinforced concrete slab (GS 1.2)"
+    },
+    "servicePipe": "1-in and 2-in HDPE (blue, tracer wire) per UC-075; services <= 2 in from existing mains are made by MDWASD forces at owner expense; cutting/plugging existing MDWASD mains likewise",
+    "backflowPreventers": "private property, easily accessible (A.20)"
+  },
+  "drawingConventions": {
+    "section": "UC-005 1.05 A.1-A.7, A.12-A.14, A.17-A.19, A.23-A.27, D",
+    "existingMain": "broken (dashed) line; proposed = dark solid; both labeled with size + material; >= 20 in drawn double line",
+    "existingLabelMustHave": [
+      "size",
+      "material type",
+      "utility type (SAN/WM/FM)"
+    ],
+    "existingUtilitiesInRowClearlyShownAndLabeled": true,
+    "connectToExistingShow": [
+      "size of existing pipe",
+      "material type of existing pipe",
+      "any removal of fitting/pipe/anchor/structure",
+      "nearest valve controlling flow"
+    ],
+    "tappingSleeve": "offset to nearest KNOWN centerline/baseline + size and material of the pipe tapped",
+    "baselineNotOnTopOfMain": true,
+    "centerlineAndROWLabeledAtTwoPoints": true,
+    "buildingsIdentifiedProposedOrExisting": true,
+    "planScale": "1 in = 10 ft to 1 in = 40 ft; profile vertical = 1/10 of plan",
+    "locationSketch": "1 in = 300 ft on the first sheet",
+    "sheetSizeIn": [
+      24,
+      36
+    ],
+    "standardNotes": "GS 0.5 notes must be on all water and sewer plans; other notes 'Not Part of MDWASD Notes nor Approval' or on a separate sheet",
+    "profile": [
+      "finished grade every 100 ft",
+      "top of pipe every 100 ft (WM/FM)",
+      "top elevation of other crossing utilities",
+      "labels size+material+type",
+      "profile mandatory for blankets > 25 ft"
+    ]
+  },
+  "recordDrawings": {
+    "section": "GS 0.5 sheet 2 of 2 (rev 03/11/2009, 07/20/2016) 'Record Drawing Requirements'",
+    "format": [
+      "24x36 prints",
+      "PDF",
+      "CADD (DWG/DXF) rotated and translated to NAD83 Florida East State Plane",
+      "words RECORD DRAWING in large letters",
+      "title block with Department DS/DW/ER number",
+      "preferred scale 1\"=40' H and 1\"=4' V",
+      "street nomenclature",
+      "separate drawings and profiles for water and sewer",
+      "stationing starts 0+00 at a permanent reference point (CL etc.) and runs continuously to the end of main",
+      "easements tied to the permanent reference point",
+      "all control lines identified (building line, property line, R/W)",
+      "all PROPOSED information removed, only record information remains"
+    ],
+    "waterMustInclude": [
+      "pipe size",
+      "material",
+      "offset of main",
+      "deflections",
+      "station of services, hydrants, valves, fittings (State Plane coordinates)",
+      "utility crossings identified and located",
+      "profile: top of ground + top of pipe every 100 ft and at grade changes"
+    ],
+    "sewerMustInclude": [
+      "manhole number",
+      "pipe size",
+      "pipe material",
+      "deflection",
+      "slope of gravity sewer",
+      "location of laterals referenced to manhole + cleanouts",
+      "N/E coordinates on all field measurements",
+      "profile: MH number, RIM and INV (label N/S/E/W if more than one invert), station from 0+00 at the downstream MH"
+    ],
+    "forceMain": "same as water main",
+    "coordinates": "State Plane coordinates of ALL manholes and valves + at least two horizontal control points",
+    "usedBy": "asbuilt-review.py required fields (MH: number, RIM, INV by direction; main: size, material, slope; appurtenance: station/offset); fase1-qc.py completeness; Fase 1 existing labels"
+  },
+  "fase1Policy": {
+    "existingOnly": "Fase 1 labels EXISTING facilities (with size, material, slope, RIM/INV, '(TO REMAIN)') -- no design wording; the MDWASD numbers are used here only to CHECK that what exists is shown consistently (separations, MH spacing, easement presence) and to WARN, never to alter measured as-built values.",
+    "easementOnExistingMains": "If an existing WASD main lies on private property (outside the public R/W), the recorded MDWASD easement (or the standard strip above if the recorded width is not available) must be shown with the label of A.8. If the main is in the public R/W, no MDWASD easement is drawn.",
+    "neverInventValues": "A width taken from this file is a STANDARD, not a project measurement: when the recorded easement differs, the recorded value (user-confirmed) wins."
+  },
+  "designPolicy": {
+    "useFor": "Propuesta (design) work: place mains/MHs/valves/hydrants so these numbers hold; easement strips per 'easements'; accessories outside the easement; label per 'drawingConventions'; run scripts/mdwasd-check.mjs on the design as-built-shaped JSON before delivering."
+  }
+}

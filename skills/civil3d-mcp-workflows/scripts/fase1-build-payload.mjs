@@ -164,6 +164,26 @@ if (!has("no-pl")) {
 // guide) through the build's blockImports. No asbuilt.json = no labels (fase1-qc then FAILs the unlabeled X-UTIL items, which is the point).
 let labelNote = "none (no asbuilt.json: pass --asbuilt, or put it in the project folder / project.json sources.asbuilt)";
 const asbuiltPath = flag("asbuilt") ?? [project.sources?.asbuilt, join(dir, "asbuilt.json")].filter(Boolean).map((p) => resolve(dir, p)).find((p) => existsSync(p));
+// MDWASD easement (2026-10-02, UC-005 A.8 / WS 2.21): an existing main that lies on PRIVATE property (inside a Property Appraiser lot) gets the standard
+// 12 ft (water) / 15 ft (sewer) dashed strip + label. Mains in the public R/W get none (the normal Fase 1 case: nothing is added). A recorded easement the
+// user confirmed always wins: set project.json site.mdwasdEasement = { widthFt, ref } to draw that width instead. --no-mdwasd skips.
+let mdwNote = "none (no asbuilt.json or no PA report)";
+{
+  const rep = project.site?.paArea?.file;
+  if (!has("no-mdwasd") && asbuiltPath && existsSync(asbuiltPath) && rep && existsSync(rep)) {
+    const chkOut = join(work, "mdwasd-check.json"), mdwOut = join(work, "mdwasd-ue.json");
+    const c = spawnSync("node", [join(here, "mdwasd-check.mjs"), "--asbuilt", asbuiltPath, "--report", rep, "--json", chkOut], { encoding: "utf8" });
+    const rec = project.site?.mdwasdEasement;
+    const r = c.status === 0 && existsSync(chkOut)
+      ? spawnSync("node", [join(here, "c300-mdwasd-easement.mjs"), "--check", chkOut, "--spec", join(work, "spec.json"), "--out", mdwOut, ...(rec?.widthFt ? ["--recorded-width", String(rec.widthFt), ...(rec.ref ? ["--recorded-ref", String(rec.ref)] : [])] : [])], { encoding: "utf8" })
+      : null;
+    if (r && r.status === 0 && existsSync(mdwOut)) {
+      const ents = JSON.parse(readFileSync(mdwOut, "utf8")).createEntities.entities;
+      payload.entities = [...payload.entities, ...ents];
+      mdwNote = r.stdout.trim();
+    } else mdwNote = `NOT drawn: ${((r?.stderr || r?.stdout || c.stderr || c.stdout || "mdwasd step failed").trim().split("\n").pop())}`;
+  }
+}
 if (!has("no-labels") && asbuiltPath && existsSync(asbuiltPath)) {
   const labelsOut = join(work, "labels.json");
   const r = spawnSync("node", [join(here, "c300-utility-labels.mjs"), "--asbuilt", asbuiltPath, "--spec", join(work, "spec.json"), "--out", labelsOut], { encoding: "utf8" });
@@ -230,6 +250,7 @@ payload -> ${out}
  freeze      ${payload.freezeLayers.join(", ")}
  road labels ${roadNote}
  U.E.        ${ueNote}
+ MDWASD ease ${mdwNote}
  PL symbols  ${plCount}${plNote}${has("no-pl") ? " (--no-pl)" : ""}
  utility labels ${labelNote}${payload.blockImports ? `\n block imports ${payload.blockImports.map((b) => b.blockName).join(", ")} <- ${basename(payload.blockImports[0].sourceFilePath)}` : ""}
 NEXT (Claude session): civil3d_request_approval {toolName:"civil3d_workflow_fase1_build", action:"fase1_build", parameters:<file contents>}

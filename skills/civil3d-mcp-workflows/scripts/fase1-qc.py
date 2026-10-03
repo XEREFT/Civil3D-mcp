@@ -593,6 +593,18 @@ if os.path.exists(pdf):
     add("WARN" if hits else "OK", "PDF overlapping texts", f"{len(hits)} spot(s)" + (": " + "; ".join(hits[:12]) + (" ..." if len(hits) > 12 else "") if hits else ""))
 else: add("WARN", "PDF", f"{pdf} not found: plot first (qc-plot.ps1 / fase1-finish.mjs)")
 
+# (e) MDWASD standards (references/standards/mdwasd-standards.json: UC-005, GS 0.5, GS 1.5, WS 2.21): separations, MH spacing, labels, easement presence.
+# Existing facilities: findings are WARN at most (an as-built is never moved to fit a standard); INFO lines are shown but not counted.
+if _abp:
+    _chk = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mdwasd-check.mjs")
+    _cmd = ["node", _chk, "--asbuilt", _abp] + (["--report", _paf] if _paf and os.path.exists(_paf) else [])
+    try:
+        _out = subprocess.run(_cmd, capture_output=True, text=True, timeout=60, encoding="utf-8").stdout.splitlines()
+        _w = [l[5:] for l in _out if l.startswith("WARN")]; _i = [l[5:] for l in _out if l.startswith("INFO")]
+        add("WARN" if _w else "OK", "MDWASD standards (UC-005 / GS 1.5 / GS 0.5)", ("; ".join(_w[:6]) + (" ..." if len(_w) > 6 else "")) if _w else "no MDWASD check failed")
+        if _i: print(chr(10).join(["MDWASD notes (INFO, engineer's eye):"] + ["  " + l.strip() for l in _i[:12]]) + chr(10))
+    except Exception as ex: add("WARN", "MDWASD standards", f"mdwasd-check.mjs did not run: {ex}")
+
 order = {"FAIL": 0, "WARN": 1, "OK": 2}
 for lvl, what, det in sorted(rows, key=lambda r: order[r[0]]):
     print(f"{lvl:4}  {what}" + (f"  -  {det}" if det else ""))

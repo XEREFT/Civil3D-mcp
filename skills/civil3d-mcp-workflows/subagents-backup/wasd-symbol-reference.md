@@ -55,3 +55,9 @@ If you find a symbol or abbreviation on a real project drawing that ISN'T in
 `docs/reference/wasd-symbol-legend.md`, add it (with its source, e.g. the drawing name
 and sheet, or a newer WASD manual revision) rather than only answering inline — future
 sessions rely on that file being complete.
+
+## MDWASD standards (county law — added 2026-10-02, applies to data cleanup AND design proposals)
+
+Easements, separations, manhole spacing, mandatory labels and record-drawing content are the Miami-Dade WASD *Water and Sewer Design & Construction Standards* (https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722; UC-005, GS 0.5, GS 1.5, WS 2.21, UC-250, UC-310). Numbers live in `~/.claude/skills/civil3d-mcp-workflows/references/standards/mdwasd-standards.json` (human summary `references/mdwasd-standards.md`; plugin lookup `civil3d_standards_lookup` with `topic: "mdwasd"`). Key numbers: water-main easement 12 ft (6 each side), sewer 15 ft (7.5 each side), both ≥ 23.5 ft with 10 ft between the mains; water–sewer horizontal separation 10 ft preferred / 6 ft minimum (wall to wall); vertical crossing ≥ 12 in; manholes ≤ 400 ft apart; hydrant lateral ≤ 50 ft; accessories outside the main easement; every main label carries size + material + type.
+
+- **Easement linework:** a dashed pair around a water main is the MDWASD easement (12 ft overall = 6 ft each side; sewer 15 ft; both ≥ 23.5 ft) — labels read "twelve (12) feet MDWASD easement" / "fifteen (15) feet MDWASD easement". Dashed main = existing, dark solid = proposed (UC-005 A.12). Symbol/abbreviation sheets GS 3.0 and A 10 are not yet read: say so when a symbol is not in the legend data.

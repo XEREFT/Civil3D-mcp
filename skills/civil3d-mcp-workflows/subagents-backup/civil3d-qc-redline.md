@@ -155,3 +155,9 @@ sequence `\t`), the approval call and the follow-up mutating call must send byte
 parameters or the retry fails with "Approval token does not match." Don't debug it — just
 call `civil3d_request_approval` again immediately before the retry with the exact value
 you're about to send.
+
+## MDWASD standards (county law — added 2026-10-02, applies to data cleanup AND design proposals)
+
+Easements, separations, manhole spacing, mandatory labels and record-drawing content are the Miami-Dade WASD *Water and Sewer Design & Construction Standards* (https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722; UC-005, GS 0.5, GS 1.5, WS 2.21, UC-250, UC-310). Numbers live in `~/.claude/skills/civil3d-mcp-workflows/references/standards/mdwasd-standards.json` (human summary `references/mdwasd-standards.md`; plugin lookup `civil3d_standards_lookup` with `topic: "mdwasd"`). Key numbers: water-main easement 12 ft (6 each side), sewer 15 ft (7.5 each side), both ≥ 23.5 ft with 10 ft between the mains; water–sewer horizontal separation 10 ft preferred / 6 ft minimum (wall to wall); vertical crossing ≥ 12 in; manholes ≤ 400 ft apart; hydrant lateral ≤ 50 ft; accessories outside the main easement; every main label carries size + material + type.
+
+- **When reconciling a markup:** a redline comment that cites an easement width, a separation or a required label is checked against these numbers first (cite the section, e.g. "UC-005 A.8"). If the markup contradicts the standard, flag it to the user instead of applying it silently; if it matches, apply it.

@@ -438,6 +438,15 @@
     },
     "profileViewStyle": "EAC-profile grid V:10"
    }
+  },
+  "mdwasdEasement": {
+   "kind": "polyline+mleader",
+   "layer": "C-ANNO",
+   "colorIndex": 8,
+   "linetype": "DASHED2",
+   "status": "2026-10-02: standard from references/standards/mdwasd-standards.json (UC-005 A.8, WS 2.21). Drawn ONLY for an existing/designed main on private property; recorded easement (project.json site.mdwasdEasement {widthFt, ref}) overrides.",
+   "placement": "two dashed lines at +/- offset from the main (water 6 ft, sewer 7.5 ft, both >= 23.5 ft with 10 ft between mains); MLeader (existingUtilityLeader recipe) 'TWELVE (12) FEET MDWASD EASEMENT' / 'FIFTEEN (15) FEET MDWASD EASEMENT' or 'EXIST <w>' MDWASD EASEMENT (PER <ref>)'",
+   "builder": "scripts/mdwasd-check.mjs --json -> scripts/c300-mdwasd-easement.mjs (auto step in fase1-build-payload.mjs; --no-mdwasd skips)"
   }
  },
  "viewport": {
