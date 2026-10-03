@@ -13,6 +13,8 @@ Source: Miami-Dade WASD, *"CAD Standards for Pipeline Design & Topographic Drawi
 Appendix B / Tables 3.7.1–3.7.2 (abbreviations).
 <https://www.miamidade.gov/resources/water/documents/donation/part-6/wasd-cad-manual-june-2024.pdf>
 
+> **2026-10-02:** the January 2026 edition of the manual (`https://www.miamidade.gov/resources/water/documents/wasd-cad-manual.pdf`) was read in full. Exhibits A.1-A.8 / B.1-B.3 / C.1-C.2 / D.1-D.4 match the June 2024 transcription below; GS 3.0 (standard symbols) and A 10 (abbreviations) were cross-checked. New in 2026: `V-PNTS-LABL-*` layers, lot-line layer `V-PROP-LOTL`, grey survey lineweights, wipeout frames on blocks, Chapter 7 (as-built CAD for GIS, `_WASD` layers) and Appendix C (GIS attributes). Numeric/layer data: skill `references/standards/mdwasd-standards.json` (`cadManual`).
+
 A bilingual (English/Spanish), print-formatted version of this same data lives at
 [`docs/reference/WASD-Legend-Abbreviations-EN-ES.pdf`](WASD-Legend-Abbreviations-EN-ES.pdf).
 

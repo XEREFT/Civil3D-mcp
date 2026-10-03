@@ -245,5 +245,174 @@
       "hdpe",
       "uc-075"
     ]
+  },
+  {
+    "section_number": "CAD Manual 2.1-2.12",
+    "title": "WASD CAD drafting conventions",
+    "pages": [
+      7
+    ],
+    "rule": "WASD Pipeline CAD and GIS Standards Manual (Jan 2026): NAD83 Florida East Zone 901 horizontal, NGVD29 vertical, decimal US Survey Feet, model space 1:1, Simplex text. Slopes to the nearest 0.01 percent, elevations and inverts to the nearest 0.01 ft. Continuous 100-ft stationing starting at 10+00. State Plane coordinates at start, end, PIs, PCs, PTs and major appurtenances. Plan scale 1 in = 20 ft (or 40 ft); profile vertical 1 in = 2 ft. Match marks at half or full stations, perpendicular to the alignment.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "cad manual",
+      "units",
+      "datum",
+      "stationing",
+      "scale",
+      "text"
+    ]
+  },
+  {
+    "section_number": "CAD Manual 2.4",
+    "title": "WASD annotation rules",
+    "pages": [
+      8
+    ],
+    "rule": "Move annotation away from the feature, line annotations up, avoid odd abbreviations and squeezed text, break leaders only at conflicts, leaders must not intersect, group leaders at about the same angle; center-left justification for blocks of text; no unusually large text.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "cad manual",
+      "annotation",
+      "leader",
+      "label"
+    ]
+  },
+  {
+    "section_number": "CAD Manual 3.7",
+    "title": "WASD standard callouts",
+    "pages": [
+      25
+    ],
+    "rule": "Water/sewer callouts: STA. XX+XX (O/S XX' LT./RT.) then PROP. <size, joint type, fitting> then REST. W/GLANDS. Hydrants: PROP. XX\"x6\" M.J. TEE, 6\" M.J. GATE VALVE & F.H. ASSY. SEE STANDARD DETAIL WS 4.50. Survey manhole callout: MHSA, RIM ELEV.=X.XX', 8\" CLAY (E) INV. ELEV.=X.XX', BOTTOM ELEV.=X.XX'. Reference points: RP #1 SET PK W/WASD STA.= O/S= N= E= ELEV.=.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "cad manual",
+      "callout",
+      "label",
+      "manhole",
+      "hydrant"
+    ]
+  },
+  {
+    "section_number": "CAD Manual 5 / App A",
+    "title": "WASD layers for existing facilities",
+    "pages": [
+      28
+    ],
+    "rule": "US NCS layer naming. Existing water pipe C-WATR-PIPE-EXST (color 190, HIDDEN, 0.006 in), fittings C-WATR-FITT-EXST, valves/meters C-WATR-INST-EXST (152); existing sanitary sewer pipe C-SSWR-PIPE-EXST (70, HIDDEN), fittings C-SSWR-FITT-EXST, structures C-SSWR-STRC-EXST (80). Survey layers V-WATR*, V-SSWR*, V-ESMT (easement, DASHED2), V-RWAY (PHANTOM2), V-PROP-LINE, V-PROP-LOTL, V-ROAD-CNTR, V-TOPO. Proposed water 171 / sewer 90 continuous 0.012 in; pipes >= 20 in drawn as two lines with a dashed centerline.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "cad manual",
+      "layers",
+      "existing",
+      "water",
+      "sewer",
+      "easement"
+    ]
+  },
+  {
+    "section_number": "CAD Manual 7",
+    "title": "WASD as-built CAD requirements for GIS",
+    "pages": [
+      48
+    ],
+    "rule": "As-builts: use the official WASD as-built template, NAD83 FL East georeferencing, GIS layers with the _WASD suffix (plan view only, one feature type per layer), single-line polylines connected basepoint to basepoint, point features as blocks/COGO points at the surveyed basepoint, only field-verified installed assets (no trees, signs, poles, spot elevations, lot lines, EOP, or proposed information), bold as-built pipes/property/R-W/easements/baselines, attributes per Appendix C (diameter, material, casing, valve size, install date, X/Y). File name E (water) / ES (sewer) + 6-digit as-built number + C/D + 2-digit phase + sub-phase letter.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "cad manual",
+      "as-built",
+      "gis",
+      "record drawing",
+      "layers",
+      "attributes"
+    ]
+  },
+  {
+    "section_number": "GS 3.0",
+    "title": "WASD standard symbols",
+    "pages": [
+      1
+    ],
+    "rule": "Existing symbols are thin/gray open shapes; proposed are bold/solid. Gate and plug valve: open bowtie (existing) / filled bowtie (proposed); plug: triangle; tee, cross, bends 90 (L-shape), bends other than 90, check valve (N-shape), backflow preventer, tapping sleeve and valve, fire hydrant, meter (single service), flushing valve outlet; pipes 20 in or greater drawn as double line; lines: R/W, P, CL, BL, EOP.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "symbols",
+      "legend",
+      "valve",
+      "hydrant",
+      "gs 3.0"
+    ]
+  },
+  {
+    "section_number": "UC-005 B.6",
+    "title": "Water valve spacing check (automated)",
+    "pages": [
+      8
+    ],
+    "rule": "Gate valves every 660 ft on water mains (butterfly the same for >= 42 in; >= 20 in transmission mains every 1/2 mile). Check = pipe distance between ADJACENT valves along the main <= 660 ft. In this repo's skill: scripts/mdwasd-check.mjs (rule UC-005 B.6) over asbuilt.json appurtenances with coordinates; main ends without a valve are only informational because the as-built window ends where the scan ends.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "valve",
+      "spacing",
+      "660",
+      "water"
+    ]
+  },
+  {
+    "section_number": "WS 4.50",
+    "title": "Fire hydrant installation detail",
+    "pages": [
+      1
+    ],
+    "rule": "Hydrant on a 6 in D.I. lateral from an M.J. tee or tapping sleeve with a 6 in gate valve in a No. 2 valve box; 4 ft cover (54 in bury depth); 18x18 in concrete thrust block (no mechanical restraint on the shoe); 3x3x6 in concrete slab or sidewalk flag; hydrant 1 ft from the face of the sidewalk within the grass area where the walk is inside the 4-7 ft offset, otherwise Fire Department location; guard posts 4 in x 5 ft galvanized steel at the pumper face and 2.5 ft left/right of the hydrant CL, none in F.D.O.T. R/W.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "fire hydrant",
+      "ws 4.50",
+      "lateral",
+      "valve",
+      "guard post"
+    ]
+  },
+  {
+    "section_number": "WS 4.10",
+    "title": "Typical water service plan",
+    "pages": [
+      1
+    ],
+    "rule": "Meter box centerline 2.5 ft inside the property line; no meter if the box is in a driving surface; 1 in copper tubing, road crossings in 1-1/2 in black steel casing with 18 in minimum offset; 2 in x 4 in meter vault for 2 in service.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "water service",
+      "meter",
+      "ws 4.10"
+    ]
+  },
+  {
+    "section_number": "SS 1.0",
+    "title": "Gravity sewer service lateral (shallow sewers)",
+    "pages": [
+      1
+    ],
+    "rule": "Lateral 6 in minimum, slope at least 1/8 in per ft, wye with 45 degree bends, main 8 in minimum, 3 ft minimum to invert, clean-out with threaded plug in a concrete box at the property line / ultimate R/W line / easement line, watertight plug at the lateral end (SS 21.0 for grass areas, SS 22.0 clean-out, UC-310).",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "sewer",
+      "lateral",
+      "clean-out",
+      "ss 1.0",
+      "slope"
+    ]
   }
 ]
