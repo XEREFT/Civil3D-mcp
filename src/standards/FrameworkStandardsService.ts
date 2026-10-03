@@ -48,7 +48,7 @@ const TOPIC_ALIASES: Record<string, string[]> = {
   proposed_existing: ["proposed", "existing", "design", "survey", "conditions"],
   pipe_networks: ["pipe", "pipes", "structure", "pressure pipe", "network"],
   profile_section: ["profile", "profiles", "section", "sections", "profile view", "section view"],
-  mdwasd: ["mdwasd", "miami-dade", "easement", "separation", "record drawing", "wasd"],
+  mdwasd: ["mdwasd", "miami-dade", "wasd"],
 };
 
 let cachedRulesPromise: Promise<FrameworkPromptRule[]> | null = null;

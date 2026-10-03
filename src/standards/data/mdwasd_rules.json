@@ -414,5 +414,215 @@
       "ss 1.0",
       "slope"
     ]
+  },
+  {
+    "section_number": "SS 6.0 / SS 7.0",
+    "title": "Sanitary sewer manhole (standard and shallow)",
+    "pages": [
+      1
+    ],
+    "rule": "Precast manhole: interior diameter 4 ft minimum, wall 8 in, 3 to 5 courses of clay brick under a Type A frame (2 ft clear opening), invert channel slope 3/4 in per ft, pipe opening = OD + 4 in sealed with non-shrink grout, base slab diameter 6'-4\"/7'-4\"/8'-4\" with 8 in min (12 in with PVC waterstop) thickness, overall depth 4 ft to 18 ft (steel #4 @ 12 in, top and bottom beyond 14.5 ft), seal-coated 16 mil, no lift holes, no construction joint below +4.0 ft MSL; first joint: VCP 5 ft pipe, PVC 13 ft pipe, DIP 2 ft PExPE nipple; wheel load 16000 lb. Type A cover 107 lb, frame 259 lb (SS 4.0).",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "manhole",
+      "sewer",
+      "ss 6.0",
+      "ss 7.0",
+      "dimensions"
+    ]
+  },
+  {
+    "section_number": "SS 9.0",
+    "title": "Drop connection",
+    "pages": [
+      1
+    ],
+    "rule": "A drop connection is required whenever an influent sewer is 2 ft or more above the main invert channel; cast-in-place drop at least 3 ft, all PVC or all DIP, 6 in cover, 2 #4 bars each outside face, manhole diameter 4 ft minimum.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "manhole",
+      "drop",
+      "sewer",
+      "ss 9.0"
+    ]
+  },
+  {
+    "section_number": "WS 1.0 / WS 3.10 / WS 3.11 / SS 13.0",
+    "title": "Valve boxes and valve settings",
+    "pages": [
+      1
+    ],
+    "rule": "Gate valves under 16 in: 48 in cover; No. 2 valve box (6 in riser) for fire hydrant valves, fire line and domestic services, 2 in mains in easements and bypass valves; No. 3 box (10 in riser, ring 135 lb, cover 37 lb) for ALL main-line valves; No. 53 box for sewer valves (ring 134 lb, cover 44 lb). Butterfly valves up to 24 in: 48 in cover, 10 in riser, 2 in AWWA nut with torque limiter 200-220 ft-lb. Plug valves 16 in and larger on a concrete support pad (SS 19.1). Reclaimed water: purple Pantone 522C lid marked R.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "valve",
+      "valve box",
+      "cover",
+      "ws 1.0"
+    ]
+  },
+  {
+    "section_number": "WS 2.10 / WS 2.12 / WS 4.10",
+    "title": "Meter boxes and service plan",
+    "pages": [
+      1
+    ],
+    "rule": "Single meter box 27-3/8 x 17-7/8 x 12 in; dual meter box with meters 7.5 in apart; box center line 2.5 ft inside the property line; slab 5x5x4 in sidewalk / 3x3x6 in reinforced elsewhere; 1 in blue HDPE or Type K copper service, purple HDPE for reclaimed water; meters are not installed when the box is in a driving surface; service cover 30 in (36 in on arterial roads).",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "meter",
+      "service",
+      "ws 2.10",
+      "ws 2.12",
+      "ws 4.10"
+    ]
+  },
+  {
+    "section_number": "WS 4.16 / 4.18 / 4.19 / 4.20 / 4.21",
+    "title": "Meter banks and backflow preventers",
+    "pages": [
+      1
+    ],
+    "rule": "Meter bank: 2 in header max 10 x 5/8 in or 5 x 1 in meters; 4 in header max 5 x 2 in meters. Backflow preventers in private property behind the meter, 30 in clear all around, RPZ 12-30 in (<= 2 in) or 16-30 in (4-8 in) above a slab, DDCV 18-30 in, copper or Sch. 40 brass up to 2 in, ductile iron flanged 4 in and larger, PVC not accepted, blue enamel (RPZ) / red enamel (DDCV); parallel DDCVs 5 ft apart when service cannot be interrupted; vacuum breaker (irrigation) 12 in above the highest sprinkler head.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "backflow",
+      "meter bank",
+      "ddcv",
+      "rpz"
+    ]
+  },
+  {
+    "section_number": "GS 1.0 / GS 1.2 / GS 1.7 / GS 1.8",
+    "title": "Tie rods, slabs and tapping",
+    "pages": [
+      1
+    ],
+    "rule": "Tie rods at 150 psi: <= 8 in 3 x 3/4; 12 in 4 x 3/4; 16 in 6 x 3/4; 20 in 8 x 3/4; 24 in 12 x 3/4; 30 and 36 in 14 x 1; 42 and 48 in 16 x 1-1/4. Reinforced slab for cover under 2.5 ft: 5 ft wide, 8 in thick, #4 @ 12 in EW, 6 in over the pipe, extended until cover exceeds 30 in. Tapping sleeve and valve: pressure test 150 psi, 18 in clearance from fittings and bells, taps larger than 20 in only by a tapping specialist, Department forces make taps up to 20 in on existing mains.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "tie rod",
+      "tapping",
+      "slab",
+      "cover",
+      "gs 1.0"
+    ]
+  },
+  {
+    "section_number": "GS 2.0",
+    "title": "Thrust restraint lengths",
+    "pages": [
+      1
+    ],
+    "rule": "Minimum pipe length to restrain each side of a fitting (DIP and PVC; sand, 150 psi test, 4 ft bury, trench type 3, safety factor 1.5). Examples (ft): 8 in 90 deg bend 25, 45 deg 11, 22.5 deg 5, 11.25 deg 3, plug 59, in-line valve 59; 12 in 35/15/7/4, plug 83; 16 in 45/19/9/4, plug 107; 24 in 62/26/12/6, plug 151; 36 in 84/35/17/8, plug 220; 48 in 101/42/20/10, plug 270. Full table in the skill file mdwasd-thrust-restraint.json.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "thrust",
+      "restraint",
+      "gs 2.0",
+      "bend",
+      "valve"
+    ]
+  },
+  {
+    "section_number": "GS 5.0",
+    "title": "Casing for jack and bore crossings",
+    "pages": [
+      1
+    ],
+    "rule": "Steel casing by carrier pipe size (in): 4->12, 6->16, 8->18, 10->20, 12->24, 14->24, 16->30, 18->30, 20->36, 24->42, 30->48, 36->54, 42->60, 48->72 (wall .250 for 12 in casing, .375 up to 36 in, .500 above). Casing extends 10 ft past each R/W line; cover 30 in minimum (36 in in Miami-Dade County and FDOT R/W); stainless spacers every 10 ft; restrained-joint carrier pipe (no glands); 2 in minimum clearance between joint and casing; to-scale drawing for every jack and bore.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "casing",
+      "crossing",
+      "gs 5.0",
+      "bore"
+    ]
+  },
+  {
+    "section_number": "GS 0.5 sheet 1",
+    "title": "Standard notes for all water and sewer plans",
+    "pages": [
+      1
+    ],
+    "rule": "Notes required on all plans (UC-005 A.2): cover over water or force mains 4 ft minimum; main-line valves with 10 in risers and No. 3 or 53 boxes, hydrant and service valves with 6 in risers and No. 2 boxes; force main service connections have a shutoff and check valve; meters installed by MDWASD; fire hydrant locations by the Fire Department; call MDWASD inspection 2 full business days before construction and One Call 48 h before digging; all connections to existing Department mains and taps up to 20 in are made by Department forces; record drawings 3 sets for water, 4 for gravity sewer, 5 for force main or pump station.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "notes",
+      "standard notes",
+      "gs 0.5",
+      "record drawing"
+    ]
+  },
+  {
+    "section_number": "GS 1.5 / GS 1.1",
+    "title": "Conflict detail: joint spacing and deflection",
+    "pages": [
+      1
+    ],
+    "rule": "At crossings joint spacing alternate: 3 ft minimum (storm, vacuum), 6 ft (sanitary), full length of pipe centered. Conflict fittings: 22.5 deg (preferred) or 45 deg elbows with 10 ft + 10 ft and no joints between fittings, cover 36 in minimum; deflection type (preferred): do not exceed 50 percent of the manufacturer's maximum joint deflection.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "crossing",
+      "conflict",
+      "gs 1.5",
+      "gs 1.1"
+    ]
+  },
+  {
+    "section_number": "RGN 1.0 / R 1.0-5.0",
+    "title": "Reclaimed water mains",
+    "pages": [
+      1
+    ],
+    "rule": "Pantone 522C purple for pipe, valve and meter box covers; 4 ft minimum cover; no physical connection to potable; main on the opposite side of the street from potable; crossings not less than 60 degrees; 150 psi design, 100 psi hydrostatic test; locator balls 2 ft deep every 50 ft (20 ft in deflections) and 5 ft from fittings; services in meter boxes with 4 ft between services; sign 24 x 20 in, post 36-62 in high.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "reclaimed",
+      "purple",
+      "locator ball",
+      "rgn 1.0"
+    ]
+  },
+  {
+    "section_number": "A 1.0 - A 4.0",
+    "title": "Pavement restoration",
+    "pages": [
+      1
+    ],
+    "rule": "Type I: 2 in asphalt over 8 in base, trench + 12 in each side; Type II (state road): surface = ditch width + 4 ft, asphalt >= 3 in; Type III: 6 in slab with 6x6 6 ga mesh + 1 in asphalt; Type IV: 8 in concrete with #5 @ 12 in EW; Type M: asphalt equal to adjacent road or 1.5 in, 12 in base; Type V: overlay 1 in (county) or mill 1.5 in + overlay 1.5 in (FDOT). Backfill per GS 1.9 (trench = OD + 24 in).",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "pavement",
+      "restoration",
+      "a 1.0",
+      "trench"
+    ]
+  },
+  {
+    "section_number": "A 10.0",
+    "title": "WASD abbreviations",
+    "pages": [
+      1
+    ],
+    "rule": "Department abbreviations (A 10.0): e.g. F.H. fire hydrant, G.V. gate valve, M.J. mechanical joint, P.E. plain end, REST. restrained, T.O.P. top of pipe, TAP. SLV. tapping sleeve, F.V.O. flushing valve outlet, W.M. water main, SAN. sanitary sewer, S.S. storm sewer, CORP. STOP corporation stop, INV. invert, E.O.P. edge of pavement, B.O. blow-off, ARV air release valve. Full list in the skill file mdwasd-abbreviations.json.",
+    "score": 18,
+    "tags": [
+      "mdwasd",
+      "abbreviations",
+      "a 10.0"
+    ]
   }
 ]

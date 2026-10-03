@@ -31,4 +31,10 @@ describe("Framework standards lookup", () => {
     const separation = await lookupFrameworkStandards({ query: "water sewer horizontal separation", topic: "mdwasd", maxResults: 5 });
     expect(separation.matches.some((m) => m.sectionNumber === "GS 1.5" && m.rule.includes("10 ft preferred") && m.rule.includes("6 ft minimum"))).toBe(true);
   });
+  it("serves the MDWASD standard-detail numbers (manhole drop, restraint, casing, valve boxes)", async () => {
+    const drop = await lookupFrameworkStandards({ query: "drop connection manhole 2 ft", topic: "mdwasd", maxResults: 5 });
+    expect(drop.matches.some((m) => m.sectionNumber === "SS 9.0" && m.rule.includes("2 ft or more"))).toBe(true);
+    const casing = await lookupFrameworkStandards({ query: "casing jack and bore steel casing size", topic: "mdwasd", maxResults: 5 });
+    expect(casing.matches.some((m) => m.sectionNumber === "GS 5.0" && m.rule.includes("10 ft past each R/W line"))).toBe(true);
+  });
 });
