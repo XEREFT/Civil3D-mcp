@@ -1,0 +1,423 @@
+{
+ "_source": "MDWASD Standard Detail GS 2.0 'Standard requirements for water and sewer mechanical thrust restraint' (04/10/2014, rev 07/20/2016); sources EBAA Iron restraint length program (PVC, rel. 3.1) and DIPRA (DIP, rel. 3.2). Values = MINIMUM LENGTH OF PIPE (ft) TO BE RESTRAINED, on both sides of the valve/fitting.",
+ "conditions": {
+  "soil": "sand",
+  "testPressurePsi": 150,
+  "depthOfBuryFt": 4,
+  "trench": "type 3",
+  "safetyFactor": 1.5,
+  "verticalOffsetFt": 3,
+  "minPipeLengthAlongTeeRunFt": 5
+ },
+ "notes": [
+  "applies to ductile iron and PVC pipe",
+  "all joints between upper and lower bends shall be restrained",
+  "restrained lengths apply to pipe on both sides of valves and fittings"
+ ],
+ "pipeSizesIn": [
+  4,
+  6,
+  8,
+  10,
+  12,
+  16,
+  20,
+  24,
+  30,
+  36,
+  42,
+  48
+ ],
+ "bendsPlugsValves": {
+  "90 horizontal bend": [
+   14,
+   20,
+   25,
+   30,
+   35,
+   45,
+   54,
+   62,
+   73,
+   84,
+   93,
+   101
+  ],
+  "45 horizontal bend": [
+   6,
+   8,
+   11,
+   13,
+   15,
+   19,
+   22,
+   26,
+   30,
+   35,
+   38,
+   42
+  ],
+  "22.5 horizontal bend": [
+   3,
+   4,
+   5,
+   6,
+   7,
+   9,
+   11,
+   12,
+   15,
+   17,
+   18,
+   20
+  ],
+  "11.25 horizontal bend": [
+   1,
+   2,
+   3,
+   3,
+   4,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10
+  ],
+  "90 vertical offset, upper bend": [
+   55,
+   79,
+   103,
+   125,
+   147,
+   189,
+   228,
+   266,
+   319,
+   368,
+   412,
+   454
+  ],
+  "90 vertical offset, lower bend": [
+   22,
+   38,
+   49,
+   59,
+   69,
+   88,
+   106,
+   123,
+   145,
+   165,
+   184,
+   201
+  ],
+  "45 vertical offset, upper bend": [
+   22,
+   32,
+   42,
+   51,
+   60,
+   77,
+   93,
+   109,
+   131,
+   151,
+   170,
+   187
+  ],
+  "45 vertical offset, lower bend": [
+   10,
+   14,
+   19,
+   23,
+   28,
+   35,
+   43,
+   50,
+   59,
+   67,
+   75,
+   82
+  ],
+  "22.5 vertical offset, upper bend": [
+   7,
+   12,
+   17,
+   21,
+   26,
+   34,
+   42,
+   49,
+   60,
+   70,
+   78,
+   87
+  ],
+  "22.5 vertical offset, lower bend": [
+   2,
+   4,
+   6,
+   8,
+   10,
+   14,
+   17,
+   21,
+   25,
+   29,
+   33,
+   36
+  ],
+  "11.25 vertical offset, upper bend": [
+   3,
+   4,
+   6,
+   9,
+   11,
+   15,
+   19,
+   22,
+   28,
+   32,
+   37,
+   41
+  ],
+  "11.25 vertical offset, lower bend": [
+   1,
+   1,
+   1,
+   2,
+   3,
+   5,
+   7,
+   8,
+   10,
+   12,
+   14,
+   16
+  ],
+  "plug (dead end)": [
+   32,
+   45,
+   59,
+   70,
+   83,
+   107,
+   129,
+   151,
+   190,
+   220,
+   244,
+   270
+  ],
+  "in-line valve": [
+   32,
+   45,
+   59,
+   70,
+   83,
+   107,
+   129,
+   151,
+   100,
+   110,
+   125,
+   135
+  ]
+ },
+ "teeBranchRestraint_byBranchSize_valuesByRunSizeFrom4": {
+  "4": [
+   23
+  ],
+  "6": [
+   21,
+   35
+  ],
+  "8": [
+   18,
+   34,
+   47
+  ],
+  "10": [
+   16,
+   32,
+   46,
+   58
+  ],
+  "12": [
+   13,
+   30,
+   44,
+   57,
+   69
+  ],
+  "16": [
+   7,
+   26,
+   41,
+   55,
+   67,
+   90
+  ],
+  "20": [
+   1,
+   21,
+   38,
+   52,
+   65,
+   88,
+   109
+  ],
+  "24": [
+   1,
+   16,
+   34,
+   49,
+   62,
+   86,
+   108,
+   129
+  ],
+  "30": [
+   8,
+   28,
+   44,
+   58,
+   83,
+   106,
+   127,
+   154
+  ],
+  "36": [
+   1,
+   1,
+   22,
+   39,
+   54,
+   80,
+   103,
+   124,
+   153,
+   179
+  ],
+  "42": [
+   1,
+   1,
+   15,
+   33,
+   49,
+   77,
+   100,
+   122,
+   151,
+   177,
+   201
+  ],
+  "48": [
+   1,
+   1,
+   7,
+   27,
+   44,
+   73,
+   97,
+   120,
+   149,
+   176,
+   200,
+   222
+  ]
+ },
+ "reducerLargerPipeRestraint_byLargerSize_valuesBySmallerSizeFrom4": {
+  "6": [
+   23
+  ],
+  "8": [
+   38,
+   25
+  ],
+  "10": [
+   57,
+   43,
+   24
+  ],
+  "12": [
+   72,
+   60,
+   44,
+   41
+  ],
+  "16": [
+   99,
+   90,
+   78,
+   75,
+   45
+  ],
+  "20": [
+   123,
+   116,
+   107,
+   105,
+   81,
+   45
+  ],
+  "24": [
+   146,
+   140,
+   132,
+   131,
+   111,
+   82,
+   45
+  ],
+  "30": [
+   157,
+   153,
+   148,
+   141,
+   133,
+   113,
+   87,
+   56
+  ],
+  "36 (printed 38)": [
+   182,
+   179,
+   175,
+   169,
+   163,
+   147,
+   126,
+   101,
+   56
+  ],
+  "42": [
+   205,
+   202,
+   199,
+   194,
+   189,
+   175,
+   158,
+   138,
+   100,
+   54
+  ],
+  "48": [
+   226,
+   224,
+   221,
+   217,
+   213,
+   201,
+   187,
+   169,
+   138,
+   98,
+   53
+  ]
+ },
+ "_reducerNote": "the printed row '38 x 0' is read as the 36 in reducer; confirm on the PDF if a 36 in reducer is designed"
+}

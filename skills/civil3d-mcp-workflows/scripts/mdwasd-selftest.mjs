@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ab = {
-  manholes: [{ id: 'A', x: 0, y: 0, rim: 10, inv: [['ND', 2]] }, { id: 'B', x: 450, y: 0, rim: 10, inv: [['ND', 1]] }],
+  manholes: [{ id: 'A', x: 0, y: 0, rim: 10, inv: [['N', 2], ['E', 4.5]] }, { id: 'B', x: 450, y: 0, rim: 10, inv: [['ND', 1]] }],
   sewerMains: [{ from: 'A', to: 'B', text: 'EXIST 8" PVC SAN MAIN', lengthFt: 450 }],
   waterMains: [{ a: [0, 12], b: [1000, 12], text: 'EXIST 8" DIP WATER MAIN' }, { a: [0, 5], b: [100, 5], text: 'EXIST WATER MAIN' }],
   hydrants: [],
@@ -28,6 +28,7 @@ const must = [
   [/WARN \[GS 1\.5 horizontal\]/, 'water main 5 ft from the sewer -> WARN'],
   [/WARN \[UC-005 A\.12\] water main: label lacks size/, 'water label without size -> WARN'],
   [/INFO \[UC-005 B\.6\] valve.*28\.0 ft from any water main/, 'valve far from any main -> ignored with INFO'],
+  [/INFO \[SS 9\.0\] A: inverts differ by 2\.5 ft/, 'MH inverts 2.5 ft apart -> drop INFO'],
   [/WARN \[SS 1\.0\].*4 in \(min 6 in\)/, 'lateral 4 in -> WARN'],
   [/WARN \[SS 1\.0\].*slope 1\/16/, 'lateral slope 1/16 -> WARN'],
 ];

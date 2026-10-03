@@ -72,6 +72,13 @@ for (const m of Object.values(mh)) {
   else if (m.inv.length > 1 && m.inv.some(([d]) => d === 'ND')) add_('WARN', 'GS 0.5 4.c', `${m.id}: several inverts but at least one has no direction (N/S/E/W)`);
 }
 
+// ---- 3b) drop connection (SS 9.0 / UC-310 3.01): an influent whose invert is 2 ft or more above the lowest invert of the manhole needs a drop connection.
+// Only inverts with a direction can be told apart (INV list of the manhole); a 2 ft+ spread is an INFO for the engineer (the as-built may already show the drop).
+for (const m of Object.values(mh)) {
+  const vs = (m.inv ?? []).map(([, v]) => Number(v)).filter(Number.isFinite);
+  if (vs.length > 1 && Math.max(...vs) - Math.min(...vs) >= 2) add_('INFO', 'SS 9.0', `${m.id}: inverts differ by ${f1(Math.max(...vs) - Math.min(...vs))} ft (>= 2 ft): a drop connection is required (SS 9.0)`, 'check that the as-built shows the drop (cast-in-place, >= 3 ft)');
+}
+
 // ---- 4) cover over gravity sewer (UC-005 C.6/C.7): rim - invert - pipe diameter (needs RIM)
 for (const s of sewer) {
   for (const id of [s.from, s.to]) {

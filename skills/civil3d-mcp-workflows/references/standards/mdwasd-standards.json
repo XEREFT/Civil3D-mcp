@@ -330,5 +330,219 @@
         "UC-310 gravity sewer service laterals"
       ]
     }
+  },
+  "detailsIndex": {
+    "_doc": "Key numbers read from the standard-detail images (all re-checked against the images 2026-10-02; full text per detail: references/mdwasd-details.md).",
+    "manhole_SS6_SS7": {
+      "interiorMinDiameterFt": 4,
+      "wallIn": 8,
+      "brickCoursesMinMax": [
+        3,
+        5
+      ],
+      "coverOpeningMinFt": 2,
+      "inletHoleDiameter": "pipe OD + 4 in (14 in hole for 8 in pipe with 6 in grout)",
+      "channelSlopeInPerFt": 0.75,
+      "baseSlabDiameters": [
+        "6ft4in",
+        "7ft4in",
+        "8ft4in"
+      ],
+      "baseSlabThicknessIn": "8 min / 12 max (12 with PVC waterstop)",
+      "overallDepthFt": {
+        "min": 4,
+        "max": 18
+      },
+      "typeA_MinWeightLb": {
+        "cover": 107,
+        "frame": 259
+      },
+      "dropRequiredWhenInfluentAboveMainInvertFt": 2,
+      "dropMinHeightFt": 3,
+      "sealCoatingMil": 16,
+      "firstJointPipeLengthFt": {
+        "VCP": 5,
+        "PVC": 13
+      }
+    },
+    "valveBoxes": {
+      "No2": {
+        "use": "fire hydrant valves, fire line and domestic services, 2 in mains in easements, bypass valves",
+        "riserIn": 6
+      },
+      "No3": {
+        "use": "ALL main-line valves",
+        "riserIn": 10,
+        "ringWeightLb": 135,
+        "coverWeightLb": 37
+      },
+      "No53": {
+        "use": "sewer valves",
+        "ringWeightLb": 134,
+        "coverWeightLb": 44
+      }
+    },
+    "coverFt": {
+      "waterAndForceMainMin": 4,
+      "gateValveSetting": 4,
+      "serviceMinIn": 30,
+      "serviceArterialMinIn": 36,
+      "reclaimedMin": 4
+    },
+    "trench": {
+      "widthRule": "pipe OD + 24 in",
+      "pvcGravityUnstableByPipeIn": {
+        "6": 30,
+        "8": 40,
+        "10": 50,
+        "12": 60,
+        "15": 75
+      },
+      "bedding": "6 in under pipe; select backfill 90% 12 in over crown; rest 98%; PVC water: #57 stone or pea rock",
+      "encasement": "polyethylene >= 8 mil if the Department requires (A 9.0)"
+    },
+    "tapping": {
+      "pressureTestPsi": 150,
+      "clearanceFromFittingsIn": 18,
+      "departmentDoesTapsUpToIn": 20,
+      "specialistAboveIn": 20
+    },
+    "thrustRestraint": "standards/mdwasd-thrust-restraint.json (GS 2.0)",
+    "tieRods_GS1_0": {
+      "le8in": "3 x 3/4",
+      "12in": "4 x 3/4",
+      "16in": "6 x 3/4",
+      "20in": "8 x 3/4",
+      "24in": "12 x 3/4",
+      "30in": "14 x 1",
+      "36in": "14 x 1",
+      "42in": "16 x 1-1/4",
+      "48in": "16 x 1-1/4"
+    },
+    "casing_GS5_0": {
+      "pipeToCasingIn": {
+        "4": 12,
+        "6": 16,
+        "8": 18,
+        "10": 20,
+        "12": 24,
+        "14": 24,
+        "16": 30,
+        "18": 30,
+        "20": 36,
+        "24": 42,
+        "30": 48,
+        "36": 54,
+        "42": 60,
+        "48": 72
+      },
+      "extendsBeyondRWFt": 10,
+      "coverMinIn": 30,
+      "coverMinInCountyAndFDOTIn": 36,
+      "spacersEveryFt": 10
+    },
+    "hydrant_WS4_50": {
+      "lateralIn": 6,
+      "coverFt": 4,
+      "buryIn": 54,
+      "thrustBlockIn": [
+        18,
+        18
+      ],
+      "slabFt": "3x3x0.5",
+      "setbackFromCurbMinFt": 4,
+      "offsetRangeFt": [
+        4,
+        7
+      ],
+      "guardPost": "4 in x 5 ft Sch.40, 2.5 ft each side of CL at the pumper face, none in FDOT R/W"
+    },
+    "meterBox_WS2_10_2_12": {
+      "boxCLInsidePropertyLineFt": 2.5,
+      "slabSidewalkFt": "5x5x0.33",
+      "slabNonSidewalkFt": "3x3x0.5",
+      "dualBoxMeterSpacingIn": 7.5,
+      "noMeterInDrivingSurface": true
+    },
+    "meterBank_WS4_16": {
+      "header2in": "max 10 x 5/8 in or 5 x 1 in",
+      "header4in": "max 5 x 2 in meters"
+    },
+    "backflow_WS4_18_to_4_20": {
+      "location": "private property behind the meter",
+      "clearAllAroundIn": 30,
+      "heightAboveSlabIn": {
+        "rpz_le2in": [
+          12,
+          30
+        ],
+        "rpz_4to8in": [
+          16,
+          30
+        ],
+        "ddcv": [
+          18,
+          30
+        ]
+      },
+      "pvcNotAccepted": true,
+      "rpzPaint": "blue",
+      "ddcvPaint": "red",
+      "parallelDDCVSeparationMinFt": 5
+    },
+    "airRelease_WS1_60_SS11": {
+      "slabFt": "5x5x0.67",
+      "openingIn": 24,
+      "clearCoverMinIn": 14,
+      "automaticRequiredOnForceMains": true,
+      "valve": "2 in stainless ball valve, 1.5x2 corp stop"
+    },
+    "reclaimed_RGN_R": {
+      "color": "Pantone 522C purple",
+      "coverMinFt": 4,
+      "crossAngleMinDeg": 60,
+      "locatorBalls": {
+        "depthFt": 2,
+        "straightRunEveryFt": 50,
+        "deflectionRunEveryFt": 20,
+        "atFittingsFt": 5
+      },
+      "testPsi": 100,
+      "designPsi": 150,
+      "serviceSpacingMinFt": 4,
+      "meterBoxNotUnderDriveway": true
+    },
+    "pavementRestoration": {
+      "A1.0_typeI": "2 in asphalt over 8 in base, +12 in each side",
+      "A1.1_typeV": "overlay 1 in (county) / mill + overlay 1.5 in (FDOT)",
+      "A1.2_typeII": "surface = ditch W + 4 ft, asphalt >= 3 in, Superpave 12.5",
+      "A2.0_typeIII": "6 in slab + 6x6 6ga mesh + 1 in asphalt",
+      "A3.0_typeIV": "8 in concrete + #5 @ 12 in EW",
+      "A4.0_typeM": "asphalt = adjacent road or 1.5 in, base 12 in"
+    },
+    "recordDrawingCopies_GS0_5": {
+      "water": 3,
+      "gravitySewer": 4,
+      "forceMainOrPumpStation": 5
+    },
+    "preconstruction": "call MDWASD inspection 2 full business days before; One Call 48 h before digging",
+    "separationJointSpacingAtCrossings_GS1_5": {
+      "stormOrVacuum": "3 ft min alternate (full length of pipe centered)",
+      "sanitary": "6 ft min alternate"
+    },
+    "symbols_GS3_0": {
+      "existing": "thin gray / open",
+      "proposed": "bold black / solid",
+      "gateOrPlugValve": "bowtie (open = existing, filled = proposed)",
+      "fireHydrant": "circle-cross with cap (open / filled)",
+      "sanManhole": "open circle (existing) / solid disc 'M.H.' (proposed)",
+      "plug": "triangle at pipe end",
+      "checkValve": "N-shape",
+      "bend90": "L-shape",
+      "backflowPreventer": "double N inside the line",
+      "tappingSleeveAndValve": "hydrant-like symbol over a double line",
+      "pipes_ge_20in": "double line",
+      "lines": "section line S, R/W, P (property), CL, BL (base line), EOP dashed"
+    }
   }
 }
