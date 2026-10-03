@@ -89,7 +89,9 @@ for h, whys in problems.items():
             mdx, mdy = pdf_delta_to_model(dx, dy)
             npos = (pos[0] + mdx, pos[1] + mdy)
             if math.hypot(npos[0] - arr[0], npos[1] - arr[1]) > a.leader_ft: continue
-            fwd = (npos[0] - arr[0]) * ux + (npos[1] - arr[1]) * uy >= 0
+            _dot = (npos[0] - arr[0]) * ux + (npos[1] - arr[1]) * uy
+            if abs(_dot) < 4.0: continue            # side of the text box (TopLeft/TopRight) is ambiguous this close to perpendicular: the plugin and the QC can disagree -> never land there
+            fwd = _dot >= 0
             ax_, ay_ = anchor0[0] + dx, anchor0[1] + dy
             r = [ax_, ay_, ax_ + bw, ay_ + bh] if fwd else [ax_ - bw, ay_, ax_, ay_ + bh]
             if r[0] < vx0 + 4 or r[2] > vx1 - 4 or r[1] < vy0 + 4 or r[3] > vy1 - 4: continue

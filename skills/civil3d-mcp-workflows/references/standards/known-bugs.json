@@ -1811,6 +1811,28 @@
      "pattern": "VALVE = /\\\\b"
     }
    ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "qc-label-side-guess-false-edge",
+   "area": "skill",
+   "status": "fixed",
+   "match": "QC dice que una etiqueta esta cortada por el borde del viewport pero esta en medio de la hoja; el despeje la mueve 2.2 ft en cada ronda y no converge",
+   "symptom": "Goulds: WARN 'MLeader 10D7F cut off by the viewport edge (1/2 words printed)' para 'EXIST R/W'; la palabra EXIST salia sin duenio y fase1-declutter repetia el mismo movimiento",
+   "cause": "fase1-qc.py adivina de que lado cuelga la caja de texto (TopLeft/TopRight) con el signo del producto punto flecha->texto sobre los ejes de la hoja; con lider casi perpendicular al texto el signo es ambiguo y el plugin usa la rotacion del MText, no los ejes: la caja quedaba del lado equivocado y la palabra lejana quedaba >6 ft de ella",
+   "fix": "fase1-qc.py conserva el lado cuyo box posee mas palabras impresas (el plot manda); fase1-declutter.py no propone posiciones con |producto punto| < 4 ft (lado ambiguo)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "owns more of the label"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-declutter.py",
+     "pattern": "ambiguous this close to perpendicular"
+    }
+   ]
   }
  ]
 }

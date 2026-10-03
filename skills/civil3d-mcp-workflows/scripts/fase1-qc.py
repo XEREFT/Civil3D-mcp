@@ -385,6 +385,14 @@ if os.path.exists(pdf):
         da, dd = (m[0] - o["pos"][0]) * ux + (m[1] - o["pos"][1]) * uy, (m[0] - o["pos"][0]) * uy - (m[1] - o["pos"][1]) * ux
         lo, hi = (0, o["W"]) if o["fwd"] else (-o["W"], 0)
         return math.hypot(max(0, lo - da, da - hi), max(0, -1.5 - dd, dd - (o["H"] + 1.5)))
+    # The sign test above is ambiguous when the leader is (nearly) perpendicular to the reading direction (the plugin decides TopLeft/TopRight from the MText
+    # rotation, not from the sheet axes): the plot is the truth, so keep the side whose box owns more of the label's printed words. Without this a label whose
+    # box was guessed on the wrong side loses its far word -> false "cut off by the viewport edge" and a declutter move that never converges (EXIST R/W, Goulds).
+    _pw = [(to_model((w[0] + w[2]) / 2, (w[1] + w[3]) / 2), re.sub(r"[^A-Z0-9⅊]", "", w[4].upper())) for w in words if w[4].strip()]
+    for o in ours:
+        if o["type"] != "MULTILEADER": continue
+        _n = lambda fw: sum(1 for m_, t_ in _pw if t_ in o["toks"] and box_dist(dict(o, fwd=fw), m_) <= 6)
+        if _n(not o["fwd"]) > _n(o["fwd"]): o["fwd"] = not o["fwd"]
     def owner_of(rect, text):
         m = to_model((rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2)
         c_ = [(box_dist(o, m), o) for o in ours if norm_w(text) in o["toks"]]
