@@ -1725,71 +1725,92 @@
     }
    ]
   },
-{
-  "since": "2026-10-02",
-  "id": "road-labels-survey-layer-names",
-  "area": "skill",
-  "status": "fixed",
-  "match": "Faltan las etiquetas EOP y EXIST R/W en la hoja cuando el topógrafo usa otras capas (EOP, _NPLT-TXT)",
-  "symptom": "GOULDS 33809: 0 EOP y 1 EXIST R/W en vez de 2 EOP y 13 EXIST R/W",
-  "cause": "c300-road-labels solo leía los bordes de pavimento de IMPROVEMENTS y las cotas de DIM; este survey usa la capa EOP y _NPLT-TXT",
-  "fix": "c300-road-labels.mjs: bordes en IMPROVEMENTS o EOP; cotas en DIM o _NPLT-TXT con un extremo sobre PROPERTY_LINE (LINE). VILLA ONE no cambia (13 R/W, 16 EOP)",
-  "checks": [
-   {
-    "type": "skill-grep",
-    "file": "scripts/c300-road-labels.mjs",
-    "pattern": "'EOP'"
-   }
-  ]
- },
- {
-  "since": "2026-10-02",
-  "id": "label-per-null",
-  "area": "skill",
-  "status": "fixed",
-  "match": "Una etiqueta de utilidad existente imprime «(PER null)» cuando el proyecto no tiene as-built de ese sistema",
-  "symptom": "Goulds: «EXIST WATER MAIN (PER null)»; el QC lo daba como FAIL",
-  "cause": "c300-utility-labels interpolaba waterRef / sewerRef aunque fueran null",
-  "fix": "helper per(ref): sin referencia no se imprime la línea (PER …); el QC solo exige (PER ref) cuando existe",
-  "checks": [
-   {
-    "type": "skill-grep",
-    "file": "scripts/c300-utility-labels.mjs",
-    "pattern": "const per ="
-   }
-  ]
- },
- {
-  "since": "2026-10-02",
-  "id": "blocks-from-without-exist-arrow",
-  "area": "skill",
-  "status": "fixed",
-  "match": "El build falla con «Block 'EXIST ARROW' was not found» al importar los bloques del paquete",
-  "symptom": "GOULDS 33809: --blocks-from apuntó al C-300 de Goulds, que no trae EXIST ARROW / FH",
-  "cause": "los bloques existentes de flecha y hidrante solo están en el paquete C-300 de VILLA ONE, no en todos",
-  "fix": "usar como --blocks-from un paquete que los tenga (VILLA ONE: Villa One-…\\2026-09-21_WASD - Xereft\\C-300.dwg) y dejarlo en project.json sources.blocksFrom; el error es claro y no deshace nada",
-  "checks": []
- },
- {
-  "since": "2026-10-02",
-  "id": "asbuilt-stations-pair-with-survey-symbols",
-  "area": "skill",
-  "status": "mitigated",
-  "match": "Los manholes, válvulas y laterales de un as-built sin N/E no se pueden ubicar",
-  "symptom": "GOULDS 33809: ítems con solo estación + offset sin ubicación",
-  "cause": "sin N/E impresos no hay anclas; el X-UTIL de ese proyecto no trae manholes",
-  "fix": "asbuilt-georef-symbols.mjs empareja con los SÍMBOLOS del topográfico (X-TOPO, dwg-dump exporta el texto de bloques anónimos como btxt=): «STA 0+00 EXIST MH» = el manhole del survey sobre la línea SAN del X-UTIL; las estaciones de su misma columna se ubican a esa distancia a lo largo de la línea SAN (sugerencias que el usuario confirma); válvulas/hidrantes/medidores solo con igual conteo as-built/survey; asbuilt-build --topo toma esos manholes como nodos; c300-utility-labels --spec rotula solo lo que cae en el viewport. Goulds: ancla MH-SS-flat-2, 7 laterales ubicados; 0 válvulas/hidrantes en el survey de ese sitio",
-  "checks": [
-   {
-    "type": "file-exists",
-    "path": "scripts/asbuilt-georef-symbols.mjs"
-   },
-   {
-    "type": "skill-grep",
-    "file": "scripts/asbuilt-build.mjs",
-    "pattern": "survey manhole symbol"
-   }
-  ]
- }
-]
+  {
+   "since": "2026-10-02",
+   "id": "road-labels-survey-layer-names",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Faltan las etiquetas EOP y EXIST R/W en la hoja cuando el topógrafo usa otras capas (EOP, _NPLT-TXT)",
+   "symptom": "GOULDS 33809: 0 EOP y 1 EXIST R/W en vez de 2 EOP y 13 EXIST R/W",
+   "cause": "c300-road-labels solo leía los bordes de pavimento de IMPROVEMENTS y las cotas de DIM; este survey usa la capa EOP y _NPLT-TXT",
+   "fix": "c300-road-labels.mjs: bordes en IMPROVEMENTS o EOP; cotas en DIM o _NPLT-TXT con un extremo sobre PROPERTY_LINE (LINE). VILLA ONE no cambia (13 R/W, 16 EOP)",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-road-labels.mjs",
+     "pattern": "'EOP'"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "label-per-null",
+   "area": "skill",
+   "status": "fixed",
+   "match": "Una etiqueta de utilidad existente imprime «(PER null)» cuando el proyecto no tiene as-built de ese sistema",
+   "symptom": "Goulds: «EXIST WATER MAIN (PER null)»; el QC lo daba como FAIL",
+   "cause": "c300-utility-labels interpolaba waterRef / sewerRef aunque fueran null",
+   "fix": "helper per(ref): sin referencia no se imprime la línea (PER …); el QC solo exige (PER ref) cuando existe",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/c300-utility-labels.mjs",
+     "pattern": "const per ="
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "blocks-from-without-exist-arrow",
+   "area": "skill",
+   "status": "fixed",
+   "match": "El build falla con «Block 'EXIST ARROW' was not found» al importar los bloques del paquete",
+   "symptom": "GOULDS 33809: --blocks-from apuntó al C-300 de Goulds, que no trae EXIST ARROW / FH",
+   "cause": "los bloques existentes de flecha y hidrante solo están en el paquete C-300 de VILLA ONE, no en todos",
+   "fix": "usar como --blocks-from un paquete que los tenga (VILLA ONE: Villa One-…\\2026-09-21_WASD - Xereft\\C-300.dwg) y dejarlo en project.json sources.blocksFrom; el error es claro y no deshace nada",
+   "checks": []
+  },
+  {
+   "since": "2026-10-02",
+   "id": "asbuilt-stations-pair-with-survey-symbols",
+   "area": "skill",
+   "status": "mitigated",
+   "match": "Los manholes, válvulas y laterales de un as-built sin N/E no se pueden ubicar",
+   "symptom": "GOULDS 33809: ítems con solo estación + offset sin ubicación",
+   "cause": "sin N/E impresos no hay anclas; el X-UTIL de ese proyecto no trae manholes",
+   "fix": "asbuilt-georef-symbols.mjs empareja con los SÍMBOLOS del topográfico (X-TOPO, dwg-dump exporta el texto de bloques anónimos como btxt=): «STA 0+00 EXIST MH» = el manhole del survey sobre la línea SAN del X-UTIL; las estaciones de su misma columna se ubican a esa distancia a lo largo de la línea SAN (sugerencias que el usuario confirma); válvulas/hidrantes/medidores solo con igual conteo as-built/survey; asbuilt-build --topo toma esos manholes como nodos; c300-utility-labels --spec rotula solo lo que cae en el viewport. Goulds: ancla MH-SS-flat-2, 7 laterales ubicados; 0 válvulas/hidrantes en el survey de ese sitio",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/asbuilt-georef-symbols.mjs"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/asbuilt-build.mjs",
+     "pattern": "survey manhole symbol"
+    }
+   ]
+  },
+  {
+   "since": "2026-10-02",
+   "id": "tool-written-regex-backspace",
+   "area": "skill",
+   "status": "mitigated",
+   "match": "Una regex escrita por la herramienta con la secuencia backslash-b queda con caracteres backspace (0x08) y no coincide",
+   "symptom": "mdwasd-check.mjs: 0 valvulas ubicadas aunque el as-built tiene G.V. (el regex VALVE tenia caracteres backspace en vez del limite de palabra)",
+   "cause": "el canal Bash/Write de la herramienta interpreta backslash-b dentro de heredocs/cadenas como backspace, igual que backslash-n y doble backslash en bugs previos",
+   "fix": "escribir regex de limite de palabra sin backslash-b (lookarounds (?:^|[^A-Z]) ... (?![A-Z])) o crearlas con chr(92)+'b'; revisar con grep -c de 0x08 en scripts; mdwasd-selftest.mjs falla si el regex no encuentra las valvulas",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/mdwasd-selftest.mjs"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/mdwasd-check.mjs",
+     "pattern": "VALVE = /\\\\b"
+    }
+   ]
+  }
+ ]
 }

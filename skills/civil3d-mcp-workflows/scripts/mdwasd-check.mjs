@@ -90,6 +90,52 @@ for (const h of ab.hydrants ?? []) {
   if (dist != null && dist > S.water.fireHydrantLateral.maxLengthFt) add_('INFO', 'UC-005 A.28', `FH at ${f1(p[0])},${f1(p[1])} is ${f1(dist)} ft from the nearest water main in asbuilt.json (hydrant lateral max ${S.water.fireHydrantLateral.maxLengthFt} ft)`, 'either the lateral is longer than the standard or the main serving it is missing from asbuilt.json: check the scan');
 }
 
+// ---- 5a) sewer laterals (SS 1.0 / UC-310): 6 in minimum, slope >= 1/8 in per ft, when the as-built prints them
+for (const a of ab.appurtenances ?? []) {
+  if (a.ref !== 'sewer' || !/LAT/i.test(a.label ?? '')) continue;
+  const sz = diaIn(a.label), sl = /SLOPE\s+(\d+)\s*\/\s*(\d+)\s*"?\s*\/\s*FT/i.exec(a.detail ?? '');
+  if (sz != null && sz < S.sewer.lateralMinSizeIn) add_('WARN', 'SS 1.0', `sewer lateral ${a.stationText ?? ''}: ${sz} in (min ${S.sewer.lateralMinSizeIn} in)`);
+  if (sl && Number(sl[1]) / Number(sl[2]) < S.sewer.lateralMinSlopeInPerFt) add_('WARN', 'SS 1.0', `sewer lateral ${a.stationText ?? ''}: slope ${sl[1]}/${sl[2]} in per ft (min 1/8)`);
+}
+
+// ---- 5b) water valve spacing (UC-005 B.6: resilient-seat gate valves every 660 ft). Valves = water appurtenances whose label says G.V./gate/butterfly valve and that have
+// coordinates; they are snapped to the water mains (<= 15 ft), the mains form a graph, and the pipe distance between ADJACENT valves (no other valve between them on the
+// shortest path) must be <= 660 ft. Only valve-to-valve gaps are judged: the as-built window ends where the scan ends, so a main end with no valve is only an INFO.
+{
+  const maxFt = S.water.valveSpacingFt, VALVE = /\b(G\.?V\.?|GATE\s+VALVE|B\.?F\.?V\.?|BUTTERFLY|PLUG\s+VALVE)\b/i;
+  const valves = (ab.appurtenances ?? []).filter((a) => a.ref === 'water' && VALVE.test(a.label ?? '') && Number.isFinite(a.x) && Number.isFinite(a.y) && !/TAPPING/i.test(a.label));
+  const nodes = [], idOf = (q) => { let i = nodes.findIndex((n) => len(sub(n, q)) < 1); if (i < 0) { nodes.push(q); i = nodes.length - 1; } return i; };
+  const edges = [];                                       // [i, j, length]; valve nodes are inserted into the segment they sit on
+  const wsegs = water.map((w) => ({ a: w.a, b: w.b, pts: [] }));
+  const vnode = [];
+  for (const [vi, v] of valves.entries()) {
+    const p = [v.x, v.y]; let best = null;
+    wsegs.forEach((w, wi) => { const d = sub(w.b, w.a), t = Math.max(0, Math.min(1, dot(sub(p, w.a), d) / (dot(d, d) || 1))); const dist = len(sub(p, add(w.a, mul(d, t)))); if (!best || dist < best.dist) best = { wi, t, dist }; });
+    if (best && best.dist <= 15) { wsegs[best.wi].pts.push({ t: best.t, vi }); vnode[vi] = null; } else add_('INFO', 'UC-005 B.6', `valve "${v.label}" ${v.stationText ?? ''} is ${best ? f1(best.dist) : '?'} ft from any water main in asbuilt.json: not used for the spacing check`);
+  }
+  const vId = {};
+  for (const w of wsegs) {
+    const L = len(sub(w.b, w.a)); const seq = [{ t: 0, n: idOf(w.a) }, ...w.pts.sort((p, q) => p.t - q.t).map((q) => { const id = nodes.length; nodes.push(add(w.a, mul(sub(w.b, w.a), q.t))); vId[q.vi] = id; return { t: q.t, n: id }; }), { t: 1, n: idOf(w.b) }];
+    for (let i = 0; i + 1 < seq.length; i++) edges.push([seq[i].n, seq[i + 1].n, (seq[i + 1].t - seq[i].t) * L]);
+  }
+  const inGraph = Object.keys(vId).map(Number);
+  if (inGraph.length >= 2) {
+    const dist = (src) => { const D = new Array(nodes.length).fill(Infinity); D[src] = 0; for (let k = 0; k < nodes.length; k++) for (const [i, j, l] of edges) { if (D[i] + l < D[j]) D[j] = D[i] + l; if (D[j] + l < D[i]) D[i] = D[j] + l; } return D; };
+    const DD = Object.fromEntries(inGraph.map((vi) => [vi, dist(vId[vi])]));
+    const lab = (vi) => `${valves[vi].label}${valves[vi].stationText ? ' ' + valves[vi].stationText : ''}`;
+    for (const a of inGraph) for (const b of inGraph) {
+      if (b <= a) continue;
+      const d = DD[a][vId[b]]; if (!Number.isFinite(d)) continue;
+      const between = inGraph.some((c) => c !== a && c !== b && Math.abs(DD[a][vId[c]] + DD[c][vId[b]] - d) < 1);
+      if (!between && d > maxFt) add_('WARN', 'UC-005 B.6', `valves ${lab(a)} and ${lab(b)} are ${f1(d)} ft apart along the main (max ${maxFt} ft)`, 'existing: report it; a design must add a valve');
+    }
+    if (!rows.some((r) => r.rule === 'UC-005 B.6' && r.level === 'WARN')) add_('OK', 'UC-005 B.6', `${inGraph.length} water valves located: adjacent valves are <= ${maxFt} ft apart`);
+  } else {
+    const total = water.reduce((n, w) => n + len(sub(w.b, w.a)), 0);
+    add_('INFO', 'UC-005 B.6', `${inGraph.length} located water valve(s) on ${f1(total)} ft of water main in asbuilt.json: valve spacing (${maxFt} ft) cannot be judged`, total > maxFt ? 'main longer than 660 ft with < 2 valves located: check the scan for valves outside the window / missing symbols' : 'window shorter than the spacing: nothing to judge');
+  }
+}
+
 // ---- 6) easements: a main inside a Property Appraiser lot (= private property) needs an MDWASD easement (UC-005 A.8, WS 2.21)
 const inRing = (p, ring) => { let c = false; for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const [xi, yi] = ring[i], [xj, yj] = ring[j]; if ((yi > p[1]) !== (yj > p[1]) && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c; } return c; };
 const easements = [];

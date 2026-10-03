@@ -99,7 +99,10 @@
     },
     "dropConnectionWhenLateralEntersMhAboveInvertFt": 2,
     "lateral": "branch fitting = tee w/ modified riser when sewer top >= 7 ft deep, else wye (SS 1.0/2.0); plug at the point shown; green-painted 2x2x2 ft stake at the lateral end; location measured and recorded before covering (UC-310 3.01)",
-    "showFlowDirection": true
+    "showFlowDirection": true,
+    "lateralMinSlopeInPerFt": 0.125,
+    "lateralMinSizeIn": 6,
+    "mainMinSizeIn": 8
   },
   "water": {
     "section": "UC-005 B.1-B.7, A.12, A.22, A.28; UC-075",
@@ -108,7 +111,10 @@
     "serviceLineMaxFt": 50,
     "fireHydrantLateral": {
       "maxLengthFt": 50,
-      "nominalDiameterIn": 6
+      "nominalDiameterIn": 6,
+      "coverFt": 4,
+      "assembly": "6 in M.J. tee/tapping sleeve + 6 in gate valve + 6 in DIP (WS 4.50)",
+      "setbackFromSidewalkFt": 1
     },
     "coverMinIn": {
       "le12": 30,
@@ -199,5 +205,130 @@
   },
   "designPolicy": {
     "useFor": "Propuesta (design) work: place mains/MHs/valves/hydrants so these numbers hold; easement strips per 'easements'; accessories outside the easement; label per 'drawingConventions'; run scripts/mdwasd-check.mjs on the design as-built-shaped JSON before delivering."
+  },
+  "cadManual": {
+    "source": "WASD Pipeline CAD and GIS Standards Manual, January 2026 (https://www.miamidade.gov/resources/water/documents/wasd-cad-manual.pdf); WASD CAD Manager Eric Vilaire, Eric.Vilaire@miamidade.gov, 305-878-6051. The edition used by repo docs/reference/wasd-symbol-legend.md is June 2024.",
+    "software": "Civil 3D 2025 / AutoCAD 2025; submit DWG + PDF (PDF made from AutoCAD, with layers)",
+    "datum": {
+      "horizontal": "NAD83 Florida East Zone 901",
+      "vertical": "NGVD29",
+      "units": "decimal, US Survey Feet",
+      "modelScale": "1:1 in model space; the viewport sets the plot scale"
+    },
+    "text": {
+      "font": "Simplex (WASD-SIMPLEX text style)",
+      "note": "center-left justification for blocks of text; no unusually large text"
+    },
+    "annotationRules": [
+      "move annotation away from the feature",
+      "line up annotations",
+      "avoid odd abbreviations and squeezed text",
+      "break leaders only at conflicts",
+      "leaders must not intersect",
+      "group leaders at about the same angle"
+    ],
+    "numbers": {
+      "slopeDecimals": "nearest hundredth of a percent (3.50%)",
+      "elevationDecimals": "nearest hundredth of a foot",
+      "inverts": "nearest hundredth of a foot",
+      "stationing": "continuous 100-ft stations, start 10+00 at an intersection (9+50 behind it), west->east or south->north",
+      "statePlaneCoordsAt": "start, end, PIs, PCs, PTs and major appurtenances (manhole, cleanout, access device)"
+    },
+    "scales": {
+      "planHorizontal": "1in=20ft preferred (1in=40ft for uncongested)",
+      "profileVertical": "1in=2ft (major lines every 4 ft); 1in=4ft only with WASD approval",
+      "locationMap": "1in=300ft",
+      "barScaleBlock": "20/40/60"
+    },
+    "sheet": {
+      "size": "D 24x36",
+      "border": "22.5x34 in",
+      "sheetNaming": "US NCS UDS Module 1",
+      "dwgNumber": "W (water) / S (sewer) + D (D-size), assigned by the WASD PM"
+    },
+    "calloutTable371": "BEGIN/END PROJECT STA. XX+XX (O/S XX' RT./LT.) PROP. ...; bends PROP. XX\"-90 M.J. BEND REST. W/GLANDS; plugs/caps PROP. XX\" M.J. PLUG W/F.V.O.; hydrants PROP. XX\"x6\" M.J. TEE, 6\" M.J. GATE VALVE & F.H. ASSY. SEE STANDARD DETAIL WS 4.50; meters PROP. 1\" SERVICE AND [SINGLE/DOUBLE] METER BOX (SEE STD. DETAIL WS 2.10)",
+    "surveyCalloutTable372": "manholes: MHSA / RIM ELEV.=X.XX' / 8\" CLAY (E) INV. ELEV.=X.XX' / BOTTOM ELEV.=X.XX'; reference points: RP #1 SET PK W/WASD STA.= O/S= N= E= ELEV.=; baseline: BEGIN BASELINE X STA= N= E=",
+    "layersExistingPipeline": {
+      "convention": "US NCS: Discipline_Major_Minor1_Minor2; design layers C-*, survey layers V-*",
+      "existingWaterPipe": {
+        "layer": "C-WATR-PIPE-EXST",
+        "color": 190,
+        "linetype": "HIDDEN",
+        "lineweight": 0.006,
+        "text": "C-WATR-PIPE-EXST-TEXT"
+      },
+      "existingWaterFittings": {
+        "layer": "C-WATR-FITT-EXST",
+        "color": 190
+      },
+      "existingWaterInstruments_valves_meters": {
+        "layer": "C-WATR-INST-EXST",
+        "color": 152
+      },
+      "existingSanSewerPipe": {
+        "layer": "C-SSWR-PIPE-EXST",
+        "color": 70,
+        "linetype": "HIDDEN",
+        "lineweight": 0.006,
+        "text": "C-SSWR-PIPE-EXST-TEXT"
+      },
+      "existingSanSewerFittings": {
+        "layer": "C-SSWR-FITT-EXST",
+        "color": 70
+      },
+      "existingSanSewerStructures": {
+        "layer": "C-SSWR-STRC-EXST",
+        "color": 80
+      },
+      "existingSanSewerInstruments": {
+        "layer": "C-SSWR-INST-EXST",
+        "color": 80
+      },
+      "surveyExisting": {
+        "water": "V-WATR / V-WATR-PIPE(190, HIDDEN) / V-WATR-INST(152) / V-WATR-FITT(190)",
+        "sewer": "V-SSWR / V-SSWR-PIPE(70, HIDDEN) / V-SSWR-MHOL(80) / V-SSWR-INST(80)",
+        "easement": "V-ESMT color 2 DASHED2 0.004",
+        "rowAndProperty": "V-RWAY color 20 PHANTOM2; V-PROP-LINE 253 PHANTOM2; V-PROP-LOTL 254 HIDDEN2; V-ROAD-CNTR 6 CENTER2; V-ROAD-BASL 211",
+        "topo": "V-TOPO color 9 DASHED2 (EOP, sidewalks, curbs)"
+      },
+      "planViewLineStyles": "existing water main = HIDDEN color 190 0.006in; proposed = CONTINUOUS color 171 0.012in (width 0.5); existing sewer HIDDEN 70; proposed 90; pipes >= 20 in = two lines + dashed centerline; abandoned = WASD_ABANDONED_LINE"
+    },
+    "gisAsBuiltLayers": "Appendix A.3: plan-view as-built pipeline assets only, layer suffix _WASD (WDistribution_WASD, WServiceLine_WASD, WFireLine_WASD, WManualControlValve_WASD, WHydrant_WASD, WServicePointConnection_WASD, WFitting_WASD, WAccessManhole_WASD, SGravityMain_WASD, SForceMain_WASD, SSewerLateral_WASD, SManhole_WASD, SCleanOut_WASD, SManualControlValve_WASD, SAirReleaseValve_WASD, SFitting_WASD, LPS*) with subtype prefixes (Tee_WFitting_WASD, Bend_SFitting_WASD, Gate_WManualControlValve_WASD). Not for design or survey drafting.",
+    "asBuiltChapter7": {
+      "pipes": "single-line line/polyline, basepoint to basepoint, one polyline per uniform diameter/material",
+      "points": "blocks / COGO points at the surveyed basepoint; lines snap to block basepoints",
+      "content": "only field-verified installed assets; no trees, signs, poles, mailboxes, spot elevations, no lot lines/EOP; existing utilities only where they cross/conflict; no proposed/design info; as-built pipes, property lines, R/W, easements and baselines bold (WASD lineweights), everything else faded",
+      "attributes": "Appendix C: pipes CASING/DIAMETER/MATERIAL/FACILDESC/INSTALLDATE; fittings COMMENTS/FACILDESC/X/Y; valves VALVESIZE/FACILDESC/INSTALLDATE/X/Y; structures INSTALLDATE/X/Y; appurtenances DIAMETER/FACILDESC/INSTALLDATE/X/Y",
+      "fileNaming": "E (water) / ES (sewer) + 6-digit as-built number + C/D (Capital/Donation) + 2-digit phase + sub-phase letter, e.g. EXXXXXXC01A; governing procedure SOP-SRS-007",
+      "templates": "WASDTemplate-Survey-Asbuilts.dwt, WASDTemplate-Pipeline-Design.dwt, WASD-Blocks.dwg (read-only, from the WASD website). The links the county page lists (.../donation/part-6/wasdtemplate-survey-asbuilts.dwt and pipeline-design-consultant-template.dwt) return HTTP 404 as of 2026-10-02 with every host/case/header variant: get them from the WASD CAD Manager or from the copy the firm already has."
+    },
+    "symbolsGS30": "GS 3.0 legend (2009/2016): existing = thin/gray open symbols; proposed = bold/solid. Gate and plug valve existing = open bowtie, proposed = filled bowtie; plug = open/filled triangle; fire hydrant (existing open, proposed filled); tapping sleeve and valve; backflow preventer; check valve = N-shape; bends 90 = L-shape; pipes >= 20 in = double line; lines: R/W, P (property), CL, baseline (BL), EOP dashed. Exhibits A.1-A.8 / B.1-B.3 / C.1-C.2 / D.1-D.4 are the same in the 2026 edition as in the 2024 transcription (repo docs/reference/wasd-symbol-legend.md); 2026 adds V-PNTS-LABL-* layers, the lot-line layer V-PROP-LOTL, survey lineweights (grey xref plot) and wipeout frames on blocks."
+  },
+  "standardDetails": {
+    "WS 4.50 (02/25/2013) fire hydrant with guard posts": {
+      "lateral": "6 in D.I. pipe from a M.J. tee or tapping sleeve + 6 in gate valve (or tapping valve) in a No. 2 valve box; 6 in D.I. nipple 18 in long",
+      "cover": "4 ft (bury depth 54 in to the hydrant shoe), 18 in x 18 in concrete thrust block (no mechanical restraint on the shoe)",
+      "slab": "3 ft x 3 ft x 6 in thick concrete slab or sidewalk flag; where a sidewalk is within the 4-7 ft offset, hydrant 1 ft from the face of the walk, within the grass area; otherwise the Fire Department decides the location",
+      "guardPosts": "galvanized steel pipe 4 in dia x 5 ft (2.5 ft buried, concrete filled) at the face of the pumper and 2 ft 6 in left/right of the hydrant CL; none inside F.D.O.T. R/W; not within a radius",
+      "crossRef": [
+        "GS 1.1 anchor",
+        "WS 3.10 No. 2 valve box",
+        "GS 1.0 tie rod",
+        "WS 1.0 gate valve"
+      ]
+    },
+    "WS 4.10 (11/01/2006) typical service plan": {
+      "meterBox": "single or dual meter box, center line of box 2.5 ft inside the property line; meters are NOT installed if the box falls in a driving surface",
+      "service": "1 in copper tubing; road crossing in 1-1/2 in black steel casing with an 18 in minimum offset; 2 in x 4 in meter vault for 2 in service (2 in G.I. customer side)"
+    },
+    "SS 1.0 (08/26/2010) gravity sewer service lateral, shallow sewers (< 7 ft deep)": {
+      "lateral": "6 in minimum (larger as required), minimum slope 1/8 in per ft downward from the main; wye + 45 degree bends (tee with modified riser for deeper sewers, SS 2.0); main 8 in minimum",
+      "invert": "3 ft minimum to invert (deeper as required)",
+      "cleanout": "clean-out with threaded plug in a concrete box + lid in the sidewalk flag (grass: SS 21.0), at the property line / ultimate R/W line / utility easement line; watertight plug at the lateral end (removed later with a PVC hard coupling by others)",
+      "crossRef": [
+        "SS 22.0 clean-out",
+        "UC-310 gravity sewer service laterals"
+      ]
+    }
   }
 }

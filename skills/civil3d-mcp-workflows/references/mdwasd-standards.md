@@ -51,4 +51,25 @@ Agua: tamaño, material, offset, deflexiones, estación de servicios/hidrantes/v
 | `scripts/c300-mdwasd-easement.mjs --check out.json --spec spec.json` | payload `acad_create_entities` con la franja DASHED2 (C-ANNO) + rótulo estándar para cada main en propiedad privada. |
 | Propuesta de diseño | usar los números de arriba al ubicar; correr `mdwasd-check.mjs`; usar `civil3d_standards_lookup topic=mdwasd` para citar la sección. |
 
-Datos aún por leer (pendiente): CAD manual / plantillas DWT (la descarga falló), GS 3.0 símbolos, A 10 abreviaturas, WS 4.x. Si alguna regla nueva sale de ahí, agrégala a `mdwasd-standards.json` con su sección y a `plugin/src/standards/data/mdwasd_rules.json`.
+## Manual CAD & GIS de WASD (enero 2026) — leído 2026-10-02
+
+Fuente: https://www.miamidade.gov/resources/water/documents/wasd-cad-manual.pdf (92 págs.; CAD Manager Eric Vilaire, 305-878-6051). Todo en `standards/mdwasd-standards.json` → `cadManual`.
+
+- **Georreferencia/unidades:** NAD83 Florida East 901, NGVD29, decimal + US Survey Feet, modelo 1:1, texto Simplex. Pendientes a 0.01 %, elevaciones e inverts a 0.01 ft, estacionado continuo cada 100 ft desde 10+00, coordenadas State Plane en inicio/fin/PI/PC/PT/accesorios. Planta 1"=20' (o 40'), perfil vertical 1"=2'.
+- **Capas existentes (US NCS):** agua `C-WATR-PIPE-EXST` (190, HIDDEN 0.006"), `C-WATR-FITT-EXST`, `C-WATR-INST-EXST` (152, válvulas/medidores); sanitario `C-SSWR-PIPE-EXST` (70, HIDDEN), `C-SSWR-FITT-EXST`, `C-SSWR-STRC-EXST` (80); levantamiento `V-WATR*`, `V-SSWR*`, `V-ESMT` (DASHED2), `V-RWAY`, `V-PROP-LINE`, `V-PROP-LOTL`. Capas GIS `*_WASD` solo para as-builts en planta.
+- **Callouts (Tabla 3.7.1/3.7.2):** `STA. XX+XX (O/S XX' LT./RT.)` + `PROP. …` + `REST. W/GLANDS`; MH de levantamiento `MHSA / RIM ELEV.=X.XX' / 8" CLAY (E) INV. ELEV.=X.XX' / BOTTOM ELEV.=X.XX'`.
+- **Capítulo 7 (as-builts para GIS):** plantilla oficial, líneas simples base-a-base, bloques/COGO en el punto levantado, solo activos verificados en campo (sin árboles, postes, cotas, lotes, EOP, ni info propuesta), atributos del Apéndice C, nombre `E/ES + 6 dígitos + C/D + fase + subfase` (p. ej. `EXXXXXXC01A`).
+- **Símbolos GS 3.0:** existente = abierto/gris, propuesto = sólido; válvula de compuerta = moño (bowtie); los exhibits A.1–A.8, B, C, D del 2026 equivalen a la transcripción 2024 de `docs/reference/wasd-symbol-legend.md`.
+- **Plantillas DWT:** `WASDTemplate-Survey-Asbuilts.dwt`, `WASDTemplate-Pipeline-Design.dwt`, `WASD-Blocks.dwg` — los enlaces del sitio (`…/donation/part-6/…dwt`) devuelven **HTTP 404** (probado con www/sin www, mayúsculas, cabeceras de navegador, Wayback). Hay que pedirlas al CAD Manager de WASD o usar la copia que ya tenga la firma.
+
+## Verificación de válvulas cada 660 ft (UC-005 B.6) — automatizada
+
+`mdwasd-check.mjs`: toma las válvulas de `asbuilt.json` (`appurtenances` con `G.V.`/gate/butterfly/plug valve **y coordenadas**), las ajusta a las tuberías de agua (≤ 15 ft), arma el grafo de mains y mide la distancia por tubería entre válvulas **adyacentes**: > 660 ft = WARN; el extremo de un main sin válvula es solo INFO (la ventana del as-built termina donde termina el escaneo). Prueba sintética: `node scripts/mdwasd-selftest.mjs` (5 aserciones). VILLA ONE: 3 válvulas ubicadas, OK; Goulds: sin válvulas ubicadas (ventana de 155 ft), INFO.
+
+## Detalles estándar leídos (imagen, 2026-10-02)
+
+- **WS 4.50 hidrante (2013):** lateral de 6" DIP desde tee M.J./tapping sleeve + válvula de compuerta 6" en caja No. 2; cobertura 4 ft (54" al shoe); bloque de empuje 18"x18" (sin restricción mecánica); losa 3'x3'x6"; con acera dentro de 4-7 ft de offset el hidrante va a 1 ft de la cara de la acera en zona de grama, si no decide Bomberos; postes guía 4"x5' (2.5 ft enterrados) en la cara del carro bomba y a 2.5 ft del eje; sin postes en R/W FDOT.
+- **WS 4.10 servicio (2006):** caja de medidor con eje a 2.5 ft dentro de la línea de propiedad; sin medidor si la caja cae en superficie de rodaje; tubo de cobre 1", cruce de calle en camisa de acero 1.5" con offset mín 18".
+- **SS 1.0 lateral sanitario (2010):** lateral 6" mín, pendiente >= 1/8"/ft (coincide con la nota SLOPE 1/8"/FT de los as-builts), wye + codos 45 grados, matriz mín 8", 3 ft mín al invert, cleanout con tapón roscado en caja de concreto en la línea de propiedad / R/W / servidumbre, tapón hermético al final del lateral.
+- Sin texto (solo imagen) y sin dimensiones útiles aún: SS 22.0, WS 1.0, GS 2.0, A 10 hojas 2-3 (abreviaturas, ya transcritas en `docs/reference/wasd-symbol-legend.md`).
+
