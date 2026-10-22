@@ -19,6 +19,8 @@ Scripts de esta skill: `~/.claude/skills/civil3d-mcp-workflows/scripts/` (Node 2
 
 ## 0. Pre-flight (siempre, antes de cualquier otra llamada)
 
+0. **Arranque (2026-10-21, tras el formateo):** si el puerto 8080 está cerrado → `powershell -NoProfile -ExecutionPolicy Bypass -File ~/.claude/skills/civil3d-mcp-workflows/scripts/start-civil3d-mcp.ps1` (abre Civil 3D si hace falta, espera, hace NETLOAD por COM y confirma 8080; `-Quit` cierra solo si no hay dibujos con trabajo). El plugin se autocarga por una clave de registro creada con `scripts/install-autoload.ps1` (el bundle `LoadOnAutoCADStartup` NO se autocarga en 2027; rehacer tras reinstalar). Civil 3D exige sesión de Autodesk: si queda la ventana "Inicie sesión…", el USUARIO pulsa **Retry** en la página "Opening product" (Brave) y "Abrir" en el cuadro de Identity Manager; **nunca cerrar esa ventana con la X (apaga Civil 3D)**; no leer/pegar URLs ni códigos. Cambiar el navegador predeterminado es del usuario (config del sistema).
+
 1. `civil3d_health` → revisa **todo**, no solo `connected`:
    - `drawingLoaded: false` → no hay documento enfocado.
    - `operationInProgress: true` con `currentOperationDurationMs` > ~30 s → **diálogo modal bloqueando Civil 3D**. Detente y pide al usuario revisar la ventana de Civil 3D. No reintentes en bucle.

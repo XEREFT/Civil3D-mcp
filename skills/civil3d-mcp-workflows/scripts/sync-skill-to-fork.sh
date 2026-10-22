@@ -6,7 +6,7 @@
 set -euo pipefail
 MSG="${1:?commit message required}"
 PUSH="${2:-}"
-REPO="/c/Users/camil/OneDrive/Documents/Civil3D-mcp"
+REPO="/c/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp"
 SKILL="/c/Users/camil/.claude/skills/civil3d-mcp-workflows"
 TMP="$(mktemp -d)/skill-wt"
 BR="skill/civil3d-mcp-workflows"
@@ -20,7 +20,7 @@ trap 'cd "$REPO"; git worktree remove --force "$TMP" >/dev/null 2>&1 || true' EX
 #  - the 4 subagents (repo .claude/agents is gitignored, so they exist nowhere else) -> skill/subagents-backup/ (goes to the public fork)
 #  - the Claude Code memory folder -> a PRIVATE OneDrive folder (never the public fork)
 AGENTS_SRC="$REPO/.claude/agents"
-MEM_SRC="/c/Users/camil/.claude/projects/C--Users-camil-OneDrive-Documents-Civil3D-mcp/memory"
+MEM_SRC="/c/Users/camil/.claude/projects/C--Users-camil-OneDrive-Documents-Civil3D-mcp-Civil3D-mcp/memory"
 MEM_DST="/c/Users/camil/OneDrive/Documents/Civil3D-MCP-backup/memory"
 if [ -d "$AGENTS_SRC" ]; then mkdir -p "$SKILL/subagents-backup"; cp -f "$AGENTS_SRC"/*.md "$SKILL/subagents-backup/"; fi
 if [ -d "$MEM_SRC" ]; then mkdir -p "$MEM_DST"; cp -f "$MEM_SRC"/*.md "$MEM_DST/"; echo "memory backed up to $MEM_DST"; fi
