@@ -16,6 +16,7 @@
   <Components>
     <ComponentEntry
       AppName="Civil3DMcpPlugin"
+      LoadOnAutoCADStartup="True"
       ModuleName="./Contents/Civil3DMcpPlugin.dll"
       >
       <AssemblyMappings>
