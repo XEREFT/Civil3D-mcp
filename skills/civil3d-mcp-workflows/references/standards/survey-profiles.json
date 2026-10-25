@@ -54,7 +54,10 @@
     "INVERTS & MANHOLES",
     "HIDE-ANGLE-LABELS",
     "HIDE-PAVEMENT-LABELS",
-    "SLAB"
+    "SLAB",
+    "HATCH",
+    "HATCH ASPHALT",
+    "U Mail Box"
    ],
    "hideXrefText": [
     {
