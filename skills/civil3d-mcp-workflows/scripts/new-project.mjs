@@ -3,7 +3,7 @@
 //   node new-project.mjs --name "VILLA ONE" [--project-no 26-04.047] [--agr 33810] [--root "<...>\AUTOCAD @XEREFT"]
 //        [--poc <POC.pdf>] [--topo <X-TOPO.dwg>] [--util <X-UTIL.dwg>] [--arch <X-ARCH.dwg>]
 //        [--template-from <previous project's C-300.dwg>] [--xy 859852,444852] [--dry-run]
-// Creates <root>\<NAME> @XEREFT\ with _QC, _backup and _reports; copies the base xrefs in as X-TOPO/X-UTIL/X-ARCH.dwg (never moves them);
+// Creates <root>\<NAME> @XEREFT BASE\ (the ONE working + hand-off folder; per project only: the client's untouched intake folder, this BASE folder and, when we design, <NAME> @XEREFT PROPOSED) with _backup and _reports; copies the base xrefs in as X-TOPO/X-UTIL/X-ARCH.dwg (never moves them);
 // builds _template.dwg from the previous project's C-300 (c300-prep-template.ps1, Core Console on a copy); writes project.json;
 // reads the POC (poc-extract.mjs -> subject data) and ALWAYS the Property Appraiser (pa-site.mjs: cross-checks the POC folio, the address and
 // --xy; writes project.json only on an OK verdict, else lists the candidates — read-only web queries);
@@ -22,14 +22,14 @@ const dry = has("dry-run");
 const name = flag("name");
 if (!name) { console.error("usage: node new-project.mjs --name \"<PROJECT>\" [--project-no ..] [--agr ..] [--poc ..] [--topo ..] [--util ..] [--arch ..] [--template-from ..] [--xy x,y] [--dry-run]"); process.exit(2); }
 const root = (flag("root") ?? ps.DEFAULT_ROOT).replace(/\\/g, "/");
-const folderName = name.toUpperCase().endsWith("@XEREFT") ? name : `${name.toUpperCase()} @XEREFT`;
+const folderName = `${name.toUpperCase().replace(/\s*@XEREFT(\s+(BASE|PROPOSED))?\s*$/, "")} @XEREFT BASE`;
 const dir = join(root, folderName).replace(/\\/g, "/");
 const done = [];
 const doStep = (label, fn) => { if (dry) { console.log(`[dry-run] ${label}`); return; } fn(); console.log(`ok   ${label}`); done.push(label); };
 
 if (existsSync(join(dir, "project.json"))) { console.error(`${dir}/project.json already exists: this project was already bootstrapped (use project-state.mjs).`); process.exit(2); }
 
-doStep(`folders ${dir} (+ _QC, _backup, _reports)`, () => { for (const d of ["", "_QC", "_backup", "_reports"]) mkdirSync(join(dir, d), { recursive: true }); });
+doStep(`folders ${dir} (+ _backup, _reports)`, () => { for (const d of ["", "_backup", "_reports"]) mkdirSync(join(dir, d), { recursive: true }); });
 
 for (const [key, target] of [["topo", "X-TOPO.dwg"], ["util", "X-UTIL.dwg"], ["arch", "X-ARCH.dwg"]]) {
   const src = flag(key);
@@ -49,9 +49,10 @@ if (templateFrom) {
 
 doStep("project.json", () => {
   ps.saveProject(dir, {
-    schema: ps.SCHEMA, name: name.replace(/\s*@XEREFT\s*$/i, "").toUpperCase(), projectNo: flag("project-no"), agrNo: flag("agr"),
+    schema: ps.SCHEMA, name: name.replace(/\s*@XEREFT(\s+(BASE|PROPOSED))?\s*$/i, "").toUpperCase(), projectNo: flag("project-no"), agrNo: flag("agr"),
     phase: 1, status: "new",
-    deliverables: { dwg: `${folderName} FASE 1.dwg`, pdf: "_QC/C-300 FASE 1.pdf", layout: "C-300" },
+    deliverables: { dwg: `${folderName}.dwg`, pdf: `${folderName}.pdf`, layout: "C-300" },
+    package: { base: true },   // fase1-from-scratch packs "<NAME> @XEREFT BASE" (package-base.mjs) after every build; set sources.intakeDir to the client's original files
     subject: {}, site: {}, sources: {}, decisions: [
       { date: new Date().toISOString().slice(0, 10), text: "Fase 1 = existing conditions only: no PROP/PROPOSED wording, alignment BCC - ALIGNMENT, existing SAN/WM as X-UTIL layers, C-TINN-BNDY frozen (firm standard)" },
     ], history: [{ date: new Date().toISOString().slice(0, 10), event: "bootstrapped by new-project.mjs" }], lastVerified: {},
@@ -89,7 +90,7 @@ console.log(`
 NEXT (recipe = skill references/c300-water-sewer-plan.md section 7 + 9 "Receta Fase 1"; shortcut: /fase1-build):
  1. site.lotPoint: pa-site.mjs above fills it with the parcel centroid when its verdict is OK; if it asked for the lot point or
     the folio, rerun: node scripts/pa-site.mjs --dir "${dir}" --xy X,Y --write   (U.E.: download the plat P.B./PG it printed from the Clerk)
- 2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + PL symbols + survey R/W dims + payload for "${folderName} FASE 1.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
+ 2. node scripts/fase1-build-payload.mjs --dir "${dir}"   (X-TOPO dump + spec + PL symbols + survey R/W dims + payload for "${folderName}.dwg" from ${existsSync(join(dir, "_template.dwg")) ? "_template.dwg" : "<pass --template: no _template.dwg yet>"})
  2b. EVERYTHING IN ONE COMMAND (payload + build + plot + QC + MLeader declutter): node scripts/fase1-from-scratch.mjs --dir "${dir}" --dwg "<NEW name>.dwg" --template "<template>.dwg" [--asbuilt asbuilt.json --blocks-from <package C-300.dwg>]
     (title block comes from project.json: name, subject.address, projectNo, agrNo (POC), date, JH; the template is almost always the Goulds C-300)
  3. build only (no credits, Civil 3D open with NO drawing): node scripts/fase1-build-run.mjs --dir "${dir}" --build [--finish]

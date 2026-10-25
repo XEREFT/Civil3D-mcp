@@ -1,75 +1,63 @@
-# Normas MDWASD (Miami-Dade Water & Sewer) — la ley del condado
+# MDWASD standards (Miami-Dade Water & Sewer): the county's law
 
-Fuente oficial: https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722 («Water and Sewer Design & Construction Standards»). Leído 2026-10-02: UC-005 (Project Approval, R-7 2/2015), Standard Details GS 0.5, GS 1.5 (10/1/2017), WS 2.21 hojas 1-3, UC-250, UC-310, UC-075. Datos máquina-legibles: `standards/mdwasd-standards.json` (única fuente de números para scripts). Aplican **tanto a limpieza de datos existentes (Fase 1) como a propuestas de diseño**.
+Official source: https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722 ("Water and Sewer Design & Construction Standards"). Read 2026-10-02: UC-005 (Project Approval, R-7 2/2015), Standard Details GS 0.5, GS 1.5 (10/1/2017), WS 2.21 sheets 1-3, UC-250, UC-310, UC-075. Machine-readable numbers: `standards/mdwasd-standards.json` (only number source for scripts). They apply to **existing-data cleanup (Fase 1) and to design proposals**.
 
-## Servidumbres (UC-005 A.8–A.11, A.15, A.21; WS 2.21)
-
-| Caso | Ancho | Offset desde el eje | Rótulo |
+## Easements (UC-005 A.8-A.11, A.15, A.21; WS 2.21)
+| Case | Width | Offset from centerline | Label |
 |---|---|---|---|
-| Solo agua | 12 ft | 6 ft c/lado | `twelve (12) feet MDWASD easement` |
-| Solo alcantarillado | 15 ft | 7.5 ft c/lado | `fifteen (15) feet MDWASD easement` |
-| Agua + alcantarillado | ≥ 23.5 ft | 6 ft del agua, 7.5 ft del alcantarillado, 10 ft entre ambas | — |
+| Water only | 12 ft | 6 ft each side | `twelve (12) feet MDWASD easement` |
+| Sewer only | 15 ft | 7.5 ft each side | `fifteen (15) feet MDWASD easement` |
+| Water + sewer | >= 23.5 ft | 6 ft from water, 7.5 ft from sewer, 10 ft between | - |
 
-- Línea oscura discontinua; tubería única **centrada** en la servidumbre.
-- Sin estructuras ni árboles dentro (ni en su proyección vertical); líneas aéreas solo con ≥ 25 ft de holgura.
-- Medidores, hidrantes y demás accesorios **fuera** de la servidumbre del main, con servidumbre propia (A.11). Medidores en propiedad privada = parte de una servidumbre MDWASD; línea de servicio ≤ 50 ft main→medidor (B.5).
-- WS 2.21: servicio 1"–2"/4" y FH → 6 ft a cada lado del main, 6 ft a cada lado de la línea de servicio, +2.5 ft más allá de la caja del medidor, +6 ft más allá del hidrante. Medidor turbina 8"/10": 6 ft del main, 12 ft + 10 ft a lo largo del servicio, 7 ft a cada lado.
-- **No confundir** con la U.E. de un plat (p. ej. 5 ft en una línea de lote): esa sigue saliendo del plat + confirmación del usuario (`c300-easement.mjs`).
-- Una servidumbre MDWASD **solo se dibuja si la tubería está en propiedad privada** (dentro de un lote del Property Appraiser). En R/W público aplican las reglas de ubicación de Miami-Dade Public Works.
-- La servidumbre **registrada** (plat / O.R. Book, confirmada por el usuario) gana sobre la franja estándar (`c300-mdwasd-easement.mjs --recorded-width W --recorded-ref REF`).
+- Dark dashed line; a single pipe **centered** in the easement. No structures or trees inside (or in vertical projection); overhead lines only with >= 25 ft clearance.
+- Meters, hydrants, other appurtenances **outside** the main's easement, with their own (A.11). Meters on private property = part of an MDWASD easement; service line main->meter <= 50 ft (B.5).
+- WS 2.21: 1"-2"/4" service and FH -> 6 ft each side of main and of service line, +2.5 ft past the meter box, +6 ft past the hydrant. 8"/10" turbine meter: 6 ft from main, 12 ft + 10 ft along the service, 7 ft each side.
+- **Do not confuse** with a plat U.E. (e.g. 5 ft on a lot line): that comes from the plat + user confirmation (`c300-easement.mjs`).
+- An MDWASD easement is drawn **only when the pipe is on private property** (inside a Property Appraiser lot). In public R/W, Miami-Dade Public Works location rules apply.
+- A **recorded** easement (plat / O.R. Book, confirmed by the user) beats the standard strip (`c300-mdwasd-easement.mjs --recorded-width W --recorded-ref REF`).
 
-## Separaciones (GS 1.5, F.A.C. 62-555.314, UC-005 A.16)
+## Separations (GS 1.5, F.A.C. 62-555.314, UC-005 A.16)
+- Water <-> gravity sanitary / pressure / force main: horizontal **10 ft preferred, 6 ft minimum** (wall to wall; 6 ft only with water >= 6 in above the sewer crown).
+- Water <-> storm / reclaimed: 3 ft min (10 ft recommended wall to wall with storm/sewer, note 2). Vacuum: 10 preferred / 3 min. On-site treatment: 10 ft.
+- Any other service/drain vs water or sewer main outside 62-555.314: **5 ft face to face**.
+- Crossings: **12 in** vertical (invert of upper to crown of lower); water above whenever possible; otherwise both DIP, joints equidistant (>= 10 ft between joints), 6 in min. Cross perpendicular when possible. Laterals: 12 in, or a 20 ft DIP / C-900 SDR18 section centered.
 
-- Agua ↔ alcantarillado sanitario por gravedad / presión / force main: horizontal **10 ft preferido, 6 ft mínimo** (pared a pared; 6 ft solo con el agua ≥ 6 in sobre la corona del alcantarillado).
-- Agua ↔ pluvial / reclamada: 3 ft mín (10 ft recomendado pared a pared con pluvial/alcantarillado, nota 2). Vacío: 10 preferido / 3 mín. Tratamiento in situ: 10 ft.
-- Cualquier otro servicio/drenaje vs main de agua o alcantarillado fuera de 62-555.314: **5 ft cara a cara**.
-- Cruces: **12 in** verticales (invertido de la superior a la corona de la inferior); agua por encima siempre que sea posible. Si no: ambas DIP, juntas equidistantes (≥ 10 ft entre juntas), 6 in mín. Cruzar perpendicular cuando se pueda. Laterales: 12 in, o tramo de 20 ft DIP centrado / C-900 SDR18.
+## Sewer / water (UC-005 B, C, D; UC-250; UC-310)
+- MH at most every **400 ft**; label MH number, slope, size, material, distance to next; INV with flow direction and RIM above the MH.
+- Sanitary cover: green areas < 2.5 ft DIP+slab; 2.5-6 DIP/C900 (PVC SDR35 with unreinforced slab if approved); 6-14 PVC; > 14 DIP. Pavement: < 3.5 ft DIP or C900; < 2.5 ft DIP + reinforced slab.
+- Gate valves every **660 ft**; mains >= 20" valve every half mile; hydrant lateral <= **50 ft** and 6".
+- Water/force main cover: <= 12": 30 in; 16-24": 36 in; less -> reinforced concrete slab (GS 1.2).
+- Services: 1"/2" blue HDPE with tracer wire (UC-075); services <= 2" from existing mains and cut/plug of MDWASD mains are done by MDWASD at owner's cost.
+- Lateral: tee with riser (sewer >= 7 ft) or wye; plug; green 2x2x2 ft stake; location measured and recorded before backfill (UC-310 3.01).
 
-## Alcantarillado / agua (UC-005 B, C, D; UC-250; UC-310)
+## Plan conventions (UC-005 1.05 A)
+Existing = dashed; proposed = dark solid; both with **size + material + type**; >= 20" double line. Buildings marked existing/proposed. Baseline never on top of the main; baseline and R/W labeled at 2 points. Plan scale 1" = 10'-40', vertical profile 1/10. Standard GS 0.5 notes on all sheets; other notes "Not Part of MDWASD Notes nor Approval".
 
-- MH como máximo cada **400 ft**; rotular número de MH, pendiente, tamaño, material y distancia al siguiente; mostrar INV con dirección de flujo y RIM encima del MH.
-- Cobertura sanitario: zonas verdes < 2.5 ft DIP+losa; 2.5–6 DIP/C900 (PVC SDR35 con losa no reforzada si se aprueba); 6–14 PVC; > 14 DIP. Pavimento: < 3.5 ft DIP o C900; < 2.5 ft DIP + losa reforzada.
-- Válvulas de compuerta cada **660 ft**; mains ≥ 20" válvula cada ½ milla; lateral de hidrante ≤ **50 ft** y de 6".
-- Cobertura agua/force main: ≤ 12": 30 in; 16–24": 36 in; menos → losa de concreto reforzado (GS 1.2).
-- Servicios: HDPE 1"/2" azul con alambre trazador (UC-075); servicios ≤ 2" desde mains existentes y corte/tapón de mains MDWASD los hace MDWASD a costo del dueño.
-- Lateral: tee con riser (sewer ≥ 7 ft) o wye; tapón; estaca verde de 2x2x2 ft; ubicación medida y registrada antes de tapar (UC-310 3.01).
+## Record drawing (GS 0.5 sheet 2): what an as-built must carry
+Water: size, material, offset, deflections, station of services/hydrants/valves/fittings, crossings. Sewer: MH number, size, material, deflection, slope, laterals referenced to the MH, cleanouts, **RIM + INV per direction (N/S/E/W)**, State Plane (NAD83 FL East) coordinates of **all** MH and valves + 2 control points. All "PROPOSED" info removed. These fix the **mandatory fields** of `asbuilt-review.py`.
 
-## Convenciones de plano (UC-005 1.05 A)
-
-Existente = línea discontinua; propuesta = línea oscura continua; ambas con **tamaño + material + tipo**; ≥ 20" doble línea. Edificios identificados como existente/propuesto. Línea base nunca encima del main. Eje/baseline y R/W rotulados en 2 puntos. Escala planta 1" = 10'–40', perfil vertical 1/10. Notas estándar GS 0.5 en todos los planos; otras notas «Not Part of MDWASD Notes nor Approval».
-
-## Record drawing (GS 0.5 hoja 2) — lo que debe traer un as-built
-
-Agua: tamaño, material, offset, deflexiones, estación de servicios/hidrantes/válvulas/fittings, cruces. Alcantarillado: número de MH, tamaño, material, deflexión, pendiente, laterales referidos al MH, cleanouts, **RIM + INV por dirección (N/S/E/W)**, coordenadas State Plane (NAD83 FL East) de **todos** los MH y válvulas + 2 puntos de control. Se elimina toda información «PROPOSED». Esto fija los **campos obligatorios** de `asbuilt-review.py`.
-
-## Cómo se usa en el flujo
-
-| Paso | Qué hace |
+## How it is used in the flow
+| Step | What it does |
 |---|---|
-| `scripts/mdwasd-check.mjs --asbuilt asbuilt.json --report pa-area.json [--json out]` | separaciones agua–alcantarillado, cruces, MH ≤ 400 ft, etiquetas con tamaño+material, RIM/INV, cobertura, FH ≤ 50 ft, mains en propiedad privada → servidumbre. Niveles WARN/INFO/OK; **nunca** modifica valores. |
-| `fase1-qc.py` | llama a `mdwasd-check.mjs` y agrega la fila «MDWASD standards»; los INFO se imprimen aparte. |
-| `scripts/c300-mdwasd-easement.mjs --check out.json --spec spec.json` | payload `acad_create_entities` con la franja DASHED2 (C-ANNO) + rótulo estándar para cada main en propiedad privada. |
-| Propuesta de diseño | usar los números de arriba al ubicar; correr `mdwasd-check.mjs`; usar `civil3d_standards_lookup topic=mdwasd` para citar la sección. |
+| `scripts/mdwasd-check.mjs --asbuilt asbuilt.json --report pa-area.json [--json out]` | water-sewer separations, crossings, MH <= 400 ft, size+material labels, RIM/INV, cover, FH <= 50 ft, mains on private property -> easement. Levels WARN/INFO/OK; **never** changes values. |
+| `fase1-qc.py` | calls `mdwasd-check.mjs`, adds the "MDWASD standards" row; INFO printed apart. |
+| `scripts/c300-mdwasd-easement.mjs --check out.json --spec spec.json` | `acad_create_entities` payload with the DASHED2 strip (C-ANNO) + standard label for each main on private property. |
+| Design proposal | use the numbers above when locating; run `mdwasd-check.mjs`; cite sections with `civil3d_standards_lookup topic=mdwasd`. |
 
-## Manual CAD & GIS de WASD (enero 2026) — leído 2026-10-02
+## WASD CAD & GIS Manual (Jan 2026), read 2026-10-02
+Source: https://www.miamidade.gov/resources/water/documents/wasd-cad-manual.pdf (92 pp.; CAD Manager Eric Vilaire, 305-878-6051). All in `standards/mdwasd-standards.json` -> `cadManual`.
+- **Georeference/units:** NAD83 Florida East 901, NGVD29, decimal + US Survey Feet, model 1:1, Simplex text. Slopes to 0.01 %, elevations/inverts to 0.01 ft, continuous stationing every 100 ft from 10+00, State Plane coordinates at start/end/PI/PC/PT/fittings. Plan 1"=20' (or 40'), profile vertical 1"=2'.
+- **Existing layers (US NCS):** water `C-WATR-PIPE-EXST` (190, HIDDEN 0.006"), `C-WATR-FITT-EXST`, `C-WATR-INST-EXST` (152, valves/meters); sanitary `C-SSWR-PIPE-EXST` (70, HIDDEN), `C-SSWR-FITT-EXST`, `C-SSWR-STRC-EXST` (80); survey `V-WATR*`, `V-SSWR*`, `V-ESMT` (DASHED2), `V-RWAY`, `V-PROP-LINE`, `V-PROP-LOTL`. GIS layers `*_WASD` only for plan as-builts.
+- **Callouts (Tables 3.7.1/3.7.2):** `STA. XX+XX (O/S XX' LT./RT.)` + `PROP. ...` + `REST. W/GLANDS`; surveyed MH `MHSA / RIM ELEV.=X.XX' / 8" CLAY (E) INV. ELEV.=X.XX' / BOTTOM ELEV.=X.XX'`.
+- **Chapter 7 (GIS as-builts):** official template, single lines base-to-base, blocks/COGO at the surveyed point, only field-verified assets (no trees, poles, spot elevations, lots, EOP, or proposed info), Appendix C attributes, name `E/ES + 6 digits + C/D + phase + subphase` (e.g. `EXXXXXXC01A`).
+- **GS 3.0 symbols:** existing = open/gray, proposed = solid; gate valve = bowtie; the 2026 exhibits A.1-A.8, B, C, D equal the 2024 transcription in `docs/reference/wasd-symbol-legend.md`.
+- **DWT templates:** `WASDTemplate-Survey-Asbuilts.dwt`, `WASDTemplate-Pipeline-Design.dwt`, `WASD-Blocks.dwg`: site links (`.../donation/part-6/...dwt`) return **HTTP 404** (tried www/non-www, case, browser headers, Wayback). Ask WASD's CAD Manager or use the firm's copy.
 
-Fuente: https://www.miamidade.gov/resources/water/documents/wasd-cad-manual.pdf (92 págs.; CAD Manager Eric Vilaire, 305-878-6051). Todo en `standards/mdwasd-standards.json` → `cadManual`.
+## 660 ft valve check (UC-005 B.6), automated
+`mdwasd-check.mjs` takes valves from `asbuilt.json` (`appurtenances` with `G.V.`/gate/butterfly/plug valve **and coordinates**), snaps them to water pipes (<= 15 ft), builds the main graph and measures pipe distance between **adjacent** valves: > 660 ft = WARN; a main end without valve is only INFO (the as-built window ends where the scan ends). Synthetic test: `node scripts/mdwasd-selftest.mjs` (5 assertions). VILLA ONE: 3 located valves, OK; Goulds: no located valves (155 ft window), INFO.
 
-- **Georreferencia/unidades:** NAD83 Florida East 901, NGVD29, decimal + US Survey Feet, modelo 1:1, texto Simplex. Pendientes a 0.01 %, elevaciones e inverts a 0.01 ft, estacionado continuo cada 100 ft desde 10+00, coordenadas State Plane en inicio/fin/PI/PC/PT/accesorios. Planta 1"=20' (o 40'), perfil vertical 1"=2'.
-- **Capas existentes (US NCS):** agua `C-WATR-PIPE-EXST` (190, HIDDEN 0.006"), `C-WATR-FITT-EXST`, `C-WATR-INST-EXST` (152, válvulas/medidores); sanitario `C-SSWR-PIPE-EXST` (70, HIDDEN), `C-SSWR-FITT-EXST`, `C-SSWR-STRC-EXST` (80); levantamiento `V-WATR*`, `V-SSWR*`, `V-ESMT` (DASHED2), `V-RWAY`, `V-PROP-LINE`, `V-PROP-LOTL`. Capas GIS `*_WASD` solo para as-builts en planta.
-- **Callouts (Tabla 3.7.1/3.7.2):** `STA. XX+XX (O/S XX' LT./RT.)` + `PROP. …` + `REST. W/GLANDS`; MH de levantamiento `MHSA / RIM ELEV.=X.XX' / 8" CLAY (E) INV. ELEV.=X.XX' / BOTTOM ELEV.=X.XX'`.
-- **Capítulo 7 (as-builts para GIS):** plantilla oficial, líneas simples base-a-base, bloques/COGO en el punto levantado, solo activos verificados en campo (sin árboles, postes, cotas, lotes, EOP, ni info propuesta), atributos del Apéndice C, nombre `E/ES + 6 dígitos + C/D + fase + subfase` (p. ej. `EXXXXXXC01A`).
-- **Símbolos GS 3.0:** existente = abierto/gris, propuesto = sólido; válvula de compuerta = moño (bowtie); los exhibits A.1–A.8, B, C, D del 2026 equivalen a la transcripción 2024 de `docs/reference/wasd-symbol-legend.md`.
-- **Plantillas DWT:** `WASDTemplate-Survey-Asbuilts.dwt`, `WASDTemplate-Pipeline-Design.dwt`, `WASD-Blocks.dwg` — los enlaces del sitio (`…/donation/part-6/…dwt`) devuelven **HTTP 404** (probado con www/sin www, mayúsculas, cabeceras de navegador, Wayback). Hay que pedirlas al CAD Manager de WASD o usar la copia que ya tenga la firma.
-
-## Verificación de válvulas cada 660 ft (UC-005 B.6) — automatizada
-
-`mdwasd-check.mjs`: toma las válvulas de `asbuilt.json` (`appurtenances` con `G.V.`/gate/butterfly/plug valve **y coordenadas**), las ajusta a las tuberías de agua (≤ 15 ft), arma el grafo de mains y mide la distancia por tubería entre válvulas **adyacentes**: > 660 ft = WARN; el extremo de un main sin válvula es solo INFO (la ventana del as-built termina donde termina el escaneo). Prueba sintética: `node scripts/mdwasd-selftest.mjs` (5 aserciones). VILLA ONE: 3 válvulas ubicadas, OK; Goulds: sin válvulas ubicadas (ventana de 155 ft), INFO.
-
-## Detalles estándar leídos (imagen, 2026-10-02)
-
-- **WS 4.50 hidrante (2013):** lateral de 6" DIP desde tee M.J./tapping sleeve + válvula de compuerta 6" en caja No. 2; cobertura 4 ft (54" al shoe); bloque de empuje 18"x18" (sin restricción mecánica); losa 3'x3'x6"; con acera dentro de 4-7 ft de offset el hidrante va a 1 ft de la cara de la acera en zona de grama, si no decide Bomberos; postes guía 4"x5' (2.5 ft enterrados) en la cara del carro bomba y a 2.5 ft del eje; sin postes en R/W FDOT.
-- **WS 4.10 servicio (2006):** caja de medidor con eje a 2.5 ft dentro de la línea de propiedad; sin medidor si la caja cae en superficie de rodaje; tubo de cobre 1", cruce de calle en camisa de acero 1.5" con offset mín 18".
-- **SS 1.0 lateral sanitario (2010):** lateral 6" mín, pendiente >= 1/8"/ft (coincide con la nota SLOPE 1/8"/FT de los as-builts), wye + codos 45 grados, matriz mín 8", 3 ft mín al invert, cleanout con tapón roscado en caja de concreto en la línea de propiedad / R/W / servidumbre, tapón hermético al final del lateral.
-- Sin texto (solo imagen) y sin dimensiones útiles aún: SS 22.0, WS 1.0, GS 2.0, A 10 hojas 2-3 (abreviaturas, ya transcritas en `docs/reference/wasd-symbol-legend.md`).
-
+## Standard details read (image, 2026-10-02)
+- **WS 4.50 hydrant (2013):** 6" DIP lateral from M.J. tee / tapping sleeve + 6" gate valve in No. 2 box; cover 4 ft (54" to shoe); thrust block 18"x18" (no mechanical restraint); slab 3'x3'x6"; sidewalk within 4-7 ft offset -> hydrant 1 ft from sidewalk face in grass zone, else Fire Dept decides; guide posts 4"x5' (2.5 ft buried) at the pumper face and 2.5 ft from centerline; no posts in FDOT R/W.
+- **WS 4.10 service (2006):** meter box axis 2.5 ft inside the property line; no meter if the box falls on a travel surface; 1" copper, street crossing in 1.5" steel casing with min 18" offset.
+- **SS 1.0 sanitary lateral (2010):** 6" min lateral, slope >= 1/8"/ft (matches the as-builts' SLOPE 1/8"/FT note), wye + 45 deg bends, 8" min main, 3 ft min to invert, cleanout with threaded plug in a concrete box at property line / R/W / easement, watertight plug at lateral end.
+- Image only, no useful dimensions yet: SS 22.0, WS 1.0, GS 2.0, A 10 sheets 2-3 (abbreviations, already transcribed in `docs/reference/wasd-symbol-legend.md`). One doubtful SS 2.0 dimension (2.5 ft from the double lateral) is flagged in `mdwasd-details.md`: confirm on the PDF before using.

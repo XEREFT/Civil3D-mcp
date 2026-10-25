@@ -60,7 +60,7 @@ if (fin.status !== 0 || !/READY: Fase 1 delivered/.test(fin.stdout)) {
   die("fase1-finish was NOT READY: the previous delivery was put back from the backup (nothing else changed).", 1);
 }
 if (!has("no-close")) {
-  const ps = (frag) => run("pwsh", ["-NoProfile", "-File", join(here, "close-civil3d.ps1"), "-AllowSave", `${basename(dest)};${basename(build)}`, "-Discard", frag, "-TimeoutSec", "90"]);
+  const ps = (frag) => run("pwsh", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(here, "close-civil3d.ps1"), "-AllowSave", `${basename(dest)};${basename(build)}`, "-Discard", frag, "-TimeoutSec", "90"]);
   let r = ps("_template.dwg");                                         // one fragment per call (see known-bug close-civil3d-discard)
   if (r.status === 2) r = ps("c3d-dwg-dump");
   console.log(String(r.stdout).trim().split("\n").slice(-3).join("\n"));

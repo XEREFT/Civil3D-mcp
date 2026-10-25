@@ -3,7 +3,10 @@
 //
 //   node fase1-from-scratch.mjs --dir "<project folder>" --dwg "<NAME> FASE1-BUILD-TESTn.dwg" --template "<template.dwg>"
 //        [--asbuilt <asbuilt.json>] [--blocks-from <package C-300.dwg>] [--no-labels] [--no-pl] [--no-titleblock] [--road-labels mleader]
-//        [--max-rounds 3] [--deliver] [--dry-run]
+//        [--max-rounds 3] [--deliver] [--dry-run] [--rebuild] [--no-preview]
+//   ITERATING (user, 2026-10-25: "keep rewriting the same file"): use ONE working name, e.g. --dwg "<NAME> FASE1-BUILD.dwg" --rebuild. It overwrites that file
+//   (closing/restarting Civil 3D if it is open there) and refreshes "C-300 PREVIEW.pdf" + "(color).pdf" in --dir. Cheaper still, when only survey
+//   look/labels change and not the engine: edit in place (fase1-xref-style.mjs / updateTextContent) and rerun fase1-finish.mjs --no-copy.
 //
 // Steps (each one is the script of the same name; see references/automation-backlog.md §B):
 //   1. fase1-build-payload.mjs   X-TOPO dump + spec + PL symbols + R/W dims + utility labels (asbuilt.json) + title block (project.json)
@@ -17,7 +20,7 @@
 // --deliver runs fase1-finish WITHOUT --no-copy at the end (PDF to _QC, project.json updated). Default = a throwaway/test build, nothing delivered.
 // Needs Civil 3D open with the plugin (port 8080), Python with pymupdf + numpy, the three DWGs + project.json in --dir.
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { copyFileSync, existsSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -38,7 +41,46 @@ const run = (cmd, a, opts = {}) => spawnSync(cmd, a, { encoding: "utf8", maxBuff
 const log = (m) => console.log(m);
 const tail = (s, n = 12) => String(s ?? "").trim().split("\n").slice(-n).join("\n");
 
-if (existsSync(target)) die(`${target} already exists: choose a new --dwg name (never builds over a delivered file)`);
+// --rebuild = ONE working file reused for every iteration (no TEST1..N pile): only for throwaway names (…BUILD…/TEST/PRUEBA), never a "… FASE 1.dwg".
+// If the file is open in Civil 3D (the plugin cannot close a document) the app is closed and restarted with close-civil3d.ps1 / start-civil3d-mcp.ps1;
+// that script stops at any other dialog ("Save changes?" of the user's own drawing) and this run aborts without touching it.
+const pwsh = (script, a = []) => run("powershell", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(here, script), ...a]);
+if (existsSync(target)) {
+  if (!has("rebuild")) die(`${target} already exists: choose a new --dwg name, or pass --rebuild to overwrite a throwaway build file`);
+  if (/ FASE 1\.dwg$/i.test(dwgName) || !/BUILD|TEST|@XEREFT (BASE|PROPOSED)\.dwg$/i.test(dwgName)) die(`--rebuild refuses "${dwgName}": only the working file ("<NAME> @XEREFT BASE.dwg") or a BUILD/TEST file, never "… FASE 1.dwg"`);
+  const ol = run(node, [join(here, "plugin-rpc.mjs"), "listOpenDocuments", "{}"]);
+  const isOpen = ol.status === 0 && String(ol.stdout).toLowerCase().includes(basename(dwgName).toLowerCase());
+  if (isOpen) {
+    log(`\n== 0. ${basename(dwgName)} is open in Civil 3D: closing and restarting Civil 3D`);
+    const c = pwsh("close-civil3d.ps1", ["-AllowSave", "none.dwg", "-Discard", `${targetBase};Drawing1`]);
+    const co = `${c.stdout}${c.stderr}`;
+    if (c.status !== 0 || /STOP/.test(co)) die(`Civil 3D has another dialog/drawing open (probably yours): answer it, then rerun.\n${tail(co, 4)}`, 1);
+    const s = pwsh("start-civil3d-mcp.ps1"); log(tail(s.stdout, 1));
+    run("powershell", ["-NoProfile", "-Command", "Start-Sleep 20"]);   // the first newDrawing right after start times out otherwise
+  }
+  for (const ext of ["", ".bak", ".dwl", ".dwl2"]) rmSync(target.replace(/\.dwg$/i, "") + (ext || ".dwg"), { force: true });
+}
+
+// ---- 0b. survey/architecture preparation (offline, Core Console; only when the project asks for it) ----
+{
+  const pj = existsSync(join(dir, "project.json")) ? JSON.parse(readFileSync(join(dir, "project.json"), "utf8")) : {};
+  const src = pj.sources ?? {};
+  // survey colors must be ByLayer for the xref look to apply (once per project: the backup file is the marker)
+  if (src.xrefStyle === "gray" && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_color_bylayer.dwg"))) {
+    const b = pwsh("topo-bylayer.ps1", ["-Topo", join(dir, "X-TOPO.dwg")]); log(`\n== 0b. topo ByLayer: ${tail(b.stdout, 2)}`);
+  }
+  // architecture: georeference the architect's drawings to the survey when X-ARCH.dwg does not exist yet (project.json sources.architect {site, floor}) or on --georef-arch
+  if (src.architect?.site && src.architect?.floor && (!existsSync(join(dir, "X-ARCH.dwg")) || has("georef-arch"))) {
+    const g = run(node, [join(here, "xarch-georef.mjs"), "--dir", dir, "--site", src.architect.site, "--floor", src.architect.floor]); log(`\n== 0b. X-ARCH georeference:\n${tail(g.stdout, 4)}`);
+    if (g.status !== 0) die(`xarch-georef failed:\n${tail(`${g.stdout}${g.stderr}`, 8)}`, 1);
+  }
+}
+// Civil 3D must answer on port 8080 before the build (start it when it is closed)
+if (run(node, [join(here, "plugin-rpc.mjs"), "listOpenDocuments", "{}"]).status !== 0) {
+  log("\n== 0c. Civil 3D is not running: starting it");
+  const s = pwsh("start-civil3d-mcp.ps1"); log(tail(s.stdout, 1));
+  run("powershell", ["-NoProfile", "-Command", "Start-Sleep 20"]);
+}
 
 // ---- 1. payload ----
 log("\n== 1. payload");
@@ -51,12 +93,23 @@ if (has("dry-run")) { log("\nDRY RUN: payload built, nothing sent to Civil 3D.")
 // ---- 2. build ----
 log("\n== 2. build (runner)");
 r = run(node, [join(here, "fase1-build-run.mjs"), "--dir", dir, "--build", "--confirm", targetBase]);
+if (r.status !== 0 && /open template.*timed out/s.test(String(r.stdout)) && !existsSync(target)) {   // known: the first newDrawing right after Civil 3D starts
+  log("first newDrawing timed out (Civil 3D just started): retrying once");
+  run("powershell", ["-NoProfile", "-Command", "Start-Sleep 10"]);
+  r = run(node, [join(here, "fase1-build-run.mjs"), "--dir", dir, "--build", "--confirm", targetBase]);
+}
 const buildLines = String(r.stdout).split("\n").filter((l) => /^ (OK|FAIL|SKIPPED|WARN)|Fase 1 build|NOT READY/.test(l));
 log(buildLines.map((l) => l.slice(0, 150)).join("\n"));
 if (r.status !== 0) die("\nBUILD FAILED: nothing after the failing step ran. Trash the half-built target, fix, rerun.", 1);
 
 // ---- 2b. short dimensions whose text DIMFIT threw off their line (e.g. the 6.00' SAN-WM separation dim): put the text back, save ----
 { const fx = run(node, [join(here, "fase1-fix-dims.mjs"), "--expect", targetBase]); log(`\n== 2b. dimension texts: ${tail(fx.stdout, 3)}`); }
+
+// ---- 2c. survey look (opt-in: project.json sources.xrefStyle = "gray"): X-TOPO layers to ACI 8 like the firm's GUIA, lot lines ACI 4, spot elevations + trees frozen ----
+{
+  let xs; try { xs = JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).sources?.xrefStyle; } catch { /* no project.json: nothing to do */ }
+  if (xs === "gray") { const st = run(node, [join(here, "fase1-xref-style.mjs"), "--expect", targetBase, "--dir", dir]); log(`\n== 2c. xref style: ${tail(st.stdout, 3)}`); }
+}
 
 // ---- 3 + 4. plot + QC, then the declutter loop ----
 const qcJson = join(work, "qc.json"), planJson = join(work, "plan.json");
@@ -75,6 +128,26 @@ for (;;) {
   const a = run(node, [join(here, "fase1-declutter-apply.mjs"), "--plan", planJson, "--expect", targetBase]);
   log(tail(a.stdout, 8)); if (a.status !== 0) { log(`apply failed: ${tail(a.stderr)}`); break; }
   round++;
+}
+// ---- preview: the plotted C-300 (monochrome, what the delivered PDF looks like) + a color version, overwritten on every run, next to the build file ----
+if (!has("no-preview")) {
+  const plotRoot = join(tmpdir(), "c3d-dwg-dump", "plot");
+  try {
+    const last = readdirSync(plotRoot).map((n) => join(plotRoot, n, "c300.pdf")).filter(existsSync).sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)[0];
+    if (last) { copyFileSync(last, join(dir, `${targetBase}.pdf`)); log(`\nPDF (monochrome, what the engineer gets): ${join(dir, `${targetBase}.pdf`)}`); }
+    const cp = pwsh("qc-plot.ps1", ["-Dwg", target, "-Layouts", "C-300", "-Tag", "preview-color", "-Style", "acad.ctb"]);
+    const colorPdf = join(plotRoot, "preview-color", "c300.pdf");
+    if (existsSync(colorPdf)) { const cdst = join(tmpdir(), `${targetBase} (color preview).pdf`); copyFileSync(colorPdf, cdst); log(`color preview (temp, not in the folder): ${cdst}`); }
+    else log(`color preview failed: ${tail(cp.stdout || cp.stderr, 2)}`);
+  } catch (e) { log(`preview skipped: ${e instanceof Error ? e.message : e}`); }
+}
+// ---- package: the design engineer's hand-off folder "<NAME> @XEREFT BASE" (DWG + xrefs + PDF + original sources; no extra documents), rebuilt after every run ----
+{
+  let wantPkg = has("package");
+  try { wantPkg ||= JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).package?.base === true; } catch { /* no project.json flags */ }
+  if (wantPkg && !has("no-package")) { const k = run(node, [join(here, "package-base.mjs"), "--dir", dir]); log(`
+== package
+${tail(k.stdout || k.stderr, 6)}`); }
 }
 const qcLine = String(f?.stdout ?? "").split("\n").find((l) => /FASE 1 QC/.test(l)) ?? "(no QC line)";
 if (has("deliver")) { log("\n== 5. deliver (PDF to _QC + project.json)"); const d = finish(); log(tail(d.stdout, 6)); }

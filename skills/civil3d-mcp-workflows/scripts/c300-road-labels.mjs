@@ -43,16 +43,18 @@ const inView = (p, m = 0) => { const d = sub(p, ctr); return Math.abs(dot(d, ux)
 // ---- survey geometry from the dump ----
 const kv = (fields) => Object.fromEntries(fields.filter((f) => f.includes('=')).map((f) => [f.slice(0, f.indexOf('=')), f.slice(f.indexOf('=') + 1)]));
 const pt = (s) => (s ? s.replace(/[()]/g, '').trim().split(/\s+/).map(Number).slice(0, 2) : null);
+// survey layer roles: from the spec (c300-build-spec.mjs picked the profile, references/standards/survey-profiles.json); older specs = the VILLA ONE / Goulds names
+const SP = spec.surveyProfile ?? { centerline: ['CENTER_LINE'], propertyLine: ['PROPERTY_LINE'], rwDimLayers: ['DIM', '_NPLT-TXT'], pavementEdge: ['IMPROVEMENTS', 'EOP'] };
 const cls = [], dims = [], edges = [], prop = [];
 for (const line of fs.readFileSync(args.topo, 'utf8').split(/\r?\n/)) {
   const f = line.split('|'); if (f[0] !== 'ENT') continue;
   const d = kv(f.slice(4)), layer = f[3], type = f[1], p0 = [Number(d.x), Number(d.y)];
   const verts = type === 'LWPOLYLINE' ? (d.v ?? '').split(';').filter(Boolean).map((s) => s.split(',').map(Number))
     : type === 'LINE' ? [p0, pt(d.p2)] : null;
-  if (layer === 'CENTER_LINE' && verts) for (let i = 0; i + 1 < verts.length; i++) cls.push([verts[i], verts[i + 1]]);
-  else if (['DIM', '_NPLT-TXT'].includes(layer) && type === 'DIMENSION') dims.push({ h: f[2], a: p0, b: pt(d.p2) });       // surveyors use DIM (VILLA ONE) or _NPLT-TXT (Goulds 33809)
-  else if (layer === 'PROPERTY_LINE' && type === 'LINE' && verts) prop.push([verts[0], verts[1]]);
-  else if (['IMPROVEMENTS', 'EOP'].includes(layer) && verts && verts.length >= 2) edges.push({ h: f[2], v: verts });      // pavement edges: IMPROVEMENTS (VILLA ONE) or EOP (Goulds 33809)
+  if (SP.centerline.includes(layer) && verts) for (let i = 0; i + 1 < verts.length; i++) cls.push([verts[i], verts[i + 1]]);
+  else if (SP.rwDimLayers.includes(layer) && type === 'DIMENSION') dims.push({ h: f[2], a: p0, b: pt(d.p2) });       // surveyors use DIM (VILLA ONE), _NPLT-TXT (Goulds 33809) or TEXT/DIMLINE (FormTech)
+  else if (SP.propertyLine.includes(layer) && type === 'LINE' && verts) prop.push([verts[0], verts[1]]);
+  else if (SP.pavementEdge.includes(layer) && verts && verts.length >= 2) edges.push({ h: f[2], v: verts });      // pavement edges: IMPROVEMENTS (VILLA ONE), EOP (Goulds 33809) or PAVEM (FormTech)
 }
 const segDist = (p, a, b) => { const ab = sub(b, a), t = Math.max(0, Math.min(1, dot(sub(p, a), ab) / (dot(ab, ab) || 1))); const q = add(a, mul(ab, t)); return { d: len(sub(p, q)), q }; };
 const nearCl = (p) => cls.map(([a, b]) => segDist(p, a, b)).sort((x, y) => x.d - y.d)[0] ?? { d: Infinity, q: p };

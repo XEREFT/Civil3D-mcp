@@ -16,7 +16,7 @@ param(
   [string]$AllowSave = '',
   [string]$Discard = 'c3d-dwg-dump',
   [string]$Relaunch = '',
-  [string]$Repo = 'C:\Users\camil\OneDrive\Documents\Civil3D-mcp'
+  [string]$Repo = 'C:\Users\camil\OneDrive\Documents\Civil3D-mcp\Civil3D-mcp'
 )
 $ErrorActionPreference = 'Stop'
 $skill = Split-Path -Parent $PSScriptRoot

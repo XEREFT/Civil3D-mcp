@@ -21,7 +21,7 @@ const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
 const has = (n) => args.includes(`--${n}`);
 const here = dirname(fileURLToPath(import.meta.url));
-const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp").replace(/\\/g, "/");
+const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp").replace(/\\/g, "/");
 const layouts = (flag("layouts") ?? "C-300").split(",").map((s) => s.trim()).filter(Boolean);
 const log = (m) => console.log(m);
 // allowed existing-facility phrases that say PROPOSED (single source: plugin src/tools/domains/fase1PropNotes.ts, compiled copy)
@@ -60,7 +60,7 @@ else {
 
 // 3. plot
 const tag = `fin${Date.now().toString(36)}`;
-const p = run(pwsh, ["-NoProfile", "-File", join(here, "qc-plot.ps1"), "-Dwg", dwg, "-Layouts", layouts.join(","), "-Tag", tag]);
+const p = run(pwsh, ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", join(here, "qc-plot.ps1"), "-Dwg", dwg, "-Layouts", layouts.join(","), "-Tag", tag]);
 const pdfLines = (p.stdout ?? "").split("\n").map((l) => l.trim()).filter((l) => /\.pdf/i.test(l));
 const results = [];
 for (const layout of layouts) {
@@ -80,13 +80,15 @@ txt = d[0].get_text()
 flat = re.sub(r"\\s+", " ", txt)
 for ph in json.loads(sys.argv[2]): flat = re.sub(ph, " ", flat, flags=re.I)   # allowed existing-facility phrases (plugin: fase1PropNotes.ts), may wrap across PDF lines
 prop = [m.group(0) for m in re.finditer(r".{0,40}\\bPROP\\b.{0,40}|.{0,40}\\bPROPOSED\\b.{0,40}", flat, re.I)]
-print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop}))
+pend = sorted(set(re.findall(r"\\bXX-XX\\.XXX\\b|\\bX{3,}\\b", txt)))   # placeholders of missing project data (project no. / AGR / GPD): never deliverable
+print(json.dumps({"n": len(words), "tiny": tiny, "prop": prop, "pend": pend}))
 `, pdf, ALLOWED_PROP_JSON], { env: { ...process.env, PYTHONIOENCODING: "utf-8" } });
   if (py.status !== 0) { verdict("FAIL", `pdf ${layout}`, (py.stderr || "python/pymupdf failed").slice(-200)); continue; }
-  const { n, tiny, prop } = JSON.parse(py.stdout.trim().split("\n").pop());
+  const { n, tiny, prop, pend } = JSON.parse(py.stdout.trim().split("\n").pop());
   verdict(Number(n) < 50 ? "FAIL" : "OK", `pdf ${layout} words`, `${n} words${Number(n) < 50 ? " — looks BLANK (sheet viewport lost? see c300 §9.8)" : ""}`);
   verdict(Number(tiny) > 0 ? "FAIL" : "OK", `pdf ${layout} tiny text`, `${tiny} spans < 5 pt`);
   verdict(prop.length ? "FAIL" : "OK", `pdf ${layout} PROP/PROPOSED`, prop.length ? prop.join(" | ").slice(0, 200) : "none");
+  verdict(pend.length ? "FAIL" : "OK", `pdf ${layout} pending data`, pend.length ? `placeholder text printed: ${pend.join(", ")} (project number / AGR / GPD missing in project.json)` : "none");
   results.push({ layout, pdf });
 }
 

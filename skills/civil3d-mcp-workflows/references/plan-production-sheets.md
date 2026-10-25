@@ -1,38 +1,35 @@
-# Producción de planos: sheets, title blocks, publicación
+# Plan production: sheets, title blocks, publishing
 
-## Herramientas
-| Tarea | Herramienta |
+## Tools
+| Task | Tool |
 |---|---|
-| Ver sheet sets | `civil3d_sheet_set_list`, `civil3d_sheet_set_get_info` |
-| Crear un sheet set o agregar una hoja | `civil3d_sheet_set_create { name }`, `civil3d_sheet_add { sheetSetName, sheetName, sheetNumber?, layoutName? }` |
-| Asignar un title block | `civil3d_sheet_set_title_block { sheetSetName, sheetName, titleBlockPath }` |
-| Crear una hoja plan/profile por alineación | `civil3d_plan_production { action:"plan_profile_sheet_create", sheetSetName, alignmentName, … }` · actualizar: `civil3d_plan_profile_sheet_update_alignment` |
+| List sheet sets | `civil3d_sheet_set_list`, `civil3d_sheet_set_get_info` |
+| Create a set / add a sheet | `civil3d_sheet_set_create { name }`, `civil3d_sheet_add { sheetSetName, sheetName, sheetNumber?, layoutName? }` |
+| Assign a title block | `civil3d_sheet_set_title_block { sheetSetName, sheetName, titleBlockPath }` |
+| Plan/profile sheet per alignment | `civil3d_plan_production { action:"plan_profile_sheet_create", sheetSetName, alignmentName, ... }`; update: `civil3d_plan_profile_sheet_update_alignment` |
 | Viewport | `civil3d_sheet_view_create { layoutName, centerX?, centerY?, width?, height?, scale? }`, `civil3d_sheet_view_set_scale` |
-| Propiedades | `civil3d_sheet_get_properties` |
-| Publicar un PDF | `civil3d_sheet_publish_pdf { layoutNames:[…], outputPath, overwrite?, plotStyleTable?, paperSize? }` |
-| Exportar un sheet set | `civil3d_sheet_set_export` |
-| Todo orquestado | `civil3d_workflow_plan_production_publish` |
+| Properties | `civil3d_sheet_get_properties` |
+| Publish PDF | `civil3d_sheet_publish_pdf { layoutNames:[...], outputPath, overwrite?, plotStyleTable?, paperSize? }` |
+| Export a set / all orchestrated | `civil3d_sheet_set_export` / `civil3d_workflow_plan_production_publish` |
 
-Publicar requiere token de aprobación (exporta). La ruta de salida debe estar dentro de `CIVIL3D_EXPORT_ROOTS` / `CIVIL3D_FILE_ROOTS` si esas variables existen.
-Estándar de la firma: 24"x36", escala típica 1"=20', y la plot style que mapea color a grosor de línea (ver `drawing-setup-xrefs-layers.md`). **Batch Plot de todo el set es manual.** Si `sheet_publish_pdf` no basta, pide al usuario que lo haga desde Civil 3D.
+Publishing needs an approval token (it exports); the output path must be inside `CIVIL3D_EXPORT_ROOTS` / `CIVIL3D_FILE_ROOTS` when set. Firm standard: 24"x36", typical 1"=20', plot style mapping color to line weight (`drawing-setup-xrefs-layers.md`). **Batch Plot of the whole set is manual**; if `sheet_publish_pdf` is not enough, ask the user.
 
-## Title blocks (lo que más se edita en QC)
-Casi siempre son DBText o MText sueltos en el **layout** (paper space), no atributos. Algunas plantillas usan bloques con atributos: si `acad_list_text_entities { space:"paper" }` no encuentra el campo, prueba `acad_list_block_references { space:"paper", includeAttributes:true }` y edítalo con `acad_update_block_reference { handle, attributes:[{tag,value}] }`.
+## Title blocks (most-edited item in QC)
+Usually loose DBText/MText in the **layout** (paper space), not attributes. If `acad_list_text_entities { space:"paper" }` does not find the field, try `acad_list_block_references { space:"paper", includeAttributes:true }` and edit with `acad_update_block_reference { handle, attributes:[{tag,value}] }`.
+Typical fields: sheet number (`C-301`), title (`WATER PLAN`), count (`2<TAB>OF<TAB>3`, **real tab**), date, project (`YY-MM.XXX`), seal, revision table.
 
-Campos típicos: número de hoja (`C-301`), título (`WATER PLAN`), conteo (`2⇥OF⇥3`, **con tab real**), fecha, proyecto (`YY-MM.XXX`), sello y tabla de revisiones.
+Procedure:
+1. List each layout's text; summarize with `summarize-entities.mjs --by layer`.
+2. Build a layout -> number / title / count table and **check the whole set** (consecutive numbers, coherent "N OF total", no duplicates). A half-edited state from an earlier session is common (Goulds C-300: C-02 said "C-300, 2 OF 3", C-03 said "C-301, 1 OF 3").
+3. If a sheet number already belongs to another real DWG of the project (`Glob` the project folders), the text is an inherited placeholder, not a valid number.
+4. Confirm final values with the user; edit only the substring (in a tab-separated count, only the digit).
+5. A DWG acting only as an xref source (e.g. C-WS) may not need a number: a placeholder (`C-XXX` / `TBD` / `X OF X`) is a valid final state.
 
-Procedimiento:
-1. Lista los textos de cada layout: `acad_list_text_entities { space:"paper" }`, y resume con `summarize-entities.mjs --by layer`.
-2. Construye una tabla con layout → número / título / conteo de cada hoja. **Verifica la consistencia del set completo** (números correlativos, conteo "N OF total" coherente, sin dos hojas con el mismo número). Un estado a medio editar de una sesión previa es común (Goulds C-300: C-02 decía "C-300, 2 OF 3" y C-03 decía "C-301, 1 OF 3").
-3. Si un número de hoja ya pertenece a otro DWG real del proyecto (compruébalo con `Glob` en las carpetas del proyecto), el texto es un placeholder heredado, no un número válido.
-4. Confirma los valores finales con el usuario y edita solo la subcadena. En el conteo con tab, cambia solo el dígito.
-5. Un DWG que actúa como fuente de xref (p. ej. C-WS) puede no necesitar número de hoja. En ese caso, un placeholder (`C-XXX` / `TBD` / `X OF X`) es un estado final válido.
+## Revision table
+Loose per-cell texts in paper space (No. / date / description / initials). Edit by handle; add rows with `acad_create_text` + `space:"paper"` + `layout` (`redline-qc-workflow.md` §3).
 
-## Tabla de revisiones
-Normalmente son textos sueltos por celda en paper space (No. · fecha · descripción · iniciales). Edita por handle. Para agregar filas: `acad_create_text` con `space:"paper"` y `layout` (el procedimiento está en `redline-qc-workflow.md` §3).
+## Hidden templates
+Some covers (`Cover_C-001.dwg`) keep a blank title-block copy and a master sheet index outside the printable area (negative X). Intentional: do not touch or report.
 
-## Plantillas escondidas
-Algunos covers (`Cover_C-001.dwg`) guardan una copia en blanco del title block y un índice maestro de hojas fuera del área imprimible (X negativo). Es intencional. No lo toques ni lo reportes como defecto.
-
-## Carpeta de cierre
-Al terminar una sesión o fase, el usuario copia los DWG editados a una subcarpeta con fecha (`YYYY-MM-DD_QC`, `Cierre`, `08.03`). Si guardaste con Save As, usa la misma convención.
+## Closing folder
+At the end of a session/phase the user copies edited DWGs into a dated subfolder (`YYYY-MM-DD_QC`, `Cierre`, `08.03`); if you saved with Save As, follow the same convention.

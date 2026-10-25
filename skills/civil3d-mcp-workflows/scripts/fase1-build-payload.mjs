@@ -94,7 +94,14 @@ const { lengthFt, ...alignment } = spec.alignment;
 payload.alignment = alignment;
 const entities = spec.createEntities.entities;
 const clName = std.roles.clSymbol.blockName;
-if (entities.some((e) => e.kind === "block" && e.blockName === clName)) payload.clImport = { blockName: clName, sourceFilePath: win(join(dir, "X-TOPO.dwg")) };
+// the definition is imported from X-TOPO only when the survey really has it (FormTech's topo has no _cl: the template's own definition is used)
+const topoHasCl = !topoDump || readFileSync(topoDump, "utf8").split(/\r?\n/).some((l) => l.startsWith("ENT|INSERT|") && l.includes(`|block=${clName}|`));
+// ... else project.json sources.clFrom = any DWG that defines _cl (e.g. another project's X-TOPO), imported once into the sheet
+const clSource = topoHasCl ? join(dir, "X-TOPO.dwg") : project.sources?.clFrom;
+if (entities.some((e) => e.kind === "block" && e.blockName === clName)) {
+  if (clSource) payload.clImport = { blockName: clName, sourceFilePath: win(clSource) };
+  else console.log(`WARN: the template and X-TOPO have no "${clName}" block: set project.json sources.clFrom to a DWG that defines it, or the build stops at the first ${clName} symbol`);
+}
 payload.entities = entities;
 payload.layers = spec.createEntities.layers;
 const [a, b] = spec.alignment.points;
@@ -148,8 +155,10 @@ if (!has("no-pl")) {
   const avoid = payload.entities.flatMap((e) =>
     e.kind === "aligned_dimension" ? [[(e.x1 + e.x2) / 2, (e.y1 + e.y2) / 2]] : (e.kind === "mtext" || e.kind === "mleader") && e.x != null ? [[e.x, e.y]] : [])
     .map((p) => p.map((v) => v.toFixed(2)).join(",")).join(";");
+  const slFile = join(work, "pl-survey-lines.json");
+  if (spec.plSurveyLines) writeFileSync(slFile, JSON.stringify(spec.plSurveyLines));
   const r = spawnSync("node", [join(here, "c300-pl-symbols.mjs"), "--frontage", String(spec.twist.streetAngleDegrees),
-    "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut, ...(avoid ? ["--avoid", avoid] : [])], { encoding: "utf8" });
+    "--center", `${spec.twist.centerX},${spec.twist.centerY}`, "--out", plOut, ...(avoid ? ["--avoid", avoid] : []), ...(spec.plSurveyLines ? ["--survey-lines", slFile] : [])], { encoding: "utf8" });
   const movedPl = (r.stdout ?? "").split("\n").filter((l) => /moved|STILL ON/.test(l));
   if (movedPl.length) plNote = ` (${movedPl.length} slid clear of other annotation: ${movedPl.map((l) => l.trim()).join(" | ")})`;
   if (r.status === 0 && existsSync(plOut)) {
@@ -234,7 +243,7 @@ else if (!has("no-titleblock")) {
   else titleNote = `NOT added: ${(r.stderr || r.stdout || "c300-titleblock failed").trim().split("\n").pop()}`;
 }
 // xref layers that print duplicated on the sheet (survey R/W dims on X-TOPO|DIM): frozen by the build right after the xrefs
-payload.freezeLayers = std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"];
+payload.freezeLayers = [...new Set([...(std.roles?.fase1?.freezeXrefLayers?.layers ?? ["X-TOPO|DIM"]), ...(spec.surveyProfile?.freezeXrefLayers ?? [])])];
 payload.save = true;
 
 const out = flag("out") ?? join(work, "payload.json");

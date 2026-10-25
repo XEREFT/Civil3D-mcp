@@ -199,6 +199,9 @@ streets = [e for e in ents if e["type"] == "MTEXT" and re.search(r"\b(STREET|AVE
 add("OK" if len(streets) >= 2 else "WARN", "street labels", f"{len(streets)} in view")
 add("OK" if any(e["type"] == "AECC_ALIGNMENT" for e in ents) else "FAIL", "alignment", "present" if any(e["type"] == "AECC_ALIGNMENT" for e in ents) else "none")
 need = {"X-TOPO", "X-UTIL", "X-ARCH"}; got = {n.upper() for n, _ in xrefs}
+# project.json sources.xutil == "none": no POC / as-builts exist, so there is no X-UTIL to attach (logged in project.json decisions); the other two xrefs are still required
+_no_xutil = (project.get("sources") or {}).get("xutil") == "none"
+if _no_xutil: need = need - {"X-UTIL"}
 missing_files = [p for n, p in xrefs if not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(dwg), p)))]
 add("OK" if need <= got and not missing_files else "FAIL", "xrefs", f"{', '.join(sorted(got))}" + (f"; file not found: {', '.join(missing_files)}" if missing_files else "") + (f"; missing: {', '.join(sorted(need - got))}" if need - got else ""))
 
@@ -228,10 +231,18 @@ _flat = lambda t: re.sub(r"\s+", " ", (t or "").replace("\\P", " ")).strip()
 # (a) dimensions in C-ANNO: R/W dims (~25 ft) must start on the survey PROPERTY_LINE; U.E. dims are the confirmed easement width; the others must
 #     join an existing sewer line to an existing water line (utility separation: 8.00' / 6.00' on VILLA ONE) -- anything else has no source.
 _tdump = base_dump_of(os.path.join(proj_dir, "X-TOPO.dwg"))
+# survey layer roles (references/standards/survey-profiles.json): forced by project.json sources.surveyProfile, else the first profile whose centerline layer is in the dump
+_profiles = json.load(open(os.path.join(HERE, "..", "references", "standards", "survey-profiles.json"), encoding="utf-8"))["profiles"]
+_pl_layers = {"PROPERTY_LINE"}
+if _tdump:
+    _dl = {_l.split("|")[3] for _l in open(_tdump, encoding="utf-8", errors="replace") if _l.startswith("ENT|") and _l.count("|") > 3}
+    _forced = (project.get("sources") or {}).get("surveyProfile")
+    _prof = _profiles.get(_forced) if _forced else next((_p for _p in _profiles.values() if set(_p["centerline"]) & _dl), None)
+    if _prof: _pl_layers = set(_prof["propertyLine"])
 if rw and _tdump:
     _pls = []
     for _ln in open(_tdump, encoding="utf-8", errors="replace"):
-        if _ln.startswith("ENT|") and _ln.split("|")[3] == "PROPERTY_LINE":
+        if _ln.startswith("ENT|") and _ln.split("|")[3] in _pl_layers:
             _m = re.search(r"\|v=([^|]*)", _ln)
             if _m:
                 _q = [tuple(map(float, s.split(",")[:2])) for s in _m.group(1).split(";") if s]

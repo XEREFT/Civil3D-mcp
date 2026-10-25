@@ -28,37 +28,46 @@ const avoid = (args.avoid || '').split(';').map((s) => s.split(',').map(Number))
 const avoidR = Number(args['avoid-radius'] || 8);
 const inView = (p) => { const d = [p[0] - C[0], p[1] - C[1]]; return Math.abs(d[0] * u[0] + d[1] * u[1]) < halfU && Math.abs(d[0] * v[0] + d[1] * v[1]) < halfV; };
 
-const reach = Math.hypot(halfU, halfV) + 50;
-const q = new URLSearchParams({
-  geometry: `${C[0] - reach},${C[1] - reach},${C[0] + reach},${C[1] + reach}`, geometryType: 'esriGeometryEnvelope', inSR: '2236',
-  spatialRel: 'esriSpatialRelIntersects', outFields: 'BLK_TRT,LOT', returnGeometry: 'true', outSR: '2236', f: 'json',
-});
-// The county GIS sometimes answers 200 with an empty feature list (seen 2026-10-02: two builds in a row came out with PL 0 and a
-// silent QC FAIL): retry a few times and fail loudly instead of printing "0 PL symbols".
-let j;
-for (let attempt = 1; attempt <= 4; attempt++) {
-  try {
-    const res = await fetch(`https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/7/query?${q}`);
-    j = await res.json();
-    if (j.error) throw new Error(JSON.stringify(j.error));
-    if (j.features?.length) break;
-    j = undefined;
-  } catch (e) { if (attempt === 4) throw e; }
-  await new Promise((r) => setTimeout(r, 1500 * attempt));
+// --survey-lines <json>: [[[x,y],[x,y]], ...] lot lines taken from the SURVEY (project survey profile: plLines minus the R/W lines) for sites whose parcels are metes-and-bounds
+// pieces of a platted tract (FormTech SEIDENSTEIN): the county plat-lot layer then has one big lot and no shared edge. Without the flag the county layer is used (unchanged).
+const SURVEY = args['survey-lines'] ? JSON.parse(fs.readFileSync(args['survey-lines'], 'utf8')) : null;
+let lots = [], edges, dist, proj;
+if (!SURVEY) {
+  const reach = Math.hypot(halfU, halfV) + 50;
+  const q = new URLSearchParams({
+    geometry: `${C[0] - reach},${C[1] - reach},${C[0] + reach},${C[1] + reach}`, geometryType: 'esriGeometryEnvelope', inSR: '2236',
+    spatialRel: 'esriSpatialRelIntersects', outFields: 'BLK_TRT,LOT', returnGeometry: 'true', outSR: '2236', f: 'json',
+  });
+  // The county GIS sometimes answers 200 with an empty feature list (seen 2026-10-02: two builds in a row came out with PL 0 and a
+  // silent QC FAIL): retry a few times and fail loudly instead of printing "0 PL symbols".
+  let j;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(`https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/7/query?${q}`);
+      j = await res.json();
+      if (j.error) throw new Error(JSON.stringify(j.error));
+      if (j.features?.length) break;
+      j = undefined;
+    } catch (e) { if (attempt === 4) throw e; }
+    await new Promise((r) => setTimeout(r, 1500 * attempt));
+  }
+  if (!j) throw new Error('Property Appraiser lot layer returned no features after 4 tries (service hiccup?): not producing 0 PL symbols silently');
+
+  lots = j.features.map((f) => ({ id: `B${String(f.attributes.BLK_TRT).trim()}L${String(f.attributes.LOT).trim()}`, r: f.geometry.rings[0] }));
+  edges = (l) => l.r.slice(0, -1).map((a, i) => ({ a, b: l.r[i + 1], L: Math.hypot(l.r[i + 1][0] - a[0], l.r[i + 1][1] - a[1]) })).filter((e) => e.L > 15);
+  dist = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1]; return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / Math.hypot(dx, dy); };
+  proj = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1]; return ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy); };
 }
-if (!j) throw new Error('Property Appraiser lot layer returned no features after 4 tries (service hiccup?): not producing 0 PL symbols silently');
-
-const lots = j.features.map((f) => ({ id: `B${String(f.attributes.BLK_TRT).trim()}L${String(f.attributes.LOT).trim()}`, r: f.geometry.rings[0] }));
-const edges = (l) => l.r.slice(0, -1).map((a, i) => ({ a, b: l.r[i + 1], L: Math.hypot(l.r[i + 1][0] - a[0], l.r[i + 1][1] - a[1]) })).filter((e) => e.L > 15);
-const dist = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1]; return Math.abs((p[0] - a[0]) * dy - (p[1] - a[1]) * dx) / Math.hypot(dx, dy); };
-const proj = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1]; return ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / (dx * dx + dy * dy); };
-
 const H = PL.height * 1.42857, halfBox = (PL.width ?? 0.6468) / 2;
-const entities = [], seen = new Set(), report = [];
+const entities = [], seen = new Set(), report = [], cands = [];
 for (let i = 0; i < lots.length; i++) for (let k = i + 1; k < lots.length; k++) for (const e of edges(lots[i])) for (const f of edges(lots[k])) {
   if (dist(f.a, e.a, e.b) > 1.5 || dist(f.b, e.a, e.b) > 1.5) continue;
   const t = [proj(f.a, e.a, e.b), proj(f.b, e.a, e.b)].sort((x, y) => x - y), t0 = Math.max(0, t[0]), t1 = Math.min(1, t[1]);
   if ((t1 - t0) * e.L < 50) continue;
+  cands.push({ e, t0, t1, tag: `${lots[i].id}/${lots[k].id}` });
+}
+for (const [a, b] of SURVEY ?? []) { const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L >= 50) cands.push({ e: { a, b, L }, t0: 0, t1: 1, tag: 'survey' }); }
+for (const { e, t0, t1, tag } of cands) {
   let tm = (t0 + t1) / 2, P = [e.a[0] + (e.b[0] - e.a[0]) * tm, e.a[1] + (e.b[1] - e.a[1]) * tm];
   const key = P.map((x) => Math.round(x / 3)).join(',');
   if (!inView(P) || seen.has(key)) continue;
@@ -85,7 +94,7 @@ for (let i = 0; i < lots.length; i++) for (let k = i + 1; k < lots.length; k++) 
   const ins = [P[0] - right[0] * halfBox + up[0] * H / 2, P[1] - right[1] * halfBox + up[1] * H / 2];
   entities.push({ kind: 'mtext', layer: PL.layer, textStyle: PL.textStyle, height: PL.height, attachment: PL.attachment, width: PL.width ?? 0.6468,
     rotation: +rot.toFixed(4), text: PL.text, x: +ins[0].toFixed(4), y: +ins[1].toFixed(4) });
-  report.push(`${lots[i].id}/${lots[k].id} @ ${P.map((x) => x.toFixed(2)).join(',')}${moved}`);
+  report.push(`${tag} @ ${P.map((x) => x.toFixed(2)).join(',')}${moved}`);
 }
 const out = JSON.stringify({ createEntities: { entities } }, null, 1);
 if (args.out) fs.writeFileSync(args.out, out);

@@ -30,7 +30,7 @@ const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i +
 const has = (n) => args.includes(`--${n}`);
 const here = dirname(fileURLToPath(import.meta.url));
 const die = (m, code = 2) => { console.error(m); process.exit(code); };
-const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp").replace(/\\/g, "/");
+const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp").replace(/\\/g, "/");
 
 // ---------- payload ----------
 let payloadPath = flag("payload");

@@ -2,7 +2,7 @@
 // FASE 1 audit (READ-ONLY): checks the drawing that is open in Civil 3D against the firm's "Fase 1 = existing conditions only"
 // rule (references/c300-water-sewer-plan.md §9). Talks to the plugin directly (like plugin-rpc.mjs), never writes.
 //
-//   node fase1-audit.mjs [--dump <dwg-dump.txt>] [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp] [--alignment-style "BCC - ALIGNMENT"]
+//   node fase1-audit.mjs [--dump <dwg-dump.txt>] [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp] [--alignment-style "BCC - ALIGNMENT"]
 //
 // Checks (FAIL = must fix before delivering, WARN = look at it, OK):
 //   1. layouts: only Model + C-300 (no C-301 / profile sheet)
@@ -24,7 +24,7 @@ import { readFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
-const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp";
+const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp";
 const wantedStyle = flag("alignment-style") ?? "BCC - ALIGNMENT";
 const dumpPath = flag("dump");
 

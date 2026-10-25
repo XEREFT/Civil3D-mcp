@@ -2,7 +2,7 @@
 // INTEGRITY CHECK (READ-ONLY on the user's drawings): the "second brain" test-runner. Runs the known-bugs registry
 // (references/standards/known-bugs.json) plus generic consistency checks, and prints OK / WARN / FAIL / SKIP per line.
 //   node integrity-check.mjs [--only deploy,docs,agents,memory,bugs,live] [--skip-live] [--offline] [--with-tests] [--json] [--brief]
-//                            [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp]
+//                            [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp]
 // Groups:
 //   deploy  repo build fresh? build == installed extension server/ (layer 2)? ProgramData DLL == bin/Release, has every dispatcher
 //           method (layer 1)? Claude Desktop / Civil 3D started after their layer was updated (layer 3)?
@@ -27,7 +27,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
 const has = (n) => args.includes(`--${n}`);
-const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp").replace(/\\/g, "/");
+const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp").replace(/\\/g, "/");
 const skill = resolve(dirname(fileURLToPath(import.meta.url)), "..").replace(/\\/g, "/");
 const memDir = flag("mem") ?? `${homedir().replace(/\\/g, "/")}/.claude/projects/C--Users-camil-OneDrive-Documents-Civil3D-mcp/memory`;
 const memMirror = flag("mem-mirror") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-MCP-backup/memory";
@@ -141,7 +141,7 @@ function docs(registry) {
   const trouble = read(join(skill, "references/troubleshooting.md"));
   const noMatch = registry.bugs.filter((b) => !trouble.includes(b.match));
   add(g, noMatch.length ? "FAIL" : "OK", "registry -> troubleshooting.md", noMatch.length ? `registry entries whose row text is gone/renamed: ${noMatch.map((b) => b.id).join(", ")}` : `${registry.bugs.length} entries all found in the table`);
-  const tableRows = trouble.split("\n").filter((l) => /^\| /.test(l) && !/^\|[-| ]+\|$/.test(l) && !/^\| (Síntoma|Síntoma \/ mensaje)/.test(l));
+  const tableRows = trouble.split("\n").filter((l) => /^\| /.test(l) && !/^\|[-| ]+\|$/.test(l) && !/^\| (Symptom|Symptom \/ message) /.test(l));
   const orphan = tableRows.filter((l) => !registry.bugs.some((b) => l.includes(b.match)));
   add(g, orphan.length ? "WARN" : "OK", "troubleshooting.md -> registry", orphan.length ? `${orphan.length} table rows have no registry entry (add one to known-bugs.json): ${short(orphan.map((l) => l.slice(0, 60)), 4)}` : `${tableRows.length} rows covered`);
 

@@ -21,6 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { c300Input } from './project-state.mjs';
+import { pickProfile } from './lib/survey-profile.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) => (v.startsWith('--') ? a.concat([[v.slice(2), arr[i + 1]]]) : a), []));
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -103,12 +104,16 @@ if (!win) {
 const inWin = (p) => p[0] >= win[0] && p[1] >= win[1] && p[0] <= win[2] && p[1] <= win[3];
 const ents = allEnts.filter((e) => inWin(e.p));
 
+// Survey layer roles (centerline / property line / R/W dims / pavement edge): each surveyor names them differently ->
+// references/standards/survey-profiles.json, picked by the layers found in the window (project.json sources.surveyProfile forces one)
+const SP = pickProfile(ents, rawProject.sources?.surveyProfile);
+
 // Street centerline segments
-const segs = ents.filter((e) => e.type === 'LINE' && e.layer === 'CENTER_LINE').map((e) => {
+const segs = ents.filter((e) => e.type === 'LINE' && SP.centerline.includes(e.layer)).map((e) => {
   const a = e.p, b = pt(e.p2);
   return { a, b, deg: norm180(angDeg(sub(b, a))), len: len(sub(b, a)) };
 }).filter((s) => s.len > 1);
-if (!segs.length) throw new Error('no CENTER_LINE LINE entities in the window');
+if (!segs.length) throw new Error(`no ${SP.centerline.join('/')} LINE entities in the window`);
 
 // Cluster segments into streets: same direction family (±8°) and same line (perpendicular offset < 15 ft)
 const streets = [];
@@ -138,22 +143,32 @@ for (const st of streets) {
     const rotDeg = norm180((+l.rot || 0) / D2R);
     const parallel = Math.min(Math.abs(rotDeg - st.deg), 180 - Math.abs(rotDeg - st.deg)) < 10;
     const off = Math.abs(dot(sub(l.p, st.origin), [-st.u[1], st.u[0]]));
-    if (parallel && off < 30 && (!best || off < best.off)) best = { off, l };
+    if (parallel && off < 40 && (!best || off < best.off)) best = { off, l };
   }
-  const raw = best ? best.l.txt.replace(/\{[^;]*;|[{}]|\\[A-Za-z][^;]*;/g, '').trim() : `STREET ${streets.indexOf(st) + 1}`;
+  // A street the survey leaves unlabelled can be named in project.json sources.streetNames [{ "x", "y", "name" }] (the point must lie within 40 ft of that centerline);
+  // the decision and its evidence go to project.json decisions. Survey labels always win.
+  const given = best ? null : (rawProject.sources?.streetNames ?? []).find((n) => Math.abs(dot(sub([n.x, n.y], st.origin), [-st.u[1], st.u[0]])) < 40);
+  const raw = best ? best.l.txt.replace(/\{[^;]*;|[{}]|\\[A-Za-z][^;]*;/g, '').trim() : given ? given.name : `STREET ${streets.indexOf(st) + 1}`;
   st.name = raw.replace(/S\.W\.\s*/i, 'SW ').replace(/\s+/g, ' ').toUpperCase();
 }
 
 // Frontage street = the one named in the project address
 const num = (project.address.match(/SW\s+(\d+\w*)/i) || [])[1];
-const front = streets.find((s) => num && s.name.includes(num.toUpperCase()));
+// Several streets can share the number (FormTech topo of SEIDENSTEIN: SW 53RD COURT / PLACE / AVENUE all in one window): the full street name of the
+// address wins (suffix abbreviations expanded), the number alone only breaks the tie when exactly one street carries it
+const fullName = project.address.toUpperCase().replace(/^[\dX]+\s+/, '').replace(/\bCT\b\.?/, 'COURT').replace(/\bAVE\b\.?/, 'AVENUE').replace(/\bST\b\.?/, 'STREET').replace(/\bPL\b\.?/, 'PLACE').replace(/\bRD\b\.?/, 'ROAD').replace(/\s+/g, ' ').trim();
+const byNum = streets.filter((s) => num && s.name.includes(num.toUpperCase()));
+const front = streets.find((s) => s.name === fullName) ?? (byNum.length === 1 ? byNum[0] : byNum.find((s) => fullName.includes(s.name.replace(/^SW\s+/, ''))) ?? byNum[0]);
 if (!front) throw new Error(`frontage street for "${project.address}" not found among ${streets.map((s) => s.name).join(', ')}`);
 const lot = project.lotPoint;
+// Subject label anchor (top-centre of the MTEXT). Default = lotPoint; project.json sources.subjectLabelAt [x,y] moves it when the survey prints its own text there
+// (SEIDENSTEIN: the FormTech legal-description MTEXT and "RESIDENCE No. 7421" sit on the PA centroid).
+const subjectAt = Array.isArray(rawProject.sources?.subjectLabelAt) && rawProject.sources.subjectLabelAt.length === 2 ? rawProject.sources.subjectLabelAt.map(Number) : lot;
 // Cross streets = the OTHER streets that really cross the frontage near the site. A street running parallel to it (Goulds 33809: SW 124 AVE next to SW 125 AVE) meets it only
 // at infinity (the first version put the alignment start 2,231,804,600 ft away and hung Civil 3D), and an intersection hundreds of feet outside the survey window is not a
 // street corner of this sheet: skip both.
 const angDiff = (a, b) => Math.min(Math.abs(a - b), 180 - Math.abs(a - b));
-const cross = streets.filter((s) => s !== front && angDiff(s.deg, front.deg) >= 30).filter((c) => {
+let cross = streets.filter((s) => s !== front && angDiff(s.deg, front.deg) >= 30).filter((c) => {
   const p = intersect(front.origin, front.u, c.origin, c.u);
   return Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.hypot(p[0] - lot[0], p[1] - lot[1]) <= 700;
 });
@@ -172,7 +187,14 @@ for (const c of cross) {
 const sLot = dot(sub(lot, front.origin), u);
 cross.sort((a, b) => Math.abs(a.sFront - sLot) - Math.abs(b.sFront - sLot));
 const near = cross[0];
-const far = cross[cross.length - 1];
+// The sheet shows the lot and the cross street at the far end of the block: viewport = std.viewport.size (inches) at 1"=20'. When the block is longer than the viewport
+// (FormTech SEIDENSTEIN: cross streets 650 ft apart, lot 436 ft from the far one) the far street + the whole lot lose the fit, so the nearest cross street closes the sheet instead
+// (the alignment starts there and the far street stays out of the viewport). Reference sheets (VILLA ONE 200 ft, Goulds 33809) fit: unchanged.
+const VIEW_HALF = std.viewport.size[0] * 20 / 2;
+let far = cross[cross.length - 1];
+const fitsView = (c) => Math.abs(c.sFront - sLot) <= 2 * (VIEW_HALF - 60) + 25;
+const farNote = cross.length > 1 && !fitsView(far) ? `far cross street ${far.name} is ${Math.round(Math.abs(far.sFront - sLot))} ft from the lot: does not fit the ${VIEW_HALF * 2} ft viewport with the lot -> sheet closes at ${near.name} (${Math.round(Math.abs(near.sFront - sLot))} ft)` : null;
+if (farNote) { cross = cross.filter((c) => fitsView(c)); far = cross[cross.length - 1] ?? near; }
 const towardLot = Math.sign(sLot - far.sFront) || 1;
 const uLot = mul(u, towardLot);
 
@@ -183,9 +205,15 @@ const report = [];
 // 1) Alignment: one tangent from 20 ft past the far intersection, through the lot frontage, to the end of the survey CL
 const alStart = add(far.int, mul(uLot, -S.alignment.startBeforeFarIntersectionFt));
 const surveyEnd = Math.max(...front.segs.flatMap((s) => [s.a, s.b]).map((p) => dot(sub(p, alStart), uLot)));
-const alLen = Math.ceil(surveyEnd / S.alignment.lengthRoundUpToFt) * S.alignment.lengthRoundUpToFt;
+// The alignment ends where the survey CL ends, but never beyond the viewport (a CL that runs on for 800 ft would put the ALIGNMENT END note outside the sheet)
+const sCenterPre = (dot(sub(far.int, front.origin), u) + sLot + 25 * Math.sign(sLot - dot(sub(far.int, front.origin), u))) / 2;
+const viewEnd = dot(sub(add(front.origin, mul(u, sCenterPre)), alStart), uLot) + VIEW_HALF;
+const alReach = surveyEnd > viewEnd + 50 ? viewEnd : surveyEnd;       // 50 ft of slack: the reference sheets end at the viewport edge +- a few ft
+const alLen = Math.ceil(alReach / S.alignment.lengthRoundUpToFt) * S.alignment.lengthRoundUpToFt;
 const alEnd = add(alStart, mul(uLot, alLen));
-const alName = front.name.replace(/AVENUE$/, 'AVE').replace(/STREET$/, 'ST');
+const alName = front.name.replace(/AVENUE$/, 'AVE').replace(/STREET$/, 'ST').replace(/COURT$/, 'CT').replace(/PLACE$/, 'PL').replace(/ROAD$/, 'RD');
+if (farNote) report.push(farNote);
+if (alLen < surveyEnd) report.push(`alignment cut at the viewport end (survey CL runs ${Math.round(surveyEnd)} ft from its start)`);
 report.push(`alignment ${alName}: ${alLen} ft, ${theta.toFixed(4)}°`);
 
 // 2) CL extensions (250 ft from each intersection on cross streets; frontage beyond the alignment start)
@@ -209,13 +237,17 @@ const sheetAngle = (p, q) => { let a = (Math.atan2(q[1] - p[1], q[0] - p[0]) * 1
 // Which survey dims are R/W dims is decided by GEOMETRY, not by layer name: surveyors put them on DIM (VILLA ONE) or on _NPLT-TXT (Goulds 33809, where DIM holds 1 dim and
 // _NPLT-TXT the 12 that matter). A dim counts when it measures > 1 ft, lies on one of those layers and one of its ends sits on a PROPERTY_LINE segment (<= 0.2 ft) of the window;
 // duplicates (same two ends, any layer) are dropped. Without any PROPERTY_LINE segment in the window the layer rule alone decides (as before).
-const propSegs = ents.filter((x) => x.type === 'LINE' && x.layer === 'PROPERTY_LINE').map((x) => [x.p, pt(x.p2)]).filter(([a, b]) => a && b);
+const propSegs = ents.filter((x) => x.type === 'LINE' && SP.propertyLine.includes(x.layer)).map((x) => [x.p, pt(x.p2)]).filter(([a, b]) => a && b);
 const onSeg = (q, [a, b]) => { const d = sub(b, a), l2 = dot(d, d) || 1, t = Math.max(0, Math.min(1, dot(sub(q, a), d) / l2)); return len(sub(q, add(a, mul(d, t)))) <= 0.2; };
+const vCenter = add(front.origin, mul(u, sCenterPre));
+const inSheet = (p, m = 0) => Math.abs(dot(sub(p, vCenter), u)) <= VIEW_HALF + m && Math.abs(dot(sub(p, vCenter), [-u[1], u[0]])) <= std.viewport.size[1] * 20 / 2 + m;
 const seenDims = new Set();
 const rwDims = ents.filter((x) => {
-  if (args['no-rw-dims'] || x.type !== 'DIMENSION' || !(+x.meas > 1) || !['DIM', '_NPLT-TXT'].includes(x.layer)) return false;
+  if (args['no-rw-dims'] || x.type !== 'DIMENSION' || !(+x.meas > 1) || !SP.rwDimLayers.includes(x.layer)) return false;
   const q1 = x.p, q2 = pt(x.p2); if (!q2) return false;
   if (propSegs.length && !propSegs.some((sg) => onSeg(q1, sg) || onSeg(q2, sg))) return false;
+  if (!inSheet(q1, 30) && !inSheet(q2, 30)) return false;               // survey dims of a far corner (outside the viewport) are not copied
+
   const key = [q1, q2].map((q) => q.map((v) => v.toFixed(1)).join(',')).sort().join('|');
   if (seenDims.has(key)) return false; seenDims.add(key); return true;
 });
@@ -269,13 +301,26 @@ const propText = pl.textFormat
   .replace('{units}', project.property.units).replace('{sf}', project.property.sf)
   .replace('{use}', project.property.use).replace('{gpd}', project.property.gpd)
   .replace('{book}', book).replace('{page}', page);
-entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(theta * D2R), text: propText, x: r4(lot[0]), y: r4(lot[1]),
+entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(theta * D2R), text: propText, x: r4(subjectAt[0]), y: r4(subjectAt[1]),
   ...(pl.backgroundMask ? { backgroundMask: true, backgroundScale: pl.backgroundScale ?? 1.2 } : {}) });
 
 // 7) Viewport: center on the frontage CL midway between the far intersection and the lot (+25 ft)
 const sFar = dot(sub(far.int, front.origin), u);
 const sCenter = (sFar + sLot + 25 * Math.sign(sLot - sFar)) / 2;
 const center = add(front.origin, mul(u, sCenter));
+
+// 8) Lot lines for the PL symbols when the profile says the county plat lots cannot give them (survey profile plLines): straight survey lot lines of the window that do not run
+//    along an R/W line (the frontage), >= 50 ft, in the viewport -> c300-pl-symbols.mjs --survey-lines
+let plSurveyLines;
+if (SP.plLines) {
+  const rws = ents.filter((x) => x.type === 'LINE' && (SP.rwLines ?? []).includes(x.layer)).map((x) => [x.p, pt(x.p2)]).filter(([a, b]) => a && b);
+  const onRw = (a, b) => { const m = mul(add(a, b), 0.5), d = unit(sub(b, a)); return rws.some(([c, e]) => { const w = unit(sub(e, c)); return Math.abs(d[0] * w[1] - d[1] * w[0]) < 0.05 && Math.abs((m[0] - c[0]) * w[1] - (m[1] - c[1]) * w[0]) < 3; }); };
+  plSurveyLines = ents.filter((x) => x.type === 'LINE' && SP.plLines.includes(x.layer)).map((x) => [x.p, pt(x.p2)])
+    .filter(([a, b]) => a && b && len(sub(b, a)) >= 50 && !onRw(a, b))
+    .filter(([a, b]) => inSheet(mul(add(a, b), 0.5)))
+    .map(([a, b]) => [[r4(a[0]), r4(a[1])], [r4(b[0]), r4(b[1])]]);
+  report.push(`PL lot lines from the survey (${SP.plLines.join('/')}): ${plSurveyLines.length} in the viewport`);
+}
 
 const usedLayers = [...new Set(entities.map((e) => e.layer))];
 // SANITY GUARD (2026-10-02): a degenerate survey (parallel streets, a single centerline) once produced an alignment 2,231,804,600 ft long and a viewport centered 1e9 ft away, which
@@ -291,7 +336,9 @@ const spec = {
   twist: { layout: std.viewport.layout, streetAngleDegrees: r4(theta), centerX: r4(center[0]), centerY: r4(center[1]), resultingTwistDeg: r4(twistDeg) },
   createEntities: { layers: Object.fromEntries(usedLayers.map((n) => [n, std.layers[n]])), entities },
   window: win,
-  report: [windowNote, ...report],
+  ...(plSurveyLines ? { plSurveyLines } : {}),
+  surveyProfile: { name: SP.name, centerline: SP.centerline, propertyLine: SP.propertyLine, rwDimLayers: SP.rwDimLayers, pavementEdge: SP.pavementEdge, freezeXrefLayers: SP.freezeXrefLayers },
+  report: [windowNote, `survey profile: ${SP.name} (${SP.label})`, ...report],
 };
 const out = JSON.stringify(spec, null, 1);
 if (args.out) fs.writeFileSync(args.out, out);

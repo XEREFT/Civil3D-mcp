@@ -17,6 +17,7 @@
 //     sources:{ poc, asbuilts:[], guide }, decisions:[{date,text}], history:[{date,event}],
 //     lastVerified:{ audit, pdf }, updated }
 import { existsSync, readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { writeText } from "./lib/safe-write.mjs";
 import { join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -34,7 +35,7 @@ export function loadProject(dir) {
 }
 export function saveProject(dir, data) {
   data.updated = new Date().toISOString();
-  writeFileSync(projectPath(dir), JSON.stringify(data, null, 2) + "\n");
+  writeText(projectPath(dir), JSON.stringify(data, null, 2) + "\n");
   return data;
 }
 

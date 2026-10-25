@@ -3,7 +3,7 @@
 // laterals, PROP callouts, a C-301 sheet) it lists exactly what to remove to get back to a pure fase 1, as ordered MCP calls.
 // It never writes. Claude then executes the plan with ONE approval per step (acad_erase_entities takes the whole handle list).
 //
-//   node fase1-cleanup-plan.mjs [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp] [--out plan.json]
+//   node fase1-cleanup-plan.mjs [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp] [--out plan.json]
 //
 // Rules (references/standards/formtech-c300.json -> roles.fase1; VILLA ONE 2026-09-28):
 //   1. layouts other than Model / C-300                       -> acad_layout delete_layout
@@ -24,7 +24,7 @@ import { writeFileSync } from "node:fs";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
-const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp";
+const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp";
 const outPath = flag("out");
 const networks = (flag("networks") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const parts = (flag("parts") ?? "").split(",").map((s) => s.trim()).filter(Boolean);

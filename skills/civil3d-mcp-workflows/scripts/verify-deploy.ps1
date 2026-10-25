@@ -4,7 +4,7 @@
 param(
   [Parameter(Mandatory = $true, Position = 0)][string]$Action,
   [string]$PluginMethod,
-  [string]$Repo = 'C:\Users\camil\OneDrive\Documents\Civil3D-mcp'
+  [string]$Repo = 'C:\Users\camil\OneDrive\Documents\Civil3D-mcp\Civil3D-mcp'
 )
 $ErrorActionPreference = 'SilentlyContinue'
 # Claude Desktop (MSIX) guarda las extensiones en la carpeta del paquete; %APPDATA%\Claude solo resuelve

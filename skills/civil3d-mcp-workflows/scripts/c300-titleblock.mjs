@@ -59,6 +59,7 @@ const values = {
   drawnBy: f.drawnBy ?? std.drawnBy ?? null,
 };
 const find = { ...goulds, ...(project.titleBlockFind ?? {}) };
+const PLACEHOLDER = { projectNo: "XX-XX.XXX", agr: "XXXXX" };
 // field -> [fragment that identifies the ONE text holding it, substring to replace]
 const spec = {
   projectName: [find.projectName, find.projectName],
@@ -72,7 +73,10 @@ const spec = {
 const out = [], notes = [];
 for (const [field, [contains, what]] of Object.entries(spec)) {
   if (!what) { notes.push(`WARN ${field}: the template value is unknown (standards titleBlock.templateFrom / project.json titleBlockFind): not replaced`); continue; }
+  // A missing project number / AGR must never print the template's (another project's) number: it goes out as a visible placeholder and fase1-qc FAILs on it
+  if (!values[field] && PLACEHOLDER[field]) values[field] = PLACEHOLDER[field];
   if (!values[field]) { notes.push(`WARN ${field}: no value in project.json: left as the template prints it (${what})`); continue; }
+  if (values[field] === PLACEHOLDER[field]) notes.push(`WARN ${field}: no value in project.json: printed as the placeholder "${values[field]}" (set projectNo / agrNo, then rebuild)`);
   if (String(values[field]) === String(what)) { notes.push(`OK   ${field}: already "${what}"`); continue; }
   out.push({ layout, contains, find: what, replace: String(values[field]) });
   notes.push(`SET  ${field}: "${what}" -> "${values[field]}"`);

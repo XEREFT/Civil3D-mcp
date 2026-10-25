@@ -14,6 +14,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { getJson } from "./lib/gis.mjs";
+import { writeText } from "./lib/safe-write.mjs";
 
 const PA = "https://apps.miamidadepa.gov/PApublicServiceProxy/PaServicesProxy.ashx";
 const PARCELS = "https://gisfs.miamidade.gov/mdarcgis/rest/services/MD_PA_PropertySearch/MapServer/6/query";
@@ -148,7 +149,7 @@ if (has("write")) {
   project.sources.pa = { date: new Date().toISOString().slice(0, 10), folio: best.folio, siteAddress: best.siteAddress, lotSizeSf: best.lotSizeSf };
   (project.history ??= []).push({ date: new Date().toISOString().slice(0, 10), event: `pa-site: ${best.folio} (${best.why.join("; ")})` });
   project.updated = new Date().toISOString();
-  writeFileSync(projPath, JSON.stringify(project, null, 2) + "\n");
+  writeText(projPath, JSON.stringify(project, null, 2) + "\n");
   for (const c of conflicts.slice(-5)) console.log(`  CONFLICT: ${c}`);
   console.log(`written: ${projPath}`);
 }

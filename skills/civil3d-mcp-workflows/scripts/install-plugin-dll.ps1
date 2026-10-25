@@ -2,7 +2,7 @@
 # (it locks the DLL). Usage:
 #   powershell -NoProfile -ExecutionPolicy Bypass -File install-plugin-dll.ps1 [-Repo <path>]
 param(
-  [string]$Repo = "C:\Users\camil\OneDrive\Documents\Civil3D-mcp"
+  [string]$Repo = "C:\Users\camil\OneDrive\Documents\Civil3D-mcp\Civil3D-mcp"
 )
 $ErrorActionPreference = "Stop"
 $src = Join-Path $Repo "Civil3D-MCP-Plugin\bin\Release\net10.0-windows"

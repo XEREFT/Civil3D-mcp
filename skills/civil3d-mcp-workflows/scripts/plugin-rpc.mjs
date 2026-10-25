@@ -3,7 +3,7 @@
 // Use: right after a C#-only deploy or for a brand-new action, to test it before Claude Desktop restarts (a new action name is not
 // visible to the frozen MCP tool registry until layer 3). It skips the MCP approval-token step, so keep it to READ methods and to
 // SCRATCH documents (an unsaved copy opened with `civil3d_drawing new templatePath=<sibling.dwg>`), never the user's real drawing.
-//   node plugin-rpc.mjs <pluginMethod> '<json params>' [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp]
+//   node plugin-rpc.mjs <pluginMethod> '<json params>' [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp]
 //   node plugin-rpc.mjs listViewports '{"layout":"C-301"}'
 //   node plugin-rpc.mjs copyLayout '{"sourceLayoutName":"C-300","newName":"C-301","excludeLayers":["VPORT"],"replaceText":[{"find":"C-300","replace":"C-301"}]}'
 import { join } from "node:path";
@@ -14,7 +14,7 @@ const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i +
 const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
 const [method, json] = pos;
 if (!method) { console.error("Uso: node plugin-rpc.mjs <pluginMethod> '<json params>' [--repo RUTA]"); process.exit(2); }
-const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp";
+const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp";
 const params = json ? JSON.parse(json) : {};
 
 const { withApplicationConnection } = await import(pathToFileURL(join(repo, "build/utils/ConnectionManager.js")).href);

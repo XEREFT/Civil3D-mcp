@@ -3,7 +3,7 @@
 // user 2026-09-28). Pure text transform on the RAW MText (as returned by acad_list_text_entities): it does NOT touch the drawing.
 // Claude then writes the result back with acad_update_text_content { handle, text } (real TAB characters, exact backslashes).
 //
-//   node fase1-strip-prop-notes.mjs --in raw.txt --out new.txt [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp]
+//   node fase1-strip-prop-notes.mjs --in raw.txt --out new.txt [--repo C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp]
 //      (raw.txt = the `text` field of the MD-WASD notes MText, saved as UTF-8)
 //
 // Normally NOT needed any more: civil3d_workflow_fase1_build does this natively (step "Fase 1 notes"), and called with only
@@ -18,7 +18,7 @@ import { pathToFileURL } from "node:url";
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
 const inPath = flag("in"), outPath = flag("out");
-const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp";
+const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp";
 if (!inPath || !outPath) { console.error("usage: node fase1-strip-prop-notes.mjs --in raw.txt --out new.txt [--repo <Civil3D-mcp>]"); process.exit(2); }
 
 const { stripPropNotes } = await import(pathToFileURL(join(repo, "build/tools/domains/fase1PropNotes.js")).href);

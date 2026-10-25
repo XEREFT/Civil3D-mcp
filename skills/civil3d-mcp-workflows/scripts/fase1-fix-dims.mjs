@@ -11,7 +11,7 @@ const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
 const has = (n) => args.includes(`--${n}`);
 const die = (m) => { console.error(m); process.exit(2); };
-const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp").replace(/\\/g, "/");
+const repo = (flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp").replace(/\\/g, "/");
 const expect = flag("expect");
 if (!expect) die('usage: node fase1-fix-dims.mjs --expect "<open drawing name>" [--no-save] [--real]');
 

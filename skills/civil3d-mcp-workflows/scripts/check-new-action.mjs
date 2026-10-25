@@ -11,7 +11,7 @@ const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].
 const [method, action, toolName] = pos;
 if (!method || !action) { console.error("Uso: node check-new-action.mjs <pluginMethod> <action_snake> [toolName] [--repo RUTA]"); process.exit(2); }
 
-const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp";
+const repo = flag("repo") ?? "C:/Users/camil/OneDrive/Documents/Civil3D-mcp/Civil3D-mcp";
 const plugin = join(repo, "Civil3D-MCP-Plugin");
 const domains = join(repo, "src/tools/domains");
 const read = (p) => (existsSync(p) ? readFileSync(p, "utf8") : "");

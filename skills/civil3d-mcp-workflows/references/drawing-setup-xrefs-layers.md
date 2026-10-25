@@ -1,41 +1,37 @@
-# Setup de dibujos: xrefs, capas, documentos, limpieza
+# Drawing setup: xrefs, layers, documents, cleanup
 
-Las convenciones completas de la firma (colores, escalas, texto, flujo de proyecto) están en el subagente `civil3d-new-project`. Delega en él cuando pregunten "¿cómo se hace normalmente X?". Aquí va solo la mecánica de las herramientas y los gotchas.
+Full firm conventions (colors, scales, text, project flow) are in subagent `civil3d-new-project`; delegate "how is X normally done?" to it. Here: tool mechanics and gotchas only.
 
-## Estructura típica de un proyecto de conexión de agua
-- Xrefs por disciplina: `X-ARCH`, `X-TOPO`, `X-UTIL` (y a veces `C-WS` como fuente de agua/sanitario). No se diseña dentro de ellos.
-- Hoja de diseño (p. ej. `C-300.dwg`) con esos xrefs en **Overlay** sobre la capa `XREF`, en 0,0,0, escala 1 y rotación 0.
-- Carpetas por fase y fecha (`YYYY-MM-DD_Design`, `…\xref\`, `YYYY-MM-DD_QC`, `Cierre`). Un mismo proyecto puede tener **varios entregables separados** (p. ej. un permiso de Grading & Drainage frente a una propuesta de water main): no mezcles sus estados.
+## Typical water-connection project
+- Xrefs per discipline: `X-ARCH`, `X-TOPO`, `X-UTIL` (sometimes `C-WS` as water/sewer source); never design inside them.
+- Design sheet (e.g. `C-300.dwg`) with those xrefs as **Overlay** on layer `XREF`, at 0,0,0, scale 1, rotation 0.
+- Folders: per project only the client intake (untouched) + `<NAME> @XEREFT BASE` (+ `PROPOSED` when we design); see SKILL.md. One project can have several separate deliverables (e.g. a Grading & Drainage permit vs a water-main proposal): do not mix their states.
 
-## Trabajar con varios documentos abiertos
-`acad_list_open_documents` → `acad_set_active_document { match }` → operar → volver. Todas las herramientas actúan **solo** sobre el documento activo.
+## Several open documents
+`acad_list_open_documents` -> `acad_set_active_document { match }` -> operate -> go back. Every tool acts ONLY on the active document.
 
 ## Xrefs
-1. `acad_create_or_update_layer { name:"XREF" }` si la capa no existe.
-2. `acad_attach_xref { filePath:"<ruta absoluta>", layer:"XREF", x:0, y:0 }`. Por defecto es `overlay:true`. Usa `overlay:false` (Attach) solo si el usuario lo pide explícitamente, porque Attach hace que los xrefs aniden en cascada.
-3. Verifica con `acad_list_block_references { contains:"X-TOPO" }`.
-- **Cambiar la capa de un xref existente:** no hay herramienta "set layer". Se hace con attach nuevo en la capa correcta, con la misma ubicación, y luego `acad_erase_entity` de la instancia vieja (con confirmación). Validado en Goulds C-WS.
-- Un xref que aparece como bloque en una capa anómala (p. ej. `C-ANNO`) puede ser un duplicado. Repórtalo y no lo borres sin confirmación.
-- Rutas absolutas: el xref sigue resolviendo aunque guardes la hoja con Save As en otra carpeta.
+1. `acad_create_or_update_layer { name:"XREF" }` if missing. 2. `acad_attach_xref { filePath:"<absolute>", layer:"XREF", x:0, y:0 }` (default `overlay:true`; `overlay:false` = Attach only on explicit request: attach nests xrefs in cascade). 3. Verify with `acad_list_block_references { contains:"X-TOPO" }`.
+- **Changing an existing xref's layer:** no "set layer" tool: attach again on the right layer at the same place, then `acad_erase_entity` the old instance (with confirmation). Validated on Goulds C-WS.
+- An xref block on an odd layer (e.g. `C-ANNO`) may be a duplicate: report it, do not delete without confirmation.
+- Absolute paths keep resolving after Save As to another folder. Project xrefs inside a BASE folder are relative (`.\X-TOPO.dwg`) so the folder can be moved.
+- Xref layer overrides: setting `colorIndex`/`frozen` on `X-TOPO|layer` writes host overrides (VISRETAIN=1, saved in the DWG, honored by Core Console plots); entities with explicit colors ignore them (`topo-bylayer.ps1`).
 
-## Capas
-`acad_create_or_update_layer { name, colorIndex?, linetype?, lineweight?, plot?, frozen?, locked? }`. Si la capa existe, la actualiza.
-- Existente = ACI 8, gris y discontinuo. Propuesto = color saturado por disciplina (agua = verde en Goulds).
-- En la plot style de la firma, el color funciona como grosor de línea: rojo 0.15, amarillo 0.30, verde 0.35, azul 0.50, color 5 0.70, color 8 ≈ 70–80 % de gris.
-- Una capa por disciplina (`C-Watr`, `C-San`, `C-Align`): recolorear la capa recolorea todo lo que está en ella.
-- `linetype` se carga automáticamente desde `acad.lin` / `acadiso.lin` si no existe en el dibujo. Los linetypes complejos con texto (`SANITARY_LINE` "SAN", `WM` "WM") NO están en esos archivos: llegan con el xref X-UTIL (`X-UTIL|SANITARY_LINE`, `X-UTIL|WM`); no los recrees a mano. Marcado estándar de SAN/WM y del alineamiento: `c300-water-sewer-plan.md` §9 "Marcado de SAN y WM".
+## Layers
+`acad_create_or_update_layer { name, colorIndex?, linetype?, lineweight?, plot?, frozen?, locked? }` (updates if it exists).
+- Existing = ACI 8 gray dashed; proposed = saturated color per discipline (water = green in Goulds). In the firm's plot style color = line weight: red 0.15, yellow 0.30, green 0.35, blue 0.50, color 5 0.70, color 8 ~70-80% gray.
+- One layer per discipline (`C-Watr`, `C-San`, `C-Align`): recoloring the layer recolors everything on it.
+- `linetype` loads from `acad.lin`/`acadiso.lin`; complex text linetypes (`SANITARY_LINE` "SAN", `WM` "WM") are NOT there: they arrive with the X-UTIL xref (`X-UTIL|SANITARY_LINE`, `X-UTIL|WM`), never recreate them. Standard SAN/WM marking: `c300-water-sewer-plan.md` §9.
 
-## Bloques (fittings, medidores)
-`acad_insert_block_reference { blockName, x, y, rotation(rad)?, layer?, sourceFilePath? }`. Con `sourceFilePath` importa **solo esa definición** desde la biblioteca, mediante WblockCloneObjects.
-Usa los nombres de parte del condado letra por letra (p. ej. `DualMeterBox`). Nombra los fittings con sus tamaños ("12x6").
+## Blocks (fittings, meters)
+`acad_insert_block_reference { blockName, x, y, rotation(rad)?, layer?, sourceFilePath? }` (with `sourceFilePath` imports only that definition via WblockCloneObjects). Use county part names letter by letter (e.g. `DualMeterBox`); name fittings with sizes ("12x6").
 
-## Limpieza
-- `acad_audit_drawing { fixErrors:true }`: es seguro y puede usarse como hábito de QC.
-- `acad_purge_unused`: hace un PURGE real (borra todo lo que no está referenciado). **Solo en archivos desechables y con confirmación**, porque en archivos de trabajo puede dejar miles de referencias colgantes.
-- `civil3d_qc_check_drawing_standards` → `civil3d_qc_fix_drawing_standards` (este último muta el dibujo y requiere token).
+## Cleanup
+- `acad_audit_drawing { fixErrors:true }` is safe (habit QC). `acad_purge_unused` is a real PURGE: only on disposable files with confirmation (working files may end with thousands of dangling references).
+- `civil3d_qc_check_drawing_standards` -> `civil3d_qc_fix_drawing_standards` (mutates; needs token).
 
-## Proyecto nuevo con orquestación
-`civil3d_workflow_project_startup` / `civil3d_workflow_project_reference_setup` / `civil3d_workflow_drawing_readiness_audit`. Revisa sus parámetros con `list_tool_capabilities`. `civil3d_drawing { action:"new", templatePath }` crea un DWG desde una plantilla (en el repo hay `templates/Civil_Imperial.dwt`).
+## Orchestrated new project
+`civil3d_workflow_project_startup` / `..._project_reference_setup` / `..._drawing_readiness_audit` (parameters via `list_tool_capabilities`). `civil3d_drawing { action:"new", templatePath }` creates a DWG from a template (`templates/Civil_Imperial.dwt` in the repo).
 
-## Pasos manuales (no tienen herramienta)
-Abrir DWG desde disco, Batch Plot, ticket Sunshine 811 y verificar servicios existentes con imagen satelital.
+## Manual steps (no tool)
+Open a DWG from disk, Batch Plot, Sunshine 811 ticket, verify existing services with satellite imagery.

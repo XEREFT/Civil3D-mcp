@@ -9,6 +9,7 @@ param(
   [string]$Tag = ('q' + (Get-Date -Format 'HHmmss')),
   [string]$Paper = 'ARCH full bleed D (36.00 x 24.00 Inches)',
   [string]$Style = 'monochrome.ctb',
+  [string[]]$PreLisp = @(),   # script lines run on the %TEMP% copy BEFORE plotting (e.g. fase1-preview.ps1 applies the xref look offline); the real DWG is never touched
   [string]$Core = 'C:\Program Files\Autodesk\AutoCAD 2027\accoreconsole.exe',
   [int]$TimeoutSec = 240
 )
@@ -25,6 +26,7 @@ Get-ChildItem (Split-Path $Dwg) -Filter 'X-*.dwg' | Copy-Item -Destination $work
 
 $scr = New-Object System.Collections.Generic.List[string]
 $scr.Add('(setvar "FILEDIA" 0)'); $scr.Add('(setvar "CMDDIA" 0)'); $scr.Add('(setvar "BACKGROUNDPLOT" 0)')
+foreach ($pl in $PreLisp) { $scr.Add($pl) }
 $pdfs = @()
 foreach ($l in $Layouts) {
   $pdf = Join-Path $work (($l -replace '-', '').ToLower() + '.pdf'); $pdfs += $pdf

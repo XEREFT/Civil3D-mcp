@@ -1,15 +1,12 @@
 {
- "_doc": "Registro EJECUTABLE de bugs/gotchas conocidos (el 'segundo cerebro'). Lo lee scripts/integrity-check.mjs. Cada entrada: id, since (fecha), area, status (fixed|open|process|info), match (subcadena que DEBE seguir apareciendo en references/troubleshooting.md — lo mantiene sincronizado con la tabla), symptom/cause/fix (resumen), checks (lista; vacía = solo documentado, cuenta como 'manual'). Tipos de check: repo-grep {file, pattern} (regex sobre un archivo del repo), skill-grep {file, pattern} (regex sobre un archivo de la skill), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (SOLO entradas falsas o lecturas: pasa por el plugin en vivo sin token de aprobación), node-version {min}. Al aprender un bug nuevo: agrega la fila a troubleshooting.md Y una entrada aquí (integrity-check avisa si falta).",
+ "_doc": "EXECUTABLE registry of known bugs/gotchas, read by scripts/integrity-check.mjs. Entry: id, since, area, status (fixed|open|process|info), match (substring that MUST still appear in references/troubleshooting.md; symptom/cause/fix live in that table, not here), checks (empty = documented only, counted as 'manual'). Check types: repo-grep {file, pattern} (regex on a repo file), skill-grep {file, pattern} (regex on a skill file), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (ONLY fake entries or reads: goes through the live plugin without an approval token), node-version {min}. When you learn a new bug: add the row to troubleshooting.md AND an entry here (integrity-check warns if missing).",
  "bugs": [
   {
    "id": "layer-silent-fallback",
    "since": "2026-07",
    "area": "plugin",
    "status": "open",
-   "match": "devuelve `layer` distinto al pedido",
-   "symptom": "acad_create_* devuelve layer distinto (p. ej. _NPLT)",
-   "cause": "LookupUtils.GetLayerId cae en silencio a la capa actual si la pedida no existe",
-   "fix": "Comparar layer devuelto; crear la capa antes o usar create_entities con layers",
+   "match": "`acad_insert_block_reference` / `create_text|",
    "checks": []
   },
   {
@@ -17,10 +14,7 @@
    "since": "2026-07",
    "area": "node",
    "status": "fixed",
-   "match": "The active drawing changed after approval",
-   "symptom": "token con fingerprint de otro documento",
-   "cause": "el usuario cambió de pestaña",
-   "fix": "get_drawing_info + acad_set_active_document + token nuevo",
+   "match": "`The active drawing changed after approval` r",
    "checks": [
     {
      "type": "repo-grep",
@@ -38,10 +32,7 @@
    "since": "2026-07",
    "area": "deploy",
    "status": "process",
-   "match": "Failed to connect to Civil 3D plugin",
-   "symptom": "CIVIL3D.UNAVAILABLE",
-   "cause": "nadie escucha en 8080",
-   "fix": "c3d-health.ps1; C3DMCPSTART",
+   "match": "`Failed to connect to Civil 3D plugin at loca",
    "checks": [
     {
      "type": "rpc",
@@ -58,10 +49,7 @@
    "since": "2026-07",
    "area": "deploy",
    "status": "process",
-   "match": "timed out after 5000ms",
-   "symptom": "conexión no acepta",
-   "cause": "acad saturado/arrancando",
-   "fix": "esperar y reintentar una vez",
+   "match": "`Connection to Civil 3D plugin timed out afte",
    "checks": []
   },
   {
@@ -69,10 +57,7 @@
    "since": "2026-07",
    "area": "process",
    "status": "process",
-   "match": "Command timed out after 120000ms",
-   "symptom": "TIMEOUT del comando",
-   "cause": "diálogo modal o comando pesado",
-   "fix": "NO reintentar; civil3d_health; pedir mirar la ventana",
+   "match": "`Command timed out after 120000ms: <method>`",
    "checks": []
   },
   {
@@ -80,10 +65,7 @@
    "since": "2026-07",
    "area": "process",
    "status": "process",
-   "match": "una operación lleva más de 30 s",
-   "symptom": "operación >30 s",
-   "cause": "diálogo modal",
-   "fix": "el usuario lo cierra",
+   "match": "`civil3d_health` OK but an operation is over",
    "checks": []
   },
   {
@@ -91,10 +73,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "host queue is full",
-   "symptom": "HOST_BUSY",
-   "cause": "cola llena",
-   "fix": "esperar",
+   "match": "`CIVIL3D.HOST_BUSY` \"host queue is full\" | To",
    "checks": []
   },
   {
@@ -102,10 +81,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "CIVIL3D.NO_DRAWING",
-   "symptom": "sin documento activo",
-   "cause": "Start tab / sin dibujo",
-   "fix": "abrir un DWG; plugin >= 8ef4fc2 responde NO_DRAWING sin colgarse",
+   "match": "`CIVIL3D.NO_DRAWING` / `drawingLoaded:false`",
    "checks": [
     {
      "type": "repo-grep",
@@ -119,10 +95,7 @@
    "since": "2026-09-25",
    "area": "node",
    "status": "fixed",
-   "match": "unsupported dialect",
-   "symptom": "todas las herramientas: outputSchema con dialecto no soportado",
-   "cause": "draft-07 vs 2020-12",
-   "fix": "src/utils/schemaDialect.ts quita $schema en tools/list",
+   "match": "`Tool '<x>' has an invalid outputSchema: ...",
    "checks": [
     {
      "type": "repo-grep",
@@ -140,10 +113,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "while the operation was queued",
-   "symptom": "cambio de pestaña con operación en cola",
-   "cause": "el usuario cambió de documento",
-   "fix": "reenfocar y repetir",
+   "match": "\"The active drawing changed ... while the ope",
    "checks": []
   },
   {
@@ -151,10 +121,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "CIVIL3D.OBJECT_NOT_FOUND",
-   "symptom": "handle/nombre inexistente o documento equivocado",
-   "cause": "otro documento o nombre mal",
-   "fix": "relistar",
+   "match": "`CIVIL3D.OBJECT_NOT_FOUND` | Handle, alignmen",
    "checks": [
     {
      "type": "rpc",
@@ -171,10 +138,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "`CIVIL3D.INVALID_INPUT`",
-   "symptom": "parámetro inválido",
-   "cause": "handle no hex, etc.",
-   "fix": "corregir payload",
+   "match": "`CIVIL3D.INVALID_INPUT` | Invalid parameter (",
    "checks": [
     {
      "type": "rpc",
@@ -193,10 +157,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "`CIVIL3D.PATH_NOT_ALLOWED`",
-   "symptom": "ruta fuera de las raíces permitidas",
-   "cause": "CIVIL3D_FILE_ROOTS",
-   "fix": "ruta permitida",
+   "match": "`CIVIL3D.PATH_NOT_ALLOWED` / `FILE_TYPE_NOT_A",
    "checks": [
     {
      "type": "repo-grep",
@@ -210,10 +171,7 @@
    "since": "2026-07",
    "area": "node",
    "status": "info",
-   "match": "| `Approval required` |",
-   "symptom": "mutación sin token",
-   "cause": "falta approvalToken",
-   "fix": "civil3d_request_approval",
+   "match": "`Approval required` | Mutating action without",
    "checks": [
     {
      "type": "vitest",
@@ -226,10 +184,7 @@
    "since": "2026-07",
    "area": "node",
    "status": "info",
-   "match": "byte-idénticos",
-   "symptom": "Approval token does not match",
-   "cause": "parámetros distintos / dibujo cambió / >5 min",
-   "fix": "token nuevo inmediatamente antes",
+   "match": "`Approval token does not match` | Parameters",
    "checks": [
     {
      "type": "repo-grep",
@@ -243,15 +198,12 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "herramienta de UNA acción",
-   "symptom": "token no coincide en herramientas de una acción aunque el payload es igual",
-   "cause": "action dentro de parameters, o action = nombre de la herramienta; el token se consume",
-   "fix": "action = acción interna (delete_pipe_network), parameters = solo args",
+   "match": "Same, on a SINGLE-action tool (`civil3d_pipe_",
    "checks": [
     {
      "type": "skill-grep",
      "file": "SKILL.md",
-     "pattern": "Regla general \\(validada 2026-09-28\\)"
+     "pattern": "in single-action tools"
     },
     {
      "type": "repo-grep",
@@ -265,10 +217,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "open",
-   "match": "solo devuelve `ALGN START`",
-   "symptom": "civil3d_label list no lista labels de estación mayor/menor",
-   "cause": "el handler solo ve StationOffsetLabels",
-   "fix": "verificar en plot / LIST del usuario",
+   "match": "`civil3d_label list` of an alignment returns",
    "checks": []
   },
   {
@@ -276,10 +225,7 @@
    "since": "2026-08-05",
    "area": "process",
    "status": "process",
-   "match": "Blocked by classifier",
-   "symptom": "auto-mode bloquea",
-   "cause": "clasificador de Claude Code",
-   "fix": "permisos/autoMode.allow por el usuario",
+   "match": "\"Blocked by classifier\" / denied in auto-mode",
    "checks": []
   },
   {
@@ -287,10 +233,7 @@
    "since": "2026-07-18",
    "area": "plugin",
    "status": "info",
-   "match": "expected object, received array",
-   "symptom": "respuesta inválida del handler",
-   "cause": "forma distinta del responseSchema",
-   "fix": "arreglar el C# y redesplegar capa 1",
+   "match": "Invalid response \"expected object, received a",
    "checks": []
   },
   {
@@ -298,10 +241,7 @@
    "since": "2026-07",
    "area": "deploy",
    "status": "process",
-   "match": "`CIVIL3D.METHOD_NOT_FOUND`",
-   "symptom": "método no implementado",
-   "cause": "DLL viejo o falta case en el dispatcher",
-   "fix": "redesplegar capa 1",
+   "match": "`CIVIL3D.METHOD_NOT_FOUND` \"Plugin method 'x'",
    "checks": [],
    "note": "cubierto por el chequeo integrado deploy:dll-methods"
   },
@@ -310,10 +250,7 @@
    "since": "2026-07-19",
    "area": "deploy",
    "status": "process",
-   "match": "Herramienta nueva ausente en `ToolSearch`",
-   "symptom": "tool nueva no aparece",
-   "cause": "falta una de las 3 capas",
-   "fix": "verify-deploy + reiniciar Claude Desktop",
+   "match": "New tool absent from `ToolSearch` | A deploy",
    "checks": [],
    "note": "cubierto por deploy:extension-mirror y deploy:claude-restart"
   },
@@ -322,10 +259,7 @@
    "since": "2026-07",
    "area": "deploy",
    "status": "process",
-   "match": "el plugin no carga",
-   "symptom": "Civil 3D arranca sin plugin",
-   "cause": "bundle mal nombrado / DLL bloqueado / diálogo",
-   "fix": "PackageContents.xml correcto",
+   "match": "Civil 3D starts but the plugin does not load",
    "checks": [
     {
      "type": "file-exists",
@@ -338,10 +272,7 @@
    "since": "2026-07",
    "area": "plugin",
    "status": "info",
-   "match": "did not send a complete request",
-   "symptom": "warning RpcTcpServer",
-   "cause": "socket ocioso",
-   "fix": "inofensivo",
+   "match": "`[Warn] [RpcTcpServer] Closed a client that d",
    "checks": []
   },
   {
@@ -349,10 +280,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "fixed",
-   "match": "`styleText`",
-   "symptom": "npm test falla",
-   "cause": "Node viejo / falta binario rolldown",
-   "fix": "Node >= 20 + @rolldown/binding-win32-x64-msvc",
+   "match": "`npm test` fails with `styleText` or `Cannot",
    "checks": [
     {
      "type": "node-version",
@@ -365,10 +293,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "The structure's type should be junction",
-   "symptom": "add_structure falla",
-   "cause": "partName no es cilíndrica",
-   "fix": "Concentric/Eccentric Cylindrical Structure",
+   "match": "`civil3d_pipe_network_edit add_structure` ->",
    "checks": []
   },
   {
@@ -376,10 +301,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "info",
-   "match": "`civil3d_pipe action:list`",
-   "symptom": "Retrieve attribute failed en red vacía",
-   "cause": "red de gravedad sin partes",
-   "fix": "seguir agregando partes",
+   "match": "`civil3d_pipe action:list` / `civil3d_pipe_st",
    "checks": [
     {
      "type": "repo-grep",
@@ -393,10 +315,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "open",
-   "match": "coloca la válvula en el **punto medio**",
-   "symptom": "onPipeName ignora position",
-   "cause": "inserción sobre el tubo",
-   "fix": "omitir onPipeName",
+   "match": "`civil3d_pressure_appurtenance_add` with `onP",
    "checks": []
   },
   {
@@ -404,10 +323,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "`accoreconsole.exe`) se cuelga",
-   "symptom": "Core Console tarda 6-8+ min",
-   "cause": "DWG en OneDrive",
-   "fix": "copiar a %TEMP% (qc-plot.ps1 lo hace)",
+   "match": "Core Console (`accoreconsole.exe`) hangs or t",
    "checks": [
     {
      "type": "skill-grep",
@@ -421,10 +337,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "Cotas BCC-1.0 invisibles",
-   "symptom": "cotas 0.007\" en el PDF",
-   "cause": "cota no anotativa o escala extra 1\"=1'",
-   "fix": "plugin >= 5d395e1",
+   "match": "BCC-1.0 dims invisible in the PDF (text ~0.00",
    "checks": [
     {
      "type": "repo-grep",
@@ -438,10 +351,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "Texto de cota al revés",
-   "symptom": "texto de cota invertido",
-   "cause": "faltan overrides",
-   "fix": "dimTad:4, dimTxtDirection:true",
+   "match": "Dim text upside down on the twisted sheet | F",
    "checks": [
     {
      "type": "repo-grep",
@@ -455,10 +365,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "fixed",
-   "match": "Texto de cota corta amontonado o lejos de su línea",
-   "symptom": "una cota corta (p. ej. 5' U.E./PL a escala 1:20) tiene el texto varios pies fuera de su línea, aunque la medida es correcta",
-   "cause": "RecomputeDimensionBlock(true) deja que AutoCAD recalcule la posición del texto con su propio DIMFIT, que puede expulsarlo cuando el texto anotativo no cabe entre las líneas de extensión",
-   "fix": "pasar dimLineX/dimLineY explícitos al crear (plugin respeta el punto, RecomputeDimensionBlock(false)); en una cota ya dibujada, acad_update_text_content {handle,x,y} (case Dimension). Detectado automáticamente por scripts/fase1-audit.mjs check 6.",
+   "match": "Short-dimension text crowded or far from its",
    "checks": [
     {
      "type": "repo-grep",
@@ -482,10 +389,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "MLeader con \"triángulo\"",
-   "symptom": "guía vuelve sobre el texto",
-   "cause": "plugin viejo",
-   "fix": "plugin >= 1ba92c3 + width",
+   "match": "MLeader with a \"triangle\" (guide folds back o",
    "checks": []
   },
   {
@@ -493,10 +397,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "Rótulo MText tapado",
-   "symptom": "rótulo tapado por el asfalto",
-   "cause": "sin máscara",
-   "fix": "backgroundMask en create_mtext/update_text_content",
+   "match": "MText label covered by the black asphalt fill",
    "checks": [
     {
      "type": "repo-grep",
@@ -510,10 +411,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "File load canceled",
-   "symptom": "no carga .lsp en Core Console",
-   "cause": "SECURELOAD",
-   "fix": "pegar el LSP dentro del .scr",
+   "match": "Core Console `; error: File load canceled` on",
    "checks": []
   },
   {
@@ -521,10 +419,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "Command only valid in Model space",
-   "symptom": "Core Console colgado",
-   "cause": "DWG guardado en un layout",
-   "fix": "TILEMODE 1",
+   "match": "Core Console `** Command only valid in Model",
    "checks": []
   },
   {
@@ -532,10 +427,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "invisible o de fondo",
-   "symptom": "Civil 3D no cierra",
-   "cause": "flag sucio fantasma",
-   "fix": "close-civil3d.ps1 -AllowSave",
+   "match": "Civil 3D will not close: invisible/background",
    "checks": [
     {
      "type": "skill-grep",
@@ -549,10 +441,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "pestaña **Start**",
-   "symptom": "llamadas vencen en la pestaña Start",
-   "cause": "plugin viejo",
-   "fix": "plugin >= 8ef4fc2",
+   "match": "All calls time out after opening Civil 3D on",
    "checks": [
     {
      "type": "repo-grep",
@@ -566,10 +455,7 @@
    "since": "2026-09-26",
    "area": "deploy",
    "status": "process",
-   "match": "Campo nuevo del esquema TS ignorado",
-   "symptom": "campo nuevo no llega",
-   "cause": "servidor Node en memoria viejo",
-   "fix": "copiar build a la extensión + reiniciar Claude",
+   "match": "New TS schema field ignored (e.g. `dimTad` do",
    "checks": [],
    "note": "cubierto por deploy:extension-mirror"
   },
@@ -578,10 +464,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "PowerShell se niega a correr",
-   "symptom": "shell bloquea -replace/del",
-   "cause": "chequeo de seguridad",
-   "fix": "escribir el script con Write",
+   "match": "PowerShell refuses a command with `-replace`",
    "checks": []
   },
   {
@@ -589,10 +472,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "pierde barras",
-   "symptom": "\\P se pierde",
-   "cause": "doble escape",
-   "fix": "script en archivo",
+   "match": "`node -e '...\\P...'` or heredoc loses backsla",
    "checks": []
   },
   {
@@ -600,10 +480,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "apiladas sobre la calle",
-   "symptom": "labels apiladas",
-   "cause": "labelLocation sin dragged:true",
-   "fix": "build >= 2026-09-26 16:14 (dragged por defecto)",
+   "match": "C-300/C-301 plot: plan labels (SAN LAT / C.O.",
    "checks": [
     {
      "type": "repo-grep",
@@ -617,10 +494,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "una sola línea larga cruzando textos",
-   "symptom": "MLeader sin width",
-   "cause": "creado sin width",
-   "fix": "recrear con width del paquete",
+   "match": "Design MLeader as one long line crossing text",
    "checks": []
   },
   {
@@ -628,10 +502,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "sale de lado / 1.4× más grande",
-   "symptom": "MLeader mal orientado/escala",
-   "cause": "rotation 0 / height 2",
-   "fix": "usar el rol del estándar",
+   "match": "Recreated MLeader sideways / 1.4x bigger / wo",
    "checks": [
     {
      "type": "skill-grep",
@@ -645,10 +516,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "cortado por el borde del viewport",
-   "symptom": "texto fuera del viewport",
-   "cause": "posición del paquete",
-   "fix": "update_text_content x/y/rotation",
+   "match": "MLeader text cut by the viewport edge on the",
    "checks": [
     {
      "type": "repo-grep",
@@ -662,10 +530,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "`OFF: 0.00'R`",
-   "symptom": "OFF con sufijo R",
-   "cause": "estructura 1e-4 ft a la derecha",
-   "fix": "override sin Structure Offset Side",
+   "match": "Structure label prints `OFF: 0.00'R` instead",
    "checks": []
   },
   {
@@ -673,10 +538,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "`acad_list_viewports` → `annotationScale",
-   "symptom": "viewport con escala 1\"=1'",
-   "cause": "creado con build viejo",
-   "fix": "acad_layout set_viewport_scale",
+   "match": "`acad_list_viewports` -> `annotationScale:\"1\\",
    "checks": [
     {
      "type": "repo-grep",
@@ -702,10 +564,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "un solo fragmento por parámetro",
-   "symptom": "close-civil3d se detiene con STOP",
-   "cause": "otro documento pregunta guardar",
-   "fix": "-Discard '<fragmento>'",
+   "match": "`close-civil3d.ps1` stops with `STOP - dialog",
    "checks": []
   },
   {
@@ -713,10 +572,7 @@
    "since": "2026-09-26",
    "area": "process",
    "status": "process",
-   "match": "Unsigned Executable File` (cambia con cada DLL)",
-   "symptom": "puerto 8080 cerrado tras instalar DLL",
-   "cause": "diálogo de seguridad",
-   "fix": "lo aprueba el usuario",
+   "match": "After installing a new DLL, Civil 3D waits an",
    "checks": []
   },
   {
@@ -724,10 +580,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "open",
-   "match": "devuelven `[]` aunque",
-   "symptom": "selección implícita vacía",
-   "cause": "SelectImplied no ve la selección desde el hilo del plugin",
-   "fix": "PrintWindow o LIST del usuario",
+   "match": "`get_selected_civil_objects_info` / `civil3d_",
    "checks": []
   },
   {
@@ -735,10 +588,7 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "Una línea verde alrededor",
-   "symptom": "línea verde alrededor del sitio",
-   "cause": "borde del TIN EG (C-TINN-BNDY)",
-   "fix": "congelar la capa",
+   "match": "A green line around the whole site | EG surfa",
    "checks": []
   },
   {
@@ -746,10 +596,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "fixed",
-   "match": "The Civil 3D plugin encountered an unexpected error",
-   "symptom": "pipe list/get falla en redes vacías",
-   "cause": "Retrieve attribute failed",
-   "fix": "civil3d_pipe_network_delete {name}",
+   "match": "`civil3d_pipe list` / `get` -> \"The Civil 3D",
    "checks": [
     {
      "type": "repo-grep",
@@ -771,10 +618,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "fixed",
-   "match": "`acad_erase_entity` de un Pipe",
-   "symptom": "borrado de piezas Civil",
-   "cause": "Network no es Entity",
-   "fix": "erase_entities / delete_pipe_network",
+   "match": "`acad_erase_entity` of a Pipe/Structure/Profi",
    "checks": [
     {
      "type": "rpc",
@@ -795,10 +639,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "info",
-   "match": "\"not on the list\"",
-   "symptom": "set_system_variable rechaza CTAB",
-   "cause": "lista de permitidos",
-   "fix": "el usuario cambia de pestaña",
+   "match": "`acad_set_system_variable` \"not on the list\"",
    "checks": [
     {
      "type": "rpc",
@@ -816,10 +657,7 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "documento abierto (p. ej. la guía)",
-   "symptom": "close-civil3d se detiene",
-   "cause": "la guía tiene 'cambios'",
-   "fix": "que el usuario responda",
+   "match": "`close-civil3d.ps1` stops with `STOP - dialog",
    "checks": []
   },
   {
@@ -827,10 +665,7 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "abre `Drawing1.dwg` y el puerto 8080 sigue cerrado",
-   "symptom": "Drawing1 en vez del DWG",
-   "cause": "esperando el diálogo Unsigned",
-   "fix": "aprobar y relanzar",
+   "match": "`Start-Process <dwg>` while Civil 3D starts o",
    "checks": []
   },
   {
@@ -838,10 +673,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "fixed",
-   "match": "`eUnknownHandle`",
-   "symptom": "GetObjectId lanza eUnknownHandle",
-   "cause": "handle inexistente",
-   "fix": "try/catch en eraseEntities",
+   "match": "`Database.GetObjectId(false, handle, 0)` thro",
    "checks": [
     {
      "type": "repo-grep",
@@ -867,10 +699,7 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "carácter de retroceso",
-   "symptom": "\\b en heredoc → ^H",
-   "cause": "cadena sin raw",
-   "fix": "escribir parches con Write",
+   "match": "Regex with `\\b` pasted via a Python heredoc -",
    "checks": []
   },
   {
@@ -878,10 +707,7 @@
    "since": "2026-09-26",
    "area": "plugin",
    "status": "fixed",
-   "match": "Íconos amarillos grandes",
-   "symptom": "íconos 'i' en Model",
-   "cause": "glifo de override de etiqueta (solo pantalla)",
-   "fix": "set_system_variable LABELOVERRIDEGLYPHS 0",
+   "match": "Big orange \"i\" icons in Model",
    "checks": [
     {
      "type": "rpc",
@@ -903,10 +729,7 @@
    "since": "2026-09-27",
    "area": "process",
    "status": "info",
-   "match": "muestra campos obligatorios como opcionales",
-   "symptom": "ToolSearch oculta required",
-   "cause": "recorte de la vista del cliente",
-   "fix": "no arreglar el esquema TS",
+   "match": "The schema loaded by ToolSearch shows required fields as optional",
    "checks": []
   },
   {
@@ -914,10 +737,7 @@
    "since": "2026-09-28",
    "area": "plugin",
    "status": "open",
-   "match": "aunque acabas de guardar",
-   "symptom": "get_drawing_info dice unsavedChanges true tras guardar",
-   "cause": "flag sucio fantasma tras cualquier transacción",
-   "fix": "no fiarse del flag; guardar tras la última edición y comprobar la hora del DWG",
+   "match": "`get_drawing_info` -> `unsavedChanges:true` r",
    "checks": []
   },
   {
@@ -925,10 +745,7 @@
    "since": "2026-09-28",
    "area": "process",
    "status": "process",
-   "match": "parcheado desde un heredoc de Python",
-   "symptom": "SyntaxError en .mjs parcheado con Python",
-   "cause": "Python interpreta los escapes dentro de la cadena",
-   "fix": "Edit/Write + node --check",
+   "match": "A `.mjs` patched from a Python heredoc fails",
    "checks": []
   },
   {
@@ -936,10 +753,7 @@
    "since": "2026-09-28",
    "area": "deploy",
    "status": "info",
-   "match": "aunque no cambiaste código",
-   "symptom": "hash distinto entre bin/Release y ProgramData",
-   "cause": "build no determinista",
-   "fix": "comparar mtime de .cs vs DLL instalado (integrity-check y deploy-all)",
+   "match": "`bin/Release` DLL and the ProgramData one hav",
    "checks": [
     {
      "type": "skill-grep",
@@ -953,10 +767,7 @@
    "since": "2026-09-28",
    "area": "node",
    "status": "fixed",
-   "match": "Plan steps must run in order",
-   "symptom": "paso de un plan rechazado",
-   "cause": "orden/documento/parámetros/expiración",
-   "fix": "pedir un plan nuevo",
+   "match": "`civil3d_request_plan_approval` then a step f",
    "checks": [
     {
      "type": "repo-grep",
@@ -974,10 +785,7 @@
    "since": "2026-09-28",
    "area": "deploy",
    "status": "fixed",
-   "match": "layer reader is unavailable",
-   "symptom": "audit sin estado de capas en vivo",
-   "cause": "DLL anterior a listLayers",
-   "fix": "deploy-all.ps1 -Go",
+   "match": "`civil3d_workflow_fase1_audit` (or `fase1-aud",
    "checks": [
     {
      "type": "repo-grep",
@@ -1006,10 +814,7 @@
    "id": "fase1-build-active-document",
    "area": "node",
    "status": "fixed",
-   "match": "falla en `check active document`",
-   "symptom": "fase1_build escribiría/guardaría en otro documento abierto",
-   "cause": "todo RPC actúa sobre el documento activo",
-   "fix": "expectedDocument/saveAs + guardias antes de escribir y de guardar",
+   "match": "`civil3d_workflow_fase1_build` fails at `chec",
    "checks": [
     {
      "type": "repo-grep",
@@ -1032,10 +837,7 @@
    "id": "fase1-build-titleblock-layout",
    "area": "node",
    "status": "fixed",
-   "match": "`titleBlock` edita un texto de OTRO layout",
-   "symptom": "titleBlock edita un texto de otro layout",
-   "cause": "listTextEntities ignora el layout",
-   "fix": "filtro por layout en TS + ambigüedad = FAIL",
+   "match": "`fase1_build` `titleBlock` edits a text of AN",
    "checks": [
     {
      "type": "repo-grep",
@@ -1053,10 +855,7 @@
    "id": "template-outside-roots",
    "area": "process",
    "status": "fixed",
-   "match": "The import path is outside the configured roots",
-   "symptom": "civil3d_drawing new rechaza la plantilla",
-   "cause": "plantilla fuera de las raíces del plugin (Documentos)",
-   "fix": "plantilla en la carpeta del proyecto; los scripts lo rechazan antes",
+   "match": "`civil3d_drawing new` / `fase1_build template",
    "checks": [
     {
      "type": "skill-grep",
@@ -1075,10 +874,7 @@
    "id": "spec-project-schema1-window",
    "area": "skill",
    "status": "fixed",
-   "match": "`c300-build-spec.mjs --project project.json` falla",
-   "symptom": "spec falla o toma otro sitio",
-   "cause": "solo aceptaba la entrada plana; sin window usaba todo el X-TOPO",
-   "fix": "lee schema 1 + window derivado alrededor de lotPoint",
+   "match": "`c300-build-spec.mjs --project project.json`",
    "checks": [
     {
      "type": "skill-grep",
@@ -1097,10 +893,7 @@
    "id": "fase1-notes-orphan-glyphs",
    "area": "plugin",
    "status": "fixed",
-   "match": "queda huérfano en la hoja",
-   "symptom": "glifos (NOT PART OF M-WASD NOTES…) huérfanos tras acortar las notas",
-   "cause": "cuelgan del encabezado que sube",
-   "fix": "fase1_build mide la nota (extents) y mueve lo que quedó en la franja",
+   "match": "After cleaning the MD-WASD notes `(NOT PART O",
    "checks": [
     {
      "type": "repo-grep",
@@ -1123,10 +916,7 @@
    "id": "prop-notes-single-source",
    "area": "skill",
    "status": "fixed",
-   "match": "La regla de notas PROP del script y la del tool nativo",
-   "symptom": "script y tool divergen",
-   "cause": "dos copias de la lógica",
-   "fix": "una sola: fase1PropNotes.ts; el script importa build/",
+   "match": "The script's PROP-note rule and the native to",
    "checks": [
     {
      "type": "skill-grep",
@@ -1149,10 +939,7 @@
    "id": "mtext-extents-false-box",
    "area": "plugin",
    "status": "fixed",
-   "match": "dice solo \"rewrote CF80\"",
-   "symptom": "fase1_build no sube los glifos huérfanos y no avisa",
-   "cause": "MText.GeometricExtents da una caja de una línea",
-   "fix": "caja del MText desde ActualWidth/ActualHeight + inserción + rotación; el paso avisa si el fondo no sube",
+   "match": "`fase1_build` step `Fase 1 notes` says only \"",
    "checks": [
     {
      "type": "repo-grep",
@@ -1175,10 +962,7 @@
    "id": "fase1-build-request-timeout",
    "area": "process",
    "status": "process",
-   "match": "devuelve \"Request timed out\"",
-   "symptom": "fase1_build vence a mitad (attachXref)",
-   "cause": "la llamada MCP vence mientras el paso sigue; otra copia con el mismo X-TOPO abierta",
-   "fix": "no reintentar: plugin.log, destino a la Papelera, Civil 3D sin dibujos, repetir",
+   "match": "`civil3d_workflow_fase1_build` returns \"Reque",
    "checks": []
   },
   {
@@ -1186,10 +970,7 @@
    "id": "dump-mleader-xy-not-arrow",
    "area": "skill",
    "status": "fixed",
-   "match": "aunque el MLeader está ahí",
-   "symptom": "QC: pozo/FH sin rótulo aunque lo tiene",
-   "cause": "x/y del MULTILEADER en dwg-dump = último punto 10 (landing en leaders de acad_create_mleader)",
-   "fix": "dwg-dump arrows= (primer 10 tras LEADER_LINE{) y fase1-qc.py lo usa",
+   "match": "A check says a manhole/FH \"has no label\" alth",
    "checks": [
     {
      "type": "skill-grep",
@@ -1208,10 +989,7 @@
    "id": "survey-dims-doubled",
    "area": "plugin",
    "status": "fixed",
-   "match": "las cotas de R/W `25.00'` salen dobles",
-   "symptom": "cotas de R/W duplicadas/al revés en el plot",
-   "cause": "X-TOPO|DIM visible junto a las cotas C-ANNO de la hoja",
-   "fix": "fase1_build freezeLayers + fase1_audit chequeo 7",
+   "match": "C-300 plot shows R/W dims `25.00'` doubled (s",
    "checks": [
     {
      "type": "repo-grep",
@@ -1244,10 +1022,7 @@
    "id": "scan-ocr-ps-case-shadow",
    "area": "skill",
    "status": "fixed",
-   "match": "las cajas de las pasadas giradas salen fuera de la imagen",
-   "symptom": "cajas del OCR girado fuera de la imagen",
-   "cause": "PowerShell: $h local pisa $H (sin mayúsculas, alcance dinámico); pares @(x,y) desenrollados",
-   "fix": "$ImgW/$ImgH y [pscustomobject]@{x;y}",
+   "match": "`scan-ocr.ps1`: rotated-pass boxes fall outsi",
    "checks": [
     {
      "type": "skill-grep",
@@ -1261,10 +1036,7 @@
    "id": "ocr-fragmented-callouts",
    "area": "skill",
    "status": "fixed",
-   "match": "El OCR de un as-built parte una llamada en trozos",
-   "symptom": "llamadas de tubo partidas, % leído como Z/7.",
-   "cause": "el OCR corta en huecos grandes; el trozo derecho puede estar 1 px más arriba",
-   "fix": "unión izquierda→derecha por fila (también en pasadas giradas) + pendiente tolerante",
+   "match": "As-built OCR splits a call into pieces (`206'",
    "checks": [
     {
      "type": "skill-grep",
@@ -1283,10 +1055,7 @@
    "id": "label-long-line-overlap",
    "area": "skill",
    "status": "fixed",
-   "match": "Los rótulos SAN/WM del build salen en UNA línea larguísima",
-   "symptom": "rótulo de 46 caracteres pisa lotes, texto y asfalto; sin sitio libre para moverlo",
-   "cause": "acad_create_mleader no define ancho de MText (las hojas entregadas usan ~25 caracteres)",
-   "fix": "c300-utility-labels.mjs parte las líneas > 26 caracteres con \\P (--wrap)",
+   "match": "Build SAN/WM labels come out as ONE very long",
    "checks": [
     {
      "type": "skill-grep",
@@ -1300,10 +1069,7 @@
    "id": "build-single-block-import",
    "area": "plugin",
    "status": "fixed",
-   "match": "`fase1_build` no puede importar `EXIST ARROW` / `FH`",
-   "symptom": "bloques EXIST ARROW/FH sin definición en la plantilla de Goulds; la capa del bloque cae en la capa actual",
-   "cause": "clImport importaba un solo bloque y el import ocurría antes de crear `layers`",
-   "fix": "blockImports[] + capa creada antes del import (a2e52a5)",
+   "match": "`fase1_build` cannot import `EXIST ARROW` / `",
    "checks": [
     {
      "type": "repo-grep",
@@ -1326,10 +1092,7 @@
    "id": "qc-label-ownership",
    "area": "skill",
    "status": "fixed",
-   "match": "`fase1-qc.py` atribuye mal las palabras del PDF a los rótulos",
-   "symptom": "«9/12 palabras impresas» o rótulos cortados que no lo están; atribución al rótulo equivocado",
-   "cause": "las líneas «(PER ES9467-2)», «(TO REMAIN)» se repiten en todos los rótulos; la distancia al punto de texto no basta (el texto mide ~40 ft)",
-   "fix": "dueño = rótulo cuya CAJA de texto (cuelga del punto de texto a derecha/izquierda según quede adelante o atrás de la flecha) contiene la palabra",
+   "match": "`fase1-qc.py` misattributes PDF words to labe",
    "checks": [
     {
      "type": "skill-grep",
@@ -1343,10 +1106,7 @@
    "id": "qc-partial-asphalt-cover",
    "area": "skill",
    "status": "fixed",
-   "match": "Un rótulo nuestro queda a medias bajo el asfalto negro",
-   "symptom": "«SL|OPE», «(PER ES946» cortadas por el relleno negro y el QC dice OK",
-   "cause": "el QC ignoraba palabras con ≥ 85 % de su caja sobre el relleno (para no marcar el texto del survey bajo el asfalto) y no distinguía las nuestras",
-   "fix": "para palabras de NUESTROS rótulos el umbral es 25 % de píxeles oscuros: «our labels under the survey fill»",
+   "match": "A label of ours sits half under the black asp",
    "checks": [
     {
      "type": "skill-grep",
@@ -1360,10 +1120,7 @@
    "id": "mleader-move-anchor-flip",
    "area": "plugin",
    "status": "info",
-   "match": "Al mover el texto de un MLeader con `acad_update_text_content {x,y}` el cuadro de texto salta",
-   "symptom": "el texto aparece a la izquierda/derecha de donde se esperaba y se sale del viewport",
-   "cause": "MoveMLeaderText re-elige el ancla: TopLeft si el punto de texto queda adelante de la flecha, TopRight si queda atrás",
-   "fix": "planificar con el volteo (fase1-declutter.py) y volver a plotear + QC después de aplicar",
+   "match": "Moving an MLeader text with `acad_update_text",
    "checks": [
     {
      "type": "skill-grep",
@@ -1377,10 +1134,7 @@
    "id": "qc-shx-text-blind",
    "area": "skill",
    "status": "fixed",
-   "match": "Un rótulo nuestro está cruzado por texto del survey («SIGNAL», «W.P.»)",
-   "symptom": "se ve el cruce en el PDF pero el QC no lo marca",
-   "cause": "el texto SHX del survey se plotea como trazos, no como texto: no está en page.get_text(\"words\")",
-   "fix": "fase1-qc.py ubica cada TEXT/MTEXT del survey con los DWG base, toma los trazos del PDF dentro de su caja como su tinta (los tapados por una máscara blanca posterior no cuentan) y mide el cruce con los glifos de nuestras palabras: WARN «survey SHX text over our labels»; las cajas de tinta van al --json como obstáculos del planificador de despeje",
+   "match": "A label of ours sits over a symbol, fill or h",
    "checks": [
     {
      "type": "skill-grep",
@@ -1399,10 +1153,7 @@
    "id": "qc-foreign-ink-blind",
    "area": "skill",
    "status": "fixed",
-   "match": "Un rótulo nuestro queda encima de un símbolo, relleno o línea gruesa y el QC dice 0 WARN",
-   "symptom": "«(TO REMAIN)» del MLeader 10D03 cayó sobre un símbolo rectangular negro tras el despeje (TEST10) y el QC daba 0 WARN",
-   "cause": "los chequeos del QC miran texto contra texto y el relleno de asfalto; un símbolo, relleno o línea gruesa bajo las palabras no se medía",
-   "fix": "fase1-qc.py quita todo el texto de una copia del PDF y mide cuánto del área de glifos de cada palabra nuestra queda sobre tinta que no es texto: WARN «foreign ink over our labels» desde 15 % (--ink-limit; los PL no cuentan, un rótulo ya marcado por SHX o asfalto no se repite); fase1-declutter.py exige < 5 % de tinta no-texto en el sitio nuevo de ese rótulo",
+   "match": "A label of ours is crossed by survey text (\"S",
    "checks": [
     {
      "type": "skill-grep",
@@ -1421,10 +1172,7 @@
    "id": "title-block-template-values",
    "area": "skill",
    "status": "fixed",
-   "match": "El title block de la hoja sale con los datos de Goulds",
-   "symptom": "«231-232 GOULDS», 26-04.046, AGR 33809, C-301, 08/03/26, UB en un proyecto nuevo",
-   "cause": "la plantilla es el C-300 de Goulds y el payload no traía `titleBlock`",
-   "fix": "c300-titleblock.mjs deriva los reemplazos de project.json (nombre, dirección, proyecto, AGR, hoja, fecha, iniciales)",
+   "match": "Sheet title block prints Goulds data (`231-23",
    "checks": [
     {
      "type": "skill-grep",
@@ -1442,10 +1190,7 @@
    "id": "build-open-template-slow",
    "area": "process",
    "status": "info",
-   "match": "El runner falla en «check new drawing is active» con `listOpenDocuments` timed out",
-   "symptom": "Command timed out after 120000ms: listOpenDocuments justo después de abrir la plantilla",
-   "cause": "Civil 3D tardó en abrir un dibujo nuevo con otros dibujos abiertos (FASE 1, copias de prueba)",
-   "fix": "esperar a que responda (plugin-rpc.mjs listOpenDocuments) y reintentar; queda un DrawingN.dwg sin cambios abierto, inofensivo",
+   "match": "Runner fails at \"check new drawing is active\"",
    "checks": []
   },
   {
@@ -1453,10 +1198,7 @@
    "id": "pl-symbols-silent-zero",
    "area": "skill",
    "status": "fixed",
-   "match": "El build sale con «PL symbols 0» y el QC da FAIL «PL symbols - 0 in view»",
-   "symptom": "dos builds seguidos sin símbolos PL y sin ningún aviso",
-   "cause": "el GIS del condado (Property Appraiser, capa 7) a veces contesta 200 con la lista de features vacía y el script imprimía 0 símbolos",
-   "fix": "c300-pl-symbols.mjs reintenta 4 veces y lanza error si sigue vacío (el payload lo avisa como NOT added)",
+   "match": "Build comes out with \"PL symbols 0\" and QC FA",
    "checks": [
     {
      "type": "skill-grep",
@@ -1470,10 +1212,7 @@
    "id": "plan-labels-need-profile-view",
    "area": "plugin",
    "status": "fixed",
-   "match": "profileViewApplyAnnotations: «Required parameter profileViewName» al crear EOP / R/W / ALIGNMENT START",
-   "symptom": "no se podían crear NoteLabel/StationOffsetLabel en una hoja Fase 1 (no tiene vista de perfil)",
-   "cause": "la acción exigía profileViewName aunque las etiquetas de planta no dependen de él",
-   "fix": "profileViewName opcional: sin él solo aplica etiquetas de planta (CreatePlanLabel / ApplyPlanLabelsOnly); fase1_build planLabels + planLabelsFallback",
+   "match": "`profileViewApplyAnnotations`: \"Required para",
    "checks": [
     {
      "type": "repo-grep",
@@ -1492,10 +1231,7 @@
    "id": "studio-classify-by-entities",
    "area": "skill",
    "status": "fixed",
-   "match": "Studio clasifica el X-TOPO como X-ARCH",
-   "symptom": "al crear un proyecto desde _ENTRADA el X-TOPO salía como ARCH y faltaba el topo",
-   "cause": "el survey DEFINE una capa X-ARCH vacía; clasificar por nombres de capa se equivoca",
-   "fix": "classifyDwg cuenta ENTIDADES (survey >= 20 -> topo; X-UTIL-* -> util; X-ARCH sin lo anterior -> arch) y usa los nombres solo para desempatar",
+   "match": "Studio classifies the X-TOPO as X-ARCH | The",
    "checks": [
     {
      "type": "skill-grep",
@@ -1509,10 +1245,7 @@
    "id": "native-label-text-backslash-p",
    "area": "skill",
    "status": "info",
-   "match": "El texto de la nota de alineación sale «ALIGNMENT STARTPSTA:» sin saltos de línea",
-   "symptom": "c300-road-labels.mjs emite «STARTPSTA» en vez de «START\\PSTA»",
-   "cause": "un `\\P` con una sola barra dentro de una plantilla JS pierde la barra (el \\P de MText hay que escribirlo `\\P` en el fuente)",
-   "fix": "el texto sale ahora de standards roles.planLabels.stationOffset.textTemplate (JSON); al editar scripts con \\P comprueba el texto emitido",
+   "match": "Alignment note text reads \"ALIGNMENT STARTPST",
    "checks": [
     {
      "type": "skill-grep",
@@ -1526,10 +1259,7 @@
    "id": "gis-first-hit-empty",
    "area": "skill",
    "status": "fixed",
-   "match": "El Property Appraiser / GIS devuelve «possible matches» vacíos o 0 lotes en la primera consulta",
-   "symptom": "pa-site / pa-area / c300-pl-symbols sin candidatos o con 0 símbolos PL y a la segunda vez sí funciona",
-   "cause": "gisfs.miamidade.gov contesta 200 con features: [] a la primera consulta tras una pausa",
-   "fix": "scripts/lib/gis.mjs getJson reintenta (hasta 4, espera creciente) ante lista vacía; lo usan pa-area, pa-site y pa-lookup (c300-pl-symbols tiene su propio bucle)",
+   "match": "Property Appraiser / GIS returns empty \"possi",
    "checks": [
     {
      "type": "skill-grep",
@@ -1547,10 +1277,7 @@
    "id": "ue-needs-user-confirmed-line",
    "area": "skill",
    "status": "fixed",
-   "match": "La hoja Fase 1 sale sin servidumbre (U.E.) porque falta el plat",
-   "symptom": "el motor no dibujaba «EXIST 5' U.E.», las 2 líneas ni las cotas de 5.00'",
-   "cause": "la U.E. no está en el survey ni en el Property Appraiser: el plat dice cuál línea de lote la lleva y el usuario no tenía el plat",
-   "fix": "pa-area.mjs propone candidatos (líneas compartidas); el usuario confirma línea y ancho → project.json site.ue → c300-easement.mjs la construye desde la geometría real; fase1-qc exige las 3 piezas cuando site.ue existe. Sin confirmación no se dibuja",
+   "match": "Fase 1 sheet comes out without easement (U.E.",
    "checks": [
     {
      "type": "file-exists",
@@ -1568,10 +1295,7 @@
    "id": "review-exports-incomplete-manholes",
    "area": "skill",
    "status": "fixed",
-   "match": "La revisión de as-builts exporta manholes sin RIM / INV / nombre y el modelo sale incompleto",
-   "symptom": "asbuilt-build dejaba 1 de 5 MH con RIM, INV sin direcciones, IDs MH-1… y un tramo sin etiqueta; las etiquetas de la hoja salían parciales",
-   "cause": "el OCR parte cada callout en fragmentos y pierde líneas (RIM / INV / nombre bajo el trazo de la flecha); la hoja de revisión dejaba exportar filas incompletas",
-   "fix": "asbuilt-review.py: campos obligatorios por tipo (MH: nombre, RIM, INV con direcciones, N, E; tubo: tubo + %; accesorios: etiqueta + posición), rojo + «Exportar» bloqueado, «Unir con fila nº» para fragmentos, sugerencias por palabra clave; fase1-qc: FAIL «as-built completeness» y «every existing appurtenance labeled»",
+   "match": "As-built review exports manholes without RIM",
    "checks": [
     {
      "type": "skill-grep",
@@ -1590,10 +1314,7 @@
    "id": "simulated-asbuilt-feeds-sheet",
    "area": "skill",
    "status": "fixed",
-   "match": "Un as-built «confirmado» simulado alimenta la hoja Fase 1",
-   "symptom": "VILLA ONE se construyó con asbuilt.confirmed.json marcado simulated:true guardado en %TEMP%",
-   "cause": "no había guardia: la regla «solo valores confirmados por el usuario» dependía de la disciplina de quien corría el flujo",
-   "fix": "asbuilt-build.mjs y fase1-build-payload.mjs rechazan simulated:true (--allow-simulated solo para pruebas); asbuilt-build guarda la revisión en <proyecto>/_asbuilts; fase1-qc da FAIL «as-built provenance»; la hoja exporta simulated:false + confirmedBy",
+   "match": "A simulated \"confirmed\" as-built feeds the Fa",
    "checks": [
     {
      "type": "skill-grep",
@@ -1612,10 +1333,7 @@
    "id": "extract-splits-callouts",
    "area": "skill",
    "status": "fixed",
-   "match": "asbuilt-extract parte un callout de manhole en varios ítems, cada uno con la mitad de los datos",
-   "symptom": "MH#6 salía como dos ítems (RIM en uno, N/E en otro) y MH#3 / la tee de 10+60 con la estación en un ítem y las coordenadas en otro; la revisión mostraba filas incompletas",
-   "cause": "el divisor por líneas abría un ítem nuevo ante cada estación o descripción nueva (un manhole imprime una estación por línea base) y una línea N/E separada por RIM/INV perdidos por el OCR quedaba en otra columna",
-   "fix": "asbuilt-extract.mjs: una columna con estructura (RIM / INV / MH) se une en UN solo manhole conservando todas sus estaciones (`stations`, cada una con offset es ancla de su línea base); en columnas de ensamblaje un fragmento sin descripción propia que sigue a un ítem sin N/E es su continuación; las líneas N/E toleran un hueco mayor; cada ítem lleva `callout`/`mergedFrom` y la hoja de revisión muestra las filas de la misma callout",
+   "match": "`asbuilt-extract` splits a manhole callout in",
    "checks": [
     {
      "type": "skill-grep",
@@ -1634,10 +1352,7 @@
    "id": "ocr-first-pass-loses-callout-text",
    "area": "skill",
    "status": "fixed",
-   "match": "El OCR de la primera pasada pierde el nombre, el RIM o dígitos de un callout de manhole",
-   "symptom": "MH sin nombre (MH#7…), MH#3 sin RIM, MH#6 con N 444513.2847 en vez de 444518.2847; el trazo de la flecha / la línea base tacha líneas (INV.EL=1.64'(E,W)) y no se leen",
-   "cause": "el texto del callout es chico (≈2 mm a escala de plot) y la primera pasada lee la hoja entera a tamaño nativo; el Windows OCR no lee líneas tachadas a ninguna escala ni quitando líneas largas (probado 2026-10-02)",
-   "fix": "asbuilt-reocr.py relee cada callout incompleto en su recorte ampliado 2x/3x y asbuilt-extract.mjs --reocr VOTA entre lecturas (llena nombre/RIM, corrige dígitos por mayoría, anota cada diferencia); lo no legible (INV tachados, MH#5) queda como campo OBLIGATORIO en la revisión que el usuario escribe a mano | 2026-10-02 (later): asbuilt-glyphs.py lee las líneas TACHADAS (INV/RIM) por comparación de plantillas con las letras limpias del MISMO escaneo (≈2,200 glifos); VILLA ONE: los 4 INV/RIM tachados conocidos (MH#7, #5, #3, #6) salieron exactos; lecturas con <75 % de acuerdo o 1 decimal se marcan LOW CONFIDENCE",
+   "match": "First-pass OCR loses the name, RIM or digits",
    "checks": [
     {
      "type": "file-exists",
@@ -1669,10 +1384,7 @@
    "id": "spec-parallel-street-hangs-civil3d",
    "area": "skill",
    "status": "fixed",
-   "match": "El spec de la hoja sale con una alineación de miles de millones de pies y Civil 3D se cuelga al construir",
-   "symptom": "GOULDS 33809: alineación de 2,231,804,600 ft, viewport centrado en 1e9 ft, PL symbols sin crear; al abrir la plantilla y dibujar, Civil 3D quedó sin responder más de 10 minutos",
-   "cause": "c300-build-spec trataba como «calle transversal» cualquier otra calle del survey, incluida una PARALELA a la fachada (SW 124 AVE junto a SW 125 AVE): su intersección está en el infinito y la «intersección lejana» quedaba a 1e9 ft",
-   "fix": "c300-build-spec.mjs: solo cuentan como transversales las calles con ángulo ≥ 30° respecto a la fachada y cuya intersección cae a ≤ 700 ft del lote; guardia final: alineación > 3,000 ft o fuera de 3,000 ft del lote = error «absurd geometry» y no se construye nada",
+   "match": "Sheet spec has an alignment billions of feet",
    "checks": [
     {
      "type": "skill-grep",
@@ -1691,10 +1403,7 @@
    "id": "rw-dims-on-nplt-layer",
    "area": "skill",
    "status": "fixed",
-   "match": "El motor copia solo 1 cota R/W del topográfico cuando las cotas están en la capa _NPLT-TXT",
-   "symptom": "GOULDS 33809: 1 cota R/W en la hoja en vez de 13",
-   "cause": "las cotas se tomaban solo de la capa DIM del X-TOPO; cada topógrafo usa otra (VILLA ONE: DIM; Goulds: _NPLT-TXT)",
-   "fix": "c300-build-spec.mjs decide por GEOMETRÍA: cota > 1 ft en DIM o _NPLT-TXT con un extremo sobre un PROPERTY_LINE (≤ 0.2 ft), sin duplicados; VILLA ONE sigue en 13, Goulds pasó de 1 a 13",
+   "match": "Engine copies only 1 R/W dim from the survey",
    "checks": [
     {
      "type": "skill-grep",
@@ -1708,10 +1417,7 @@
    "id": "asbuilts-without-coordinates",
    "area": "skill",
    "status": "mitigated",
-   "match": "Los as-builts escaneados solo traen estación y offset RT/LT, sin N/E ni letras de línea base: ningún ítem queda ubicado",
-   "symptom": "GOULDS 33809 (E11158-7, E11826-1, ES7843-7, ES8206-1): 0 de 87 ítems ubicados; el X-UTIL trae un solo tramo SAN de 130 ft y uno WAT de 155 ft, sin manholes",
-   "cause": "el flujo georreferencia con anclas (estación + offset + N/E impresos, ajuste por línea base); estos planos viejos no imprimen N/E y el X-UTIL no tiene símbolos con que emparejar estaciones",
-   "fix": "2026-10-02: la hoja de revisión (--util) trae la columna «Tramo X-UTIL»: cada callout de tubería de un escaneo SIN N/E se apunta a su tramo del X-UTIL (se sugiere sola cuando solo hay un tramo del sistema SAN/WAT); asbuilt-build la usa (matchedBy «assigned in the review»; el agua toma el tubo tecleado como texto de ese tramo). Siguen sin ubicarse MH, válvulas, laterales y demás ítems con solo estación + offset: PENDIENTE un ancla por escaneo (punto con estación conocida) o emparejar con símbolos del X-TOPO",
+   "match": "Scanned as-builts carry only station and RT/L",
    "checks": [
     {
      "type": "skill-grep",
@@ -1730,10 +1436,7 @@
    "id": "road-labels-survey-layer-names",
    "area": "skill",
    "status": "fixed",
-   "match": "Faltan las etiquetas EOP y EXIST R/W en la hoja cuando el topógrafo usa otras capas (EOP, _NPLT-TXT)",
-   "symptom": "GOULDS 33809: 0 EOP y 1 EXIST R/W en vez de 2 EOP y 13 EXIST R/W",
-   "cause": "c300-road-labels solo leía los bordes de pavimento de IMPROVEMENTS y las cotas de DIM; este survey usa la capa EOP y _NPLT-TXT",
-   "fix": "c300-road-labels.mjs: bordes en IMPROVEMENTS o EOP; cotas en DIM o _NPLT-TXT con un extremo sobre PROPERTY_LINE (LINE). VILLA ONE no cambia (13 R/W, 16 EOP)",
+   "match": "EOP and EXIST R/W labels missing when the sur",
    "checks": [
     {
      "type": "skill-grep",
@@ -1747,10 +1450,7 @@
    "id": "label-per-null",
    "area": "skill",
    "status": "fixed",
-   "match": "Una etiqueta de utilidad existente imprime «(PER null)» cuando el proyecto no tiene as-built de ese sistema",
-   "symptom": "Goulds: «EXIST WATER MAIN (PER null)»; el QC lo daba como FAIL",
-   "cause": "c300-utility-labels interpolaba waterRef / sewerRef aunque fueran null",
-   "fix": "helper per(ref): sin referencia no se imprime la línea (PER …); el QC solo exige (PER ref) cuando existe",
+   "match": "An existing-utility label prints \"(PER null)\"",
    "checks": [
     {
      "type": "skill-grep",
@@ -1764,10 +1464,7 @@
    "id": "blocks-from-without-exist-arrow",
    "area": "skill",
    "status": "fixed",
-   "match": "El build falla con «Block 'EXIST ARROW' was not found» al importar los bloques del paquete",
-   "symptom": "GOULDS 33809: --blocks-from apuntó al C-300 de Goulds, que no trae EXIST ARROW / FH",
-   "cause": "los bloques existentes de flecha y hidrante solo están en el paquete C-300 de VILLA ONE, no en todos",
-   "fix": "usar como --blocks-from un paquete que los tenga (VILLA ONE: Villa One-…\\2026-09-21_WASD - Xereft\\C-300.dwg) y dejarlo en project.json sources.blocksFrom; el error es claro y no deshace nada",
+   "match": "Build fails \"Block 'EXIST ARROW' was not foun",
    "checks": []
   },
   {
@@ -1775,10 +1472,7 @@
    "id": "asbuilt-stations-pair-with-survey-symbols",
    "area": "skill",
    "status": "mitigated",
-   "match": "Los manholes, válvulas y laterales de un as-built sin N/E no se pueden ubicar",
-   "symptom": "GOULDS 33809: ítems con solo estación + offset sin ubicación",
-   "cause": "sin N/E impresos no hay anclas; el X-UTIL de ese proyecto no trae manholes",
-   "fix": "asbuilt-georef-symbols.mjs empareja con los SÍMBOLOS del topográfico (X-TOPO, dwg-dump exporta el texto de bloques anónimos como btxt=): «STA 0+00 EXIST MH» = el manhole del survey sobre la línea SAN del X-UTIL; las estaciones de su misma columna se ubican a esa distancia a lo largo de la línea SAN (sugerencias que el usuario confirma); válvulas/hidrantes/medidores solo con igual conteo as-built/survey; asbuilt-build --topo toma esos manholes como nodos; c300-utility-labels --spec rotula solo lo que cae en el viewport. Goulds: ancla MH-SS-flat-2, 7 laterales ubicados; 0 válvulas/hidrantes en el survey de ese sitio",
+   "match": "Manholes, valves and laterals of an as-built",
    "checks": [
     {
      "type": "file-exists",
@@ -1796,10 +1490,7 @@
    "id": "tool-written-regex-backspace",
    "area": "skill",
    "status": "mitigated",
-   "match": "Una regex escrita por la herramienta con la secuencia backslash-b queda con caracteres backspace (0x08) y no coincide",
-   "symptom": "mdwasd-check.mjs: 0 valvulas ubicadas aunque el as-built tiene G.V. (el regex VALVE tenia caracteres backspace en vez del limite de palabra)",
-   "cause": "el canal Bash/Write de la herramienta interpreta backslash-b dentro de heredocs/cadenas como backspace, igual que backslash-n y doble backslash en bugs previos",
-   "fix": "escribir regex de limite de palabra sin backslash-b (lookarounds (?:^|[^A-Z]) ... (?![A-Z])) o crearlas con chr(92)+'b'; revisar con grep -c de 0x08 en scripts; mdwasd-selftest.mjs falla si el regex no encuentra las valvulas",
+   "match": "backspace char",
    "checks": [
     {
      "type": "file-exists",
@@ -1817,10 +1508,7 @@
    "id": "qc-label-side-guess-false-edge",
    "area": "skill",
    "status": "fixed",
-   "match": "QC dice que una etiqueta esta cortada por el borde del viewport pero esta en medio de la hoja; el despeje la mueve 2.2 ft en cada ronda y no converge",
-   "symptom": "Goulds: WARN 'MLeader 10D7F cut off by the viewport edge (1/2 words printed)' para 'EXIST R/W'; la palabra EXIST salia sin duenio y fase1-declutter repetia el mismo movimiento",
-   "cause": "fase1-qc.py adivina de que lado cuelga la caja de texto (TopLeft/TopRight) con el signo del producto punto flecha->texto sobre los ejes de la hoja; con lider casi perpendicular al texto el signo es ambiguo y el plugin usa la rotacion del MText, no los ejes: la caja quedaba del lado equivocado y la palabra lejana quedaba >6 ft de ella",
-   "fix": "fase1-qc.py conserva el lado cuyo box posee mas palabras impresas (el plot manda); fase1-declutter.py no propone posiciones con |producto punto| < 4 ft (lado ambiguo)",
+   "match": "QC says a label is cut by the viewport edge b",
    "checks": [
     {
      "type": "skill-grep",
@@ -1838,10 +1526,7 @@
    "id": "close-civil3d-multi-discard",
    "status": "mitigated",
    "area": "skill",
-   "match": "close-civil3d.ps1 con varios fragmentos en -Discard se detiene con 'dialog needs the user' en una copia que si debia descartar",
-   "symptom": "Goulds: -Discard 'c3d-dwg-dump;FASE 1 BUILD;_template' paro en el prompt 'Save changes to ...BUILD.dwg?'; con UN fragmento ('_template.dwg') si funciono",
-   "cause": "causa exacta no reproducida; sospecha: conversion object[]->string[] / separadores / mayusculas en la comparacion",
-   "fix": "el script ahora separa por ; o |, fuerza string[], compara sin distinguir mayusculas e imprime lo parseado en la linea STOP; fase1-redeliver.mjs llama una vez por fragmento",
+   "match": "`close-civil3d.ps1` with several fragments in",
    "checks": [
     {
      "type": "skill-grep",
@@ -1860,10 +1545,7 @@
    "id": "scan-pipe-callout-missing-from-review",
    "status": "mitigated",
    "area": "skill",
-   "match": "El main de agua queda sin tamano ('EXIST WATER MAIN') aunque el as-built escaneado lo imprime (8\" DIP WM)",
-   "symptom": "Goulds 33809: E11826-1 trae \"419' 8\" DIP WM\" y \"278' 8\" DIP WM\" pero el assoc/revision no los tiene (el OCR de primera pasada los perdio) y mdwasd-check da WARN UC-005 A.12",
-   "cause": "los callouts de tuberia no entraron como items del draft (el reocr tampoco: 0 callouts); solo estaban en el .ocr.json crudo",
-   "fix": "asbuilt-find-callouts.py lista las lineas OCR con DIP/PVC/WM sin item en el assoc y recorta la imagen; se lee el recorte y asbuilt-add-callout.mjs (--by obligatorio) lo agrega al assoc + confirmed y rotula el main generico; asbuilt-callout-selftest.mjs lo prueba",
+   "match": "Water main stays unsized ('EXIST WATER MAIN')",
    "checks": [
     {
      "type": "file-exists",
@@ -1884,10 +1566,7 @@
    "id": "asbuilt-water-main-beyond-xutil",
    "status": "mitigated",
    "area": "skill",
-   "match": "Un hidrante o accesorio de agua del as-built queda a cientos de pies de la linea de agua del X-UTIL (INFO UC-005 A.28)",
-   "symptom": "VILLA ONE: hidrante a 511 ft del main registrado; el escaneo dibuja el main de 8\" siguiendo mas alla del fin del X-UTIL WAT (la falla esta en el survey, no en el as-built)",
-   "cause": "el X-UTIL del survey termina antes que el main del as-built; los accesorios con N/E impresos quedan fuera de la linea",
-   "fix": "asbuilt-build.mjs guarda waterFittingsOffXUtil (accesorios con N/E a > 40 ft de toda linea WAT) y mdwasd-check lo reporta como INFO; no se dibuja ni se mueve nada: el usuario decide (reportar el hueco o dibujar el main desde las N/E)",
+   "match": "An as-built hydrant/water fitting lands hundr",
    "checks": [
     {
      "type": "skill-grep",
@@ -1901,6 +1580,83 @@
     }
    ],
    "since": "2026-10-02"
+  },
+  {
+   "id": "shx-missing-attach-xref",
+   "since": "2026-10",
+   "area": "process",
+   "status": "fixed",
+   "match": "\"Missing SHX Files\" dialog when attaching a n",
+   "checks": []
+  },
+  {
+   "id": "plot-execution-policy",
+   "since": "2026-10",
+   "area": "process",
+   "status": "fixed",
+   "match": "`fase1-finish.mjs` fails the plot silently /",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-finish.mjs",
+     "pattern": "ExecutionPolicy|Bypass"
+    }
+   ]
+  },
+  {
+   "id": "survey-profile-other-layers",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "`c300-build-spec` says \"no CENTER_LINE LINE e",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "references/standards/survey-profiles.json"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/lib/survey-profile.mjs"
+    }
+   ]
+  },
+  {
+   "id": "title-block-other-project-values",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "Title prints another project's AGR/project nu",
+   "checks": []
+  },
+  {
+   "id": "drawing-recovery-after-forced-close",
+   "since": "2026-10",
+   "area": "process",
+   "status": "fixed",
+   "match": "\"Drawing Recovery\" appears opening Civil 3D a",
+   "checks": []
+  },
+  {
+   "id": "first-newdrawing-timeout-after-autostart",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "Rebuild with `--rebuild` on a freshly auto-st",
+   "checks": []
+  },
+  {
+   "id": "working-dwg-hidden-after-rebuild",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "Working DWG appears Hidden after a rebuild (n",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/package-base.mjs",
+     "pattern": "attributes last"
+    }
+   ]
   }
  ]
 }

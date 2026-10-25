@@ -20,6 +20,7 @@ import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { getJson } from "./lib/gis.mjs";
+import { writeText } from "./lib/safe-write.mjs";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
@@ -161,5 +162,5 @@ if (report.ueCandidates.length) { console.log(`\nU.E. candidates for the subject
 for (const n of notes) console.log(`note: ${n}`);
 if (flag("out") || dir) {
   const file = flag("out") ?? join(dir, "_reports", `pa-area_${report.date}.json`); mkdirSync(join(file, ".."), { recursive: true }); writeFileSync(file, JSON.stringify(report, null, 1)); console.log(`\nreport -> ${file}`);
-  if (has("write") && dir && project) { project.site = { ...(project.site ?? {}), paArea: { date: report.date, queries: report.queries.map((q) => q.search), subjectFolio: report.subject?.folio ?? null, lots: report.lots.length, file } }; writeFileSync(join(dir, "project.json"), JSON.stringify(project, null, 2)); console.log("project.json site.paArea updated"); }
+  if (has("write") && dir && project) { project.site = { ...(project.site ?? {}), paArea: { date: report.date, queries: report.queries.map((q) => q.search), subjectFolio: report.subject?.folio ?? null, lots: report.lots.length, file } }; writeText(join(dir, "project.json"), JSON.stringify(project, null, 2)); console.log("project.json site.paArea updated"); }
 }
