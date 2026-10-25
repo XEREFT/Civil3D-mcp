@@ -80,6 +80,18 @@ if (existsSync(target)) {
       log(`\n== 0b. hide survey text (${rule.layer} ${rule.match}): ${tail(h.stdout, 2)}`);
     }
   }
+  // pavement/landscape callouts (SOD, PAVERS, CONC., PARKWAY, ASPHALT) + their arrows: hidden by profile `hidePavementLabels` (project.json sources.pavementLabels all|property|none overrides; once: the backup file is the marker)
+  {
+    let prof = {}; try { prof = pj.sources?.surveyProfile ? profileByName(pj.sources.surveyProfile) : {}; } catch { /* no profile */ }
+    const pm = src.pavementLabels ?? prof.hidePavementLabels?.mode ?? "none";
+    if (pm !== "none" && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg"))) {
+      const k = src.pavementKeep ?? {};
+      const h = run(node, [join(here, "topo-hide-pavement-labels.mjs"), "--topo", join(dir, "X-TOPO.dwg"), "--mode", pm, ...(prof.hidePavementLabels?.layer ? ["--layer", prof.hidePavementLabels.layer] : []),
+        ...(pm === "property" ? ["--keep-x", String(k.x), "--keep-y0", String(k.y0), "--keep-y1", String(k.y1)] : [])]);
+      log(`
+== 0b. hide pavement labels (${pm}): ${tail(h.stdout, 3)}`);
+    }
+  }
   // architecture: georeference the architect's drawings to the survey when X-ARCH.dwg does not exist yet (project.json sources.architect {site, floor}) or on --georef-arch
   if (src.architect?.site && src.architect?.floor && (!existsSync(join(dir, "X-ARCH.dwg")) || has("georef-arch"))) {
     const g = run(node, [join(here, "xarch-georef.mjs"), "--dir", dir, "--site", src.architect.site, "--floor", src.architect.floor]); log(`\n== 0b. X-ARCH georeference:\n${tail(g.stdout, 4)}`);
