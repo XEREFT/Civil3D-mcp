@@ -74,7 +74,7 @@
    "hidePavementLabels": {
     "mode": "all",
     "layer": "TEXTM",
-    "note": "SOD / PAVERS APPROACH+WALK / CONC. WALK / CONCRETE APPROACH / PARKWAY / ASPHALT / ASPHALT APPROACH callouts + their arrows -> layer HIDE-PAVEMENT-LABELS (frozen). mode all = user's current rule (2026-10-25); mode property keeps only those on the property side of the street (needs project.json sources.pavementKeep {x,y0,y1}); mode none = leave them. Override per project with project.json sources.pavementLabels."
+    "note": "SOD / PAVERS APPROACH+WALK / CONC. WALK / CONCRETE APPROACH / PARKWAY / ASPHALT / ASPHALT APPROACH callouts + their arrows -> layer HIDE-PAVEMENT-LABELS (frozen). mode all = user's current rule (2026-10-25); mode property keeps only those on the property side of the street (needs project.json sources.pavementKeep {x,y0,y1}); mode none = leave them. Override per project with project.json sources.pavementLabels. Group `site` (fence/gate/column callouts) is hidden together with it (script --groups pavement,site)."
    }
   }
  }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Hides the survey's pavement/landscape callouts (SOD, PAVERS APPROACH / WALK, CONC. WALK, CONCRETE APPROACH, PARKWAY, ASPHALT, ASPHALT APPROACH) AND their arrows
+// Hides the survey's pavement/landscape callouts + site-feature callouts (fence, gate, column) (SOD, PAVERS APPROACH / WALK, CONC. WALK, CONCRETE APPROACH, PARKWAY, ASPHALT, ASPHALT APPROACH) AND their arrows
 // in a survey xref (X-TOPO.dwg). User rule 2026-10-25 (SEIDENSTEIN): they are visual noise on the Fase 1 sheet. First asked "only the ones on the property side of the
 // street, hide everything past the middle of the street" (--mode property), then "hide absolutely all of them" (--mode all, the default).
 //
@@ -10,7 +10,7 @@
 //
 //   node topo-hide-pavement-labels.mjs --topo "<...\X-TOPO.dwg>" [--mode all|property] [--dry-run]
 //        property mode keeps the labels with centre X > --keep-x and Y in [--keep-y0, --keep-y1] (SEIDENSTEIN: 893307, 498000..498140 = property side of the street, in front of the lot)
-//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>]
+//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>] [--groups pavement,site]
 // Works on a %TEMP% copy with the Core Console, backs the original up in _backup\ first (once), then copies the result over --topo. Close/unload the xref in Civil 3D before (xref-reload.ps1 -Swap does it).
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -31,15 +31,20 @@ const CORE = flag("core", "C:\\Program Files\\Autodesk\\AutoCAD 2027\\accorecons
 const backupName = flag("backup-name", "X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg");
 
 // what is hidden (cleaned, upper-cased text must match exactly; "18' ASPHALT PAVEMENT", "ASPHALT WALKWAY", street names, EOP... are NOT in the list)
+// groups: "pavement" = the five classes below; "site" = fence / gate / column callouts (user 2026-10-25: site features that are not used to design the water/sewer
+// installations; the yellow architecture and the survey linework stay). Default --groups pavement,site.
+const GROUPS = flag("groups", "pavement,site").split(",").map((s) => s.trim());
 const CLASSES = [
-  ["SOD", /^SOD$/],
-  ["PAVERS", /^(\d+'\s*)?PAVERS?\s+(APPROACH|WALK)$/],
-  ["CONCRETE", /^(\d+'\s*)?(CONC\.?|CONCRETE)\s+(APPROACH|WALK)$/],
-  ["PARKWAY", /^(\d+'\s*)?PARKWAY$/],
-  ["ASPHALT", /^(\d+'\s*)?ASPHALT(\s+APPROACH)?$/],
-];
+  ["pavement", "SOD", /^SOD$/],
+  ["pavement", "PAVERS", /^(\d+'\s*)?PAVERS?\s+(APPROACH|WALK)$/],
+  ["pavement", "CONCRETE", /^(\d+'\s*)?(CONC\.?|CONCRETE)\s+(APPROACH|WALK)$/],
+  ["pavement", "PARKWAY", /^(\d+'\s*)?PARKWAY$/],
+  ["pavement", "ASPHALT", /^(\d+'\s*)?ASPHALT(\s+APPROACH)?$/],
+  ["site", "FENCE-GATE", /^(\d+'\s*)?(METAL |WOOD |CHAIN[- ]LINK |WROUGHT IRON |ALUM(INUM)? )?(GATE|FENCE)$/],
+  ["site", "COLUMN", /^[\d.']+X[\d.']+\s+COL(UMN)?(\s*\(TYP\))?$/],
+].filter(([g]) => GROUPS.includes(g));
 const clean = (t) => t.replace(/\\[A-Za-z][^;]*;/g, "").replace(/\\P/g, " ").replace(/[{}]/g, "").replace(/%%[A-Za-z]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
-const klass = (t) => CLASSES.find(([, rx]) => rx.test(clean(t)))?.[0];
+const klass = (t) => CLASSES.find(([, , rx]) => rx.test(clean(t)))?.[1];
 
 const work = mkdtempSync(join(tmpdir(), "c3d-pavlabels-"));
 const copy = join(work, "X-TOPO.dwg"); copyFileSync(topo, copy);
