@@ -10,7 +10,7 @@
 //
 //   node topo-hide-pavement-labels.mjs --topo "<...\X-TOPO.dwg>" [--mode all|property] [--dry-run]
 //        property mode keeps the labels with centre X > --keep-x and Y in [--keep-y0, --keep-y1] (SEIDENSTEIN: 893307, 498000..498140 = property side of the street, in front of the lot)
-//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>] [--groups pavement,site] [--also h1,h2] [--no-orphans] [--orphan-margin 2.5]
+//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>] [--groups pavement,site,corners] [--also h1,h2] [--no-orphans] [--orphan-margin 2.5]
 // Works on a %TEMP% copy with the Core Console, backs the original up in _backup\ first (once), then copies the result over --topo. Close/unload the xref in Civil 3D before (xref-reload.ps1 -Swap does it).
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -33,7 +33,7 @@ const backupName = flag("backup-name", "X-TOPO_antes_ocultar_etiquetas_pavimento
 // what is hidden (cleaned, upper-cased text must match exactly; "18' ASPHALT PAVEMENT", "ASPHALT WALKWAY", street names, EOP... are NOT in the list)
 // groups: "pavement" = the five classes below; "site" = fence / gate / column callouts (user 2026-10-25: site features that are not used to design the water/sewer
 // installations; the yellow architecture and the survey linework stay). Default --groups pavement,site.
-const GROUPS = flag("groups", "pavement,site").split(",").map((s) => s.trim());
+const GROUPS = flag("groups", "pavement,site,corners").split(",").map((s) => s.trim());
 const CLASSES = [
   ["pavement", "SOD", /^SOD$/],
   ["pavement", "PAVERS", /^(\d+'\s*)?PAVERS?\s+(APPROACH|WALK)$/],
@@ -42,6 +42,12 @@ const CLASSES = [
   ["pavement", "ASPHALT", /^(\d+'\s*)?ASPHALT(\s+APPROACH)?$/],
   ["site", "FENCE-GATE", /^(\d+'\s*)?(METAL |WOOD |CHAIN[- ]LINK |WROUGHT IRON |ALUM(INUM)? )?(GATE|FENCE)$/],
   ["site", "COLUMN", /^[\d.']+X[\d.']+\s+COL(UMN)?(\s*\(TYP\))?$/],
+  // "corners": found-monument notes at the lot corners with their N/E coordinates (FND. I.P. ø1/2" (NO ID.) NW CORNER C.P. # 1 / N 498125.53 / E 893331.89 / BLOCK CORNER). The VILLA ONE and Goulds
+  // sheets do not print them (they keep T.B.M./control-point ELEVATION notes, which this never touches).
+  ["corners", "CORNER-NOTE", /^FND\.?\s*I\.?P\./],
+  ["corners", "CORNER-NOTE", /^\(NO ID\.?\)$/],
+  ["corners", "CORNER-NOTE", /(^|\s)(NW|NE|SW|SE|BLOCK)\s+CORNER(\s+C\.P\.\s*#\s*\d+)?$/],
+  ["corners", "CORNER-COORD", /^[NE]\s+\d{5,7}\.\d+$/],
 ].filter(([g]) => GROUPS.includes(g));
 const clean = (t) => t.replace(/\\[A-Za-z][^;]*;/g, "").replace(/\\P/g, " ").replace(/[{}]/g, "").replace(/%%[A-Za-z]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
 const klass = (t) => CLASSES.find(([, , rx]) => rx.test(clean(t)))?.[1];
@@ -89,7 +95,8 @@ const targets = texts.filter((t) => t.class);
 const keepNear = (t) => mode === "property" && t.cx > KEEP.x && t.cy >= KEEP.y0 && t.cy <= KEEP.y1;
 const hideTexts = targets.filter((t) => !keepNear(t));
 const FROZEN = new Set(flag("frozen", "ELV,TREES,INVERTS & MANHOLES,HIDE-ANGLE-LABELS,HIDE-PAVEMENT-LABELS").split(",").map((x) => x.trim().toUpperCase()));   // layers already invisible (profile hideXrefLayers)
-const keptTexts = texts.filter((t) => !hideTexts.includes(t) && !FROZEN.has(t.lay.toUpperCase()));   // texts that stay visible
+const ALSO0 = flag("also", "").split(",").map((x) => x.trim()).filter(Boolean);
+const keptTexts = texts.filter((t) => !hideTexts.includes(t) && !ALSO0.includes(t.h) && !FROZEN.has(t.lay.toUpperCase()));   // texts that stay visible
 const hideSet = new Set(hideTexts.map((t) => t.h));
 const hideLeaders = [], ambiguous = [];
 for (const ld of leaders) {
