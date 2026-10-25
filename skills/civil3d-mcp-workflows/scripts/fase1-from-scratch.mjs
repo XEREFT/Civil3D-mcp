@@ -24,6 +24,7 @@ import { copyFileSync, existsSync, readFileSync, readdirSync, rmSync, statSync }
 import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
+import { profileByName } from "./lib/survey-profile.mjs";
 
 const args = process.argv.slice(2);
 const flag = (n) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : undefined; };
@@ -52,7 +53,7 @@ if (existsSync(target)) {
   const isOpen = ol.status === 0 && String(ol.stdout).toLowerCase().includes(basename(dwgName).toLowerCase());
   if (isOpen) {
     log(`\n== 0. ${basename(dwgName)} is open in Civil 3D: closing and restarting Civil 3D`);
-    const c = pwsh("close-civil3d.ps1", ["-AllowSave", "none.dwg", "-Discard", `${targetBase};Drawing1`]);
+    const c = pwsh("close-civil3d.ps1", ["-AllowSave", "none.dwg", "-Discard", `${targetBase};Drawing1${flag("discard") ? ";" + flag("discard") : ""}`]);   // --discard "<other drawing name;...>": only what the user agreed to discard in this run
     const co = `${c.stdout}${c.stderr}`;
     if (c.status !== 0 || /STOP/.test(co)) die(`Civil 3D has another dialog/drawing open (probably yours): answer it, then rerun.\n${tail(co, 4)}`, 1);
     const s = pwsh("start-civil3d-mcp.ps1"); log(tail(s.stdout, 1));
@@ -68,6 +69,16 @@ if (existsSync(target)) {
   // survey colors must be ByLayer for the xref look to apply (once per project: the backup file is the marker)
   if (src.xrefStyle === "gray" && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_color_bylayer.dwg"))) {
     const b = pwsh("topo-bylayer.ps1", ["-Topo", join(dir, "X-TOPO.dwg")]); log(`\n== 0b. topo ByLayer: ${tail(b.stdout, 2)}`);
+  }
+  // survey texts that share a layer with texts we keep (e.g. lot-corner angles, absent from the VILLA ONE / Goulds sheets): moved to a layer the profile freezes (once per rule)
+  {
+    let prof = {}; try { prof = pj.sources?.surveyProfile ? profileByName(pj.sources.surveyProfile) : {}; } catch { /* no profile */ }
+    for (const [i, rule] of (prof.hideXrefText ?? []).entries()) {
+      const marker = `X-TOPO_antes_ocultar_texto${i ? i + 1 : ""}.dwg`;
+      if (!existsSync(join(dir, "X-TOPO.dwg")) || existsSync(join(dir, "_backup", marker))) continue;
+      const h = pwsh("topo-hide-text.ps1", ["-Topo", join(dir, "X-TOPO.dwg"), "-Layer", rule.layer, "-Match", rule.match, "-NewLayer", rule.newLayer, "-BackupName", marker]);
+      log(`\n== 0b. hide survey text (${rule.layer} ${rule.match}): ${tail(h.stdout, 2)}`);
+    }
   }
   // architecture: georeference the architect's drawings to the survey when X-ARCH.dwg does not exist yet (project.json sources.architect {site, floor}) or on --georef-arch
   if (src.architect?.site && src.architect?.floor && (!existsSync(join(dir, "X-ARCH.dwg")) || has("georef-arch"))) {
@@ -141,6 +152,16 @@ if (!has("no-preview")) {
     else log(`color preview failed: ${tail(cp.stdout || cp.stderr, 2)}`);
   } catch (e) { log(`preview skipped: ${e instanceof Error ? e.message : e}`); }
 }
+// ---- REGEN: xref layer overrides (gray look) only show on the live screen after a regen; an unregenerated window kept the surveyor's orange/green/teal colors (2026-10-25) ----
+try {
+  const open = JSON.parse(run(node, [join(here, "plugin-rpc.mjs"), "listOpenDocuments", "{}"]).stdout.replace(/^\[[^\n]*\n/gm, "")).documents ?? [];
+  const act = open.find((d) => d.isActive);
+  if (act && basename(act.filePath ?? act.name).toLowerCase() === basename(target).toLowerCase()) {
+    const cur = JSON.parse(run(node, [join(here, "plugin-rpc.mjs"), "getSystemVariable", '{"name":"HIGHLIGHT"}']).stdout.replace(/^\[[^\n]*\n/gm, "")).value ?? 1;
+    run(node, [join(here, "plugin-rpc.mjs"), "setSystemVariable", JSON.stringify({ name: "HIGHLIGHT", value: cur, regen: true })]);   // same value: display regen only
+    log("\nlive window regenerated (xref colors refreshed)");
+  }
+} catch (e) { log(`regen skipped: ${e instanceof Error ? e.message : e}`); }
 // ---- package: the design engineer's hand-off folder "<NAME> @XEREFT BASE" (DWG + xrefs + PDF + original sources; no extra documents), rebuilt after every run ----
 {
   let wantPkg = has("package");

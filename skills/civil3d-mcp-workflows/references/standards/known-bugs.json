@@ -1657,6 +1657,24 @@
      "pattern": "attributes last"
     }
    ]
+  },
+  {
+   "id": "live-colors-need-regen",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "Live Civil 3D window shows the surveyor's orange",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-from-scratch.mjs",
+     "pattern": "regen: true"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/topo-hide-text.ps1"
+    }
+   ]
   }
  ]
 }
