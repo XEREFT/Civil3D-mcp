@@ -92,6 +92,15 @@ if (existsSync(target)) {
 == 0b. hide pavement labels (${pm}): ${tail(h.stdout, 3)}`);
     }
   }
+  // survey symbol blocks on shared layers (profile whiteBlocks, e.g. SMH = sanitary manhole 'S in a circle' on NOTES) -> white; symbols on their own layer are whitened by whiteXrefLayers (once: the backup file is the marker)
+  {
+    let prof = {}; try { prof = pj.sources?.surveyProfile ? profileByName(pj.sources.surveyProfile) : {}; } catch { /* no profile */ }
+    if ((prof.whiteBlocks ?? []).length && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_blancos.dwg"))) {
+      const w = run(node, [join(here, "topo-white-blocks.mjs"), "--topo", join(dir, "X-TOPO.dwg"), "--blocks", prof.whiteBlocks.join(",")]);
+      log(`
+== 0b. white survey symbols (${prof.whiteBlocks.join(",")}): ${tail(w.stdout, 2)}`);
+    }
+  }
   // architecture: georeference the architect's drawings to the survey when X-ARCH.dwg does not exist yet (project.json sources.architect {site, floor}) or on --georef-arch
   if (src.architect?.site && src.architect?.floor && (!existsSync(join(dir, "X-ARCH.dwg")) || has("georef-arch"))) {
     const g = run(node, [join(here, "xarch-georef.mjs"), "--dir", dir, "--site", src.architect.site, "--floor", src.architect.floor]); log(`\n== 0b. X-ARCH georeference:\n${tail(g.stdout, 4)}`);

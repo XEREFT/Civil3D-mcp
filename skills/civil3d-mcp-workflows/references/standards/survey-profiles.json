@@ -69,9 +69,11 @@
    "heavyOnly": true,
    "whiteXrefLayers": [
     "STNAMER",
-    "STNAME"
+    "STNAME",
+    "U UKNOWN MANHOLE",
+    "U CATCH BASIN"
    ],
-   "_note": "plLines/rwLines: parcels are metes-and-bounds pieces of a platted tract, so the county plat-lot layer has no shared edges: the PL symbols go on the survey's own lot lines (plLines, those running along an rwLines line are the frontage and get none). R/W half-width dims (25.00', 20', 50') are DIMENSION entities on TEXT / DIMLINE, one end on the lot line (LOTLINE/BNDRY) or the R/W line, the other on the CL. Pavement edge = PAVEM (LINE/ARC/SPLINE pieces). TEXT and DIMLINE also hold survey text/leaders: freezing them is decided per project after looking at the plot, so freezeXrefLayers stays as the default until then. SLAB = driveway aprons, paver/concrete approaches and walkways (lines, arcs, splines; user 2026-10-25 hides them, keeping PAVEM = road edges + curb-inlet boxes, CL, manholes, catch basins, FENCE); it is in hideXrefLayers, so rebuilds and previews freeze it.",
+   "_note": "plLines/rwLines: parcels are metes-and-bounds pieces of a platted tract, so the county plat-lot layer has no shared edges: the PL symbols go on the survey's own lot lines (plLines, those running along an rwLines line are the frontage and get none). R/W half-width dims (25.00', 20', 50') are DIMENSION entities on TEXT / DIMLINE, one end on the lot line (LOTLINE/BNDRY) or the R/W line, the other on the CL. Pavement edge = PAVEM (LINE/ARC/SPLINE pieces). TEXT and DIMLINE also hold survey text/leaders: freezing them is decided per project after looking at the plot, so freezeXrefLayers stays as the default until then. SLAB = driveway aprons, paver/concrete approaches and walkways (lines, arcs, splines; user 2026-10-25 hides them, keeping PAVEM = road edges + curb-inlet boxes, CL, manholes, catch basins, FENCE); it is in hideXrefLayers, so rebuilds and previews freeze it. whiteXrefLayers also holds the manhole / catch-basin symbol layers (white like the other projects' sheets, user 2026-10-25); whiteBlocks = symbol blocks on shared layers (SMH = sanitary manhole 'S in a circle' on NOTES) whitened by topo-white-blocks.mjs.",
    "hidePavementLabels": {
     "mode": "all",
     "layer": "TEXTM",
@@ -79,6 +81,9 @@
    },
    "drivewayLayers": [
     "SLAB"
+   ],
+   "whiteBlocks": [
+    "SMH"
    ]
   }
  }
