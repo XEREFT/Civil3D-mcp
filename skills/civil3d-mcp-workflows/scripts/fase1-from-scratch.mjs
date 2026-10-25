@@ -97,8 +97,12 @@ if (existsSync(target)) {
     let prof = {}; try { prof = pj.sources?.surveyProfile ? profileByName(pj.sources.surveyProfile) : {}; } catch { /* no profile */ }
     if ((prof.whiteBlocks ?? []).length && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_blancos.dwg"))) {
       const w = run(node, [join(here, "topo-white-blocks.mjs"), "--topo", join(dir, "X-TOPO.dwg"), "--blocks", prof.whiteBlocks.join(",")]);
-      log(`
-== 0b. white survey symbols (${prof.whiteBlocks.join(",")}): ${tail(w.stdout, 2)}`);
+      log(`\n== 0b. white survey symbols (${prof.whiteBlocks.join(",")}): ${tail(w.stdout, 2)}`);
+    }
+    // survey blocks with a fixed own colour (profile hideBlocks, e.g. ARR-L = red curved pointer of the lot-corner angle notes) -> hidden layer
+    if ((prof.hideBlocks ?? []).length && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_ocultar_bloques.dwg"))) {
+      const hb = run(node, [join(here, "topo-hide-blocks.mjs"), "--topo", join(dir, "X-TOPO.dwg"), "--blocks", prof.hideBlocks.join(",")]);
+      log(`\n== 0c. hide survey blocks (${prof.hideBlocks.join(",")}): ${tail(hb.stdout, 2)}`);
     }
   }
   // architecture: georeference the architect's drawings to the survey when X-ARCH.dwg does not exist yet (project.json sources.architect {site, floor}) or on --georef-arch

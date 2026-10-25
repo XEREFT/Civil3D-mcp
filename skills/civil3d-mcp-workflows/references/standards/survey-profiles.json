@@ -84,6 +84,9 @@
    ],
    "whiteBlocks": [
     "SMH"
+   ],
+   "hideBlocks": [
+    "ARR-L"
    ]
   }
  }
