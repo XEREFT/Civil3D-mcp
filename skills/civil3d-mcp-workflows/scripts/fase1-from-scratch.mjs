@@ -95,7 +95,9 @@ if (run(node, [join(here, "plugin-rpc.mjs"), "listOpenDocuments", "{}"]).status 
 
 // ---- 1. payload ----
 log("\n== 1. payload");
-const pass = ["template", "asbuilt", "blocks-from", "topo", "spec", "road-labels"].flatMap((n) => (flag(n) ? [`--${n}`, flag(n)] : []))
+// project.json sources.roadLabels:"mleader" = plain MLeaders for EOP / R/W / alignment ends: native Civil 3D labels with overridden text show the big orange "i" glyph on the recipient's screen
+let projRoadLabels; try { projRoadLabels = JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).sources?.roadLabels; } catch { /* no project.json */ }
+const pass = ["template", "asbuilt", "blocks-from", "topo", "spec", "road-labels"].flatMap((n) => (flag(n) ? [`--${n}`, flag(n)] : n === "road-labels" && projRoadLabels ? [`--${n}`, projRoadLabels] : []))
   .concat(["no-labels", "no-pl", "no-titleblock", "no-template", "no-road-labels", "no-ue", "no-sep", "allow-simulated"].filter(has).map((n) => `--${n}`));
 let r = run(node, [join(here, "fase1-build-payload.mjs"), "--dir", dir, "--dwg", dwgName, ...pass]);
 log(tail(r.stdout, 18)); if (r.status !== 0) die(`payload failed:\n${tail(r.stderr || r.stdout)}`, 1);
@@ -159,7 +161,8 @@ try {
   if (act && basename(act.filePath ?? act.name).toLowerCase() === basename(target).toLowerCase()) {
     const cur = JSON.parse(run(node, [join(here, "plugin-rpc.mjs"), "getSystemVariable", '{"name":"HIGHLIGHT"}']).stdout.replace(/^\[[^\n]*\n/gm, "")).value ?? 1;
     run(node, [join(here, "plugin-rpc.mjs"), "setSystemVariable", JSON.stringify({ name: "HIGHLIGHT", value: cur, regen: true })]);   // same value: display regen only
-    log("\nlive window regenerated (xref colors refreshed)");
+    run(node, [join(here, "plugin-rpc.mjs"), "setSystemVariable", JSON.stringify({ name: "LABELOVERRIDEGLYPHS", value: 0, regen: true })]);   // hide the orange "i" override symbols in this session
+    log("\nlive window regenerated (xref colors refreshed, label override glyphs off)");
   }
 } catch (e) { log(`regen skipped: ${e instanceof Error ? e.message : e}`); }
 // ---- package: the design engineer's hand-off folder "<NAME> @XEREFT BASE" (DWG + xrefs + PDF + original sources; no extra documents), rebuilt after every run ----
