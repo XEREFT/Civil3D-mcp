@@ -10,7 +10,7 @@
 //
 //   node topo-hide-pavement-labels.mjs --topo "<...\X-TOPO.dwg>" [--mode all|property] [--dry-run]
 //        property mode keeps the labels with centre X > --keep-x and Y in [--keep-y0, --keep-y1] (SEIDENSTEIN: 893307, 498000..498140 = property side of the street, in front of the lot)
-//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>] [--groups pavement,site]
+//        [--layer TEXTM] [--new-layer HIDE-PAVEMENT-LABELS] [--leader-skip "INVERTS & MANHOLES"] [--backup-name X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg] [--margin 1.6] [--out <file>] [--groups pavement,site] [--also h1,h2] [--no-orphans] [--orphan-margin 2.5]
 // Works on a %TEMP% copy with the Core Console, backs the original up in _backup\ first (once), then copies the result over --topo. Close/unload the xref in Civil 3D before (xref-reload.ps1 -Swap does it).
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
@@ -62,8 +62,8 @@ const dump = join(work, "dump.txt");
 core([
   '(defun g (e k) (cdr (assoc k e)))',
   `(setq f (open "${fwd(dump)}" "w"))`,
-  `(setq ss (ssget "_X" (list (cons 410 "Model") (cons 8 "${LAYER}") (cons 0 "MTEXT,TEXT"))) n 0)`,
-  '(if ss (repeat (sslength ss) (setq e (entget (ssname ss n))) (if (= (g e 0) "MTEXT") (write-line (strcat (g e 5) "|M|" (rtos (car (g e 10)) 2 4) "|" (rtos (cadr (g e 10)) 2 4) "|" (rtos (car (g e 11)) 2 5) "|" (rtos (cadr (g e 11)) 2 5) "|" (rtos (g e 42) 2 3) "|" (rtos (g e 43) 2 3) "|" (itoa (g e 71)) "|" (g e 1)) f) (write-line (strcat (g e 5) "|T|" (rtos (car (g e 10)) 2 4) "|" (rtos (cadr (g e 10)) 2 4) "|" (rtos (cos (g e 50)) 2 5) "|" (rtos (sin (g e 50)) 2 5) "|" (rtos (* 0.8 (g e 40) (strlen (g e 1))) 2 3) "|" (rtos (g e 40) 2 3) "|1|" (g e 1)) f)) (setq n (1+ n))))',
+  `(setq ss (ssget "_X" (list (cons 410 "Model") (cons 0 "MTEXT,TEXT"))) n 0)`,
+  '(if ss (repeat (sslength ss) (setq e (entget (ssname ss n))) (if (= (g e 0) "MTEXT") (write-line (strcat (g e 5) "|M|" (g e 8) "|" (rtos (car (g e 10)) 2 4) "|" (rtos (cadr (g e 10)) 2 4) "|" (rtos (car (g e 11)) 2 5) "|" (rtos (cadr (g e 11)) 2 5) "|" (rtos (g e 42) 2 3) "|" (rtos (g e 43) 2 3) "|" (itoa (g e 71)) "|" (g e 1)) f) (write-line (strcat (g e 5) "|T|" (g e 8) "|" (rtos (car (g e 10)) 2 4) "|" (rtos (cadr (g e 10)) 2 4) "|" (rtos (cos (g e 50)) 2 5) "|" (rtos (sin (g e 50)) 2 5) "|" (rtos (* 0.8 (g e 40) (strlen (g e 1))) 2 3) "|" (rtos (g e 40) 2 3) "|1|" (g e 1)) f)) (setq n (1+ n))))',
   '(setq ss (ssget "_X" (list (cons 0 "LEADER"))) n 0)',
   '(if ss (repeat (sslength ss) (setq e (entget (ssname ss n)) s "") (foreach p e (if (= (car p) 10) (setq s (strcat s (rtos (cadr p) 2 3) "," (rtos (caddr p) 2 3) ";")))) (write-line (strcat (g e 5) "|L|" (g e 8) "|" s) f) (setq n (1+ n))))',
   '(close f)', "QUIT", "Y"], "dump.log");
@@ -74,13 +74,13 @@ for (const l of readFileSync(dump, "latin1").split(/\r?\n/)) {
   if (!l) continue;
   const p = l.split("|");
   if (p[1] === "L") { const pts = p[3].split(";").filter(Boolean).map((s) => s.split(",").map(Number)); leaders.push({ h: p[0], layer: p[2], pts }); continue; }
-  const [h, t, x, y, dx, dy, w, hh, att] = p; const raw = p.slice(9).join("|");
-  const o = { h, x: +x, y: +y, dx: +dx, dy: +dy, w: +w, hh: +hh, att: +att || 1, raw };
+  const [h, t, lay, x, y, dx, dy, w, hh, att] = p; const raw = p.slice(10).join("|");
+  const o = { h, lay, x: +x, y: +y, dx: +dx, dy: +dy, w: +w, hh: +hh, att: +att || 1, raw };
   const nx = o.dy, ny = -o.dx;                                   // "down" of the text frame
   const ux = [0, .5, 1][(o.att - 1) % 3], vy = [0, .5, 1][Math.floor((o.att - 1) / 3)];
   o.ox = o.x - o.dx * ux * o.w - nx * vy * o.hh; o.oy = o.y - o.dy * ux * o.w - ny * vy * o.hh;   // top-left corner
   o.nx = nx; o.ny = ny; o.cx = o.ox + o.dx * o.w / 2 + nx * o.hh / 2; o.cy = o.oy + o.dy * o.w / 2 + ny * o.hh / 2;
-  o.class = klass(raw); texts.push(o);
+  o.class = o.lay === LAYER ? klass(raw) : undefined; texts.push(o);
 }
 const inBox = (o, m) => ([px, py]) => { const u = (px - o.ox) * o.dx + (py - o.oy) * o.dy, v = (px - o.ox) * o.nx + (py - o.oy) * o.ny; return u >= -m && u <= o.w + m && v >= -m && v <= o.hh + m; };
 
@@ -88,7 +88,8 @@ const inBox = (o, m) => ([px, py]) => { const u = (px - o.ox) * o.dx + (py - o.o
 const targets = texts.filter((t) => t.class);
 const keepNear = (t) => mode === "property" && t.cx > KEEP.x && t.cy >= KEEP.y0 && t.cy <= KEEP.y1;
 const hideTexts = targets.filter((t) => !keepNear(t));
-const keptTexts = texts.filter((t) => !hideTexts.includes(t));
+const FROZEN = new Set(flag("frozen", "ELV,TREES,INVERTS & MANHOLES,HIDE-ANGLE-LABELS,HIDE-PAVEMENT-LABELS").split(",").map((x) => x.trim().toUpperCase()));   // layers already invisible (profile hideXrefLayers)
+const keptTexts = texts.filter((t) => !hideTexts.includes(t) && !FROZEN.has(t.lay.toUpperCase()));   // texts that stay visible
 const hideSet = new Set(hideTexts.map((t) => t.h));
 const hideLeaders = [], ambiguous = [];
 for (const ld of leaders) {
@@ -99,13 +100,26 @@ for (const ld of leaders) {
   const touchesKept = keptTexts.some((t) => ends.some(inBox(t, MARGIN)));
   (touchesKept ? ambiguous : hideLeaders).push(ld);
 }
+// ---- 2b. orphan arrows: a visible LEADER none of whose ends touches a visible text points at something without a label (user 2026-10-25: "no arrow may be left flying") ----
+const orphans = [];
+if (!has("no-orphans")) {
+  const OM = Number(flag("orphan-margin", "2.5"));
+  for (const ld of leaders) {
+    if (FROZEN.has(ld.layer.toUpperCase()) || SKIP.includes(ld.layer.toUpperCase()) || hideLeaders.includes(ld) || ambiguous.includes(ld)) continue;
+    const ends = [ld.pts[0], ld.pts[ld.pts.length - 1]].filter(Boolean);
+    if (!keptTexts.some((t) => ends.some(inBox(t, OM)))) orphans.push(ld);
+  }
+  hideLeaders.push(...orphans);
+}
 const byClass = {}; for (const t of hideTexts) byClass[t.class] = (byClass[t.class] ?? 0) + 1;
-console.log(`mode=${mode}  texts on ${LAYER}: ${texts.length}  matching classes: ${targets.length}  hide: ${hideTexts.length} ${JSON.stringify(byClass)}  keep (matching, near property): ${targets.length - hideTexts.length}`);
+console.log(`mode=${mode}  texts: ${texts.length} (callout layer ${LAYER})  matching classes: ${targets.length}  hide: ${hideTexts.length} ${JSON.stringify(byClass)}  keep (matching, near property): ${targets.length - hideTexts.length}`);
+if (orphans.length) console.log(`orphan arrows (no visible text at either end): ${orphans.length}\n` + orphans.map((l) => `  ${l.h} ${l.layer} tip(${l.pts[0].map((v) => v.toFixed(1))}) end(${l.pts.at(-1).map((v) => v.toFixed(1))})`).join("\n"));
 console.log(`leaders: ${leaders.length} total, hide ${hideLeaders.length}${ambiguous.length ? `, AMBIGUOUS (touch a kept text, not hidden): ${ambiguous.map((l) => l.h).join(" ")}` : ""}`);
 if (has("dry-run") || (!hideTexts.length && !hideLeaders.length)) { rmSync(work, { recursive: true, force: true }); console.log(has("dry-run") ? "DRY RUN: nothing changed" : "nothing to hide"); process.exit(0); }
 
 // ---- 3. apply (layer change only) on the temp copy, then back up + copy over ----
-const hs = [...hideSet, ...hideLeaders.map((l) => l.h)].map((h) => `"${h}"`).join(" ");
+const ALSO = flag("also", "").split(",").map((x) => x.trim()).filter(Boolean);   // any other entity handles to move to the hidden layer (e.g. pointer lines drawn as plain LINEs, a note whose arrow was orphaned)
+const hs = [...hideSet, ...hideLeaders.map((l) => l.h), ...ALSO].map((h) => `"${h}"`).join(" ");
 const out = core([
   `(if (not (tblsearch "LAYER" "${NEW}")) (command "_.-LAYER" "_N" "${NEW}" "_C" "8" "${NEW}" ""))`,
   `(setq k 0) (foreach h (list ${hs}) (setq en (handent h)) (if en (progn (setq e (entget en)) (entmod (subst (cons 8 "${NEW}") (assoc 8 e) e)) (setq k (1+ k)))))`,
