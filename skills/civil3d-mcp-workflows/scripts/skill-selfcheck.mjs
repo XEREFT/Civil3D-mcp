@@ -53,7 +53,7 @@ if (existsSync(regPath)) {
       else if (!new RegExp(c.pattern).test(readFileSync(p, "utf8"))) fail(`registry ${b.id}: /${c.pattern}/ not found in ${c.file}`);
     }
   }
-  const rows = trouble.split("\n").filter((l) => /^\| /.test(l) && !/^\|[-| ]+\|$/.test(l) && !/^\| (Síntoma|Síntoma \/ mensaje)/.test(l));
+  const rows = trouble.split("\n").filter((l) => /^\| /.test(l) && !/^\|[-| ]+\|$/.test(l) && !/^\| (Síntoma|Symptom)/.test(l));
   const orphans = rows.filter((l) => !bugs.some((b) => l.includes(b.match)));
   for (const o of orphans) fail(`troubleshooting row without registry entry: ${o.slice(0, 70)}`);
   ok.push(`${bugs.length} registry entries <-> ${rows.length} troubleshooting rows`);
