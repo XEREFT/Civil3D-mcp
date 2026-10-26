@@ -1,1796 +1,1810 @@
 {
- "_doc": "EXECUTABLE registry of known bugs/gotchas, read by scripts/integrity-check.mjs. Entry: id, since, area, status (fixed|open|process|info), match (substring that MUST still appear in references/troubleshooting.md; symptom/cause/fix live in that table, not here), checks (empty = documented only, counted as 'manual'). Check types: repo-grep {file, pattern} (regex on a repo file), skill-grep {file, pattern} (regex on a skill file), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (ONLY fake entries or reads: goes through the live plugin without an approval token), node-version {min}. When you learn a new bug: add the row to troubleshooting.md AND an entry here (integrity-check warns if missing).",
- "bugs": [
-  {
-   "id": "layer-silent-fallback",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "open",
-   "match": "`acad_insert_block_reference` / `create_text|",
-   "checks": []
-  },
-  {
-   "id": "drawing-changed-after-approval",
-   "since": "2026-07",
-   "area": "node",
-   "status": "fixed",
-   "match": "`The active drawing changed after approval` r",
-   "checks": [
+  "_doc": "EXECUTABLE registry of known bugs/gotchas, read by scripts/integrity-check.mjs. Entry: id, since, area, status (fixed|open|process|info), match (substring that MUST still appear in references/troubleshooting.md; symptom/cause/fix live in that table, not here), checks (empty = documented only, counted as 'manual'). Check types: repo-grep {file, pattern} (regex on a repo file), skill-grep {file, pattern} (regex on a skill file), file-exists {path}, vitest {file}, rpc {method, params, expectError|contains|warnIfContains} (ONLY fake entries or reads: goes through the live plugin without an approval token), node-version {min}. When you learn a new bug: add the row to troubleshooting.md AND an entry here (integrity-check warns if missing).",
+  "bugs": [
     {
-     "type": "repo-grep",
-     "file": "src/tools/approvalPolicy.ts",
-     "pattern": "drawing changed after approval"
+      "id": "layer-silent-fallback",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "open",
+      "match": "`acad_insert_block_reference` / `create_text|",
+      "checks": []
     },
     {
-     "type": "vitest",
-     "file": "tests/approval_policy.test.ts"
-    }
-   ]
-  },
-  {
-   "id": "connect-failed",
-   "since": "2026-07",
-   "area": "deploy",
-   "status": "process",
-   "match": "`Failed to connect to Civil 3D plugin at loca",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "getCivil3DHealth",
-     "params": {},
-     "contains": [
-      "connected"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "connect-timeout",
-   "since": "2026-07",
-   "area": "deploy",
-   "status": "process",
-   "match": "`Connection to Civil 3D plugin timed out afte",
-   "checks": []
-  },
-  {
-   "id": "command-timeout",
-   "since": "2026-07",
-   "area": "process",
-   "status": "process",
-   "match": "`Command timed out after 120000ms: <method>`",
-   "checks": []
-  },
-  {
-   "id": "modal-dialog-30s",
-   "since": "2026-07",
-   "area": "process",
-   "status": "process",
-   "match": "`civil3d_health` OK but an operation is over",
-   "checks": []
-  },
-  {
-   "id": "host-busy",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "`CIVIL3D.HOST_BUSY` \"host queue is full\" | To",
-   "checks": []
-  },
-  {
-   "id": "no-drawing",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`CIVIL3D.NO_DRAWING` / `drawingLoaded:false`",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
-     "pattern": "NO_DRAWING"
-    }
-   ]
-  },
-  {
-   "id": "schema-dialect",
-   "since": "2026-09-25",
-   "area": "node",
-   "status": "fixed",
-   "match": "`Tool '<x>' has an invalid outputSchema: ...",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/utils/schemaDialect.ts",
-     "pattern": "\\$schema"
-    },
-    {
-     "type": "vitest",
-     "file": "tests/schema_dialect.test.ts"
-    }
-   ]
-  },
-  {
-   "id": "drawing-changed-queued",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "\"The active drawing changed ... while the ope",
-   "checks": []
-  },
-  {
-   "id": "object-not-found",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "`CIVIL3D.OBJECT_NOT_FOUND` | Handle, alignmen",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "deletePipeNetwork",
-     "params": {
-      "name": "__integrity_no_such_network__"
-     },
-     "expectError": "was not found"
-    }
-   ]
-  },
-  {
-   "id": "invalid-input",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "`CIVIL3D.INVALID_INPUT` | Invalid parameter (",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "eraseEntities",
-     "params": {
-      "handles": [
-       "ZZZ"
+      "id": "drawing-changed-after-approval",
+      "since": "2026-07",
+      "area": "node",
+      "status": "fixed",
+      "match": "`The active drawing changed after approval` r",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/approvalPolicy.ts",
+          "pattern": "drawing changed after approval"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/approval_policy.test.ts"
+        }
       ]
-     },
-     "expectError": "not a valid hexadecimal"
-    }
-   ]
-  },
-  {
-   "id": "path-not-allowed",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "`CIVIL3D.PATH_NOT_ALLOWED` / `FILE_TYPE_NOT_A",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/FileBoundary.cs",
-     "pattern": "PATH_NOT_ALLOWED"
-    }
-   ]
-  },
-  {
-   "id": "approval-required",
-   "since": "2026-07",
-   "area": "node",
-   "status": "info",
-   "match": "`Approval required` | Mutating action without",
-   "checks": [
-    {
-     "type": "vitest",
-     "file": "tests/approval_policy.test.ts"
-    }
-   ]
-  },
-  {
-   "id": "approval-token-mismatch",
-   "since": "2026-07",
-   "area": "node",
-   "status": "info",
-   "match": "`Approval token does not match` | Parameters",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/approvalPolicy.ts",
-     "pattern": "does not match this tool action"
-    }
-   ]
-  },
-  {
-   "id": "approval-single-action",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "Same, on a SINGLE-action tool (`civil3d_pipe_",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "SKILL.md",
-     "pattern": "in single-action tools"
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/pipeDomain.ts",
-     "pattern": "supportedActions: \\[\"delete_pipe_network\"\\]"
-    }
-   ]
-  },
-  {
-   "id": "label-list-limited",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "open",
-   "match": "`civil3d_label list` of an alignment returns",
-   "checks": []
-  },
-  {
-   "id": "classifier-blocked",
-   "since": "2026-08-05",
-   "area": "process",
-   "status": "process",
-   "match": "\"Blocked by classifier\" / denied in auto-mode",
-   "checks": []
-  },
-  {
-   "id": "response-shape",
-   "since": "2026-07-18",
-   "area": "plugin",
-   "status": "info",
-   "match": "Invalid response \"expected object, received a",
-   "checks": []
-  },
-  {
-   "id": "method-not-found",
-   "since": "2026-07",
-   "area": "deploy",
-   "status": "process",
-   "match": "`CIVIL3D.METHOD_NOT_FOUND` \"Plugin method 'x'",
-   "checks": [],
-   "note": "cubierto por el chequeo integrado deploy:dll-methods"
-  },
-  {
-   "id": "tool-missing-toolsearch",
-   "since": "2026-07-19",
-   "area": "deploy",
-   "status": "process",
-   "match": "New tool absent from `ToolSearch` | A deploy",
-   "checks": [],
-   "note": "cubierto por deploy:extension-mirror y deploy:claude-restart"
-  },
-  {
-   "id": "plugin-not-loading",
-   "since": "2026-07",
-   "area": "deploy",
-   "status": "process",
-   "match": "Civil 3D starts but the plugin does not load",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "C:\\ProgramData\\Autodesk\\ApplicationPlugins\\Civil3DMcpPlugin.bundle\\PackageContents.xml"
-    }
-   ]
-  },
-  {
-   "id": "idle-socket-warn",
-   "since": "2026-07",
-   "area": "plugin",
-   "status": "info",
-   "match": "`[Warn] [RpcTcpServer] Closed a client that d",
-   "checks": []
-  },
-  {
-   "id": "npm-test-node",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "fixed",
-   "match": "`npm test` fails with `styleText` or `Cannot",
-   "checks": [
-    {
-     "type": "node-version",
-     "min": 20
-    }
-   ]
-  },
-  {
-   "id": "structure-junction",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "`civil3d_pipe_network_edit add_structure` ->",
-   "checks": []
-  },
-  {
-   "id": "retrieve-attribute",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "info",
-   "match": "`civil3d_pipe action:list` / `civil3d_pipe_st",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/pipeDomain.ts",
-     "pattern": "Retrieve attribute failed"
-    }
-   ]
-  },
-  {
-   "id": "appurtenance-onpipe",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "open",
-   "match": "`civil3d_pressure_appurtenance_add` with `onP",
-   "checks": []
-  },
-  {
-   "id": "corec-onedrive-hang",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Core Console (`accoreconsole.exe`) hangs or t",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/qc-plot.ps1",
-     "pattern": "\\$env:TEMP"
-    }
-   ]
-  },
-  {
-   "id": "dim-invisible",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "BCC-1.0 dims invisible in the PDF (text ~0.00",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
-     "pattern": "annotationScale"
-    }
-   ]
-  },
-  {
-   "id": "dim-upside-down",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "Dim text upside down on the twisted sheet | F",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/geometryDomain.ts",
-     "pattern": "dimTxtDirection"
-    }
-   ]
-  },
-  {
-   "id": "dim-text-ejected",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "Short-dimension text crowded or far from its",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
-     "pattern": "hasExplicitDimLine"
-    },
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "case Dimension dim:"
-    },
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-audit.mjs",
-     "pattern": "dimension text position"
-    }
-   ]
-  },
-  {
-   "id": "mleader-triangle",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "MLeader with a \"triangle\" (guide folds back o",
-   "checks": []
-  },
-  {
-   "id": "mtext-mask",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "MText label covered by the black asphalt fill",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "backgroundMask"
-    }
-   ]
-  },
-  {
-   "id": "secureload",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Core Console `; error: File load canceled` on",
-   "checks": []
-  },
-  {
-   "id": "model-space-only",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Core Console `** Command only valid in Model",
-   "checks": []
-  },
-  {
-   "id": "close-civil3d-invisible-dialog",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Civil 3D will not close: invisible/background",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/close-civil3d.ps1",
-     "pattern": "AllowSave"
-    }
-   ]
-  },
-  {
-   "id": "start-tab-hang",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "All calls time out after opening Civil 3D on",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
-     "pattern": "NO_DRAWING"
-    }
-   ]
-  },
-  {
-   "id": "zod-drops-fields",
-   "since": "2026-09-26",
-   "area": "deploy",
-   "status": "process",
-   "match": "New TS schema field ignored (e.g. `dimTad` do",
-   "checks": [],
-   "note": "cubierto por deploy:extension-mirror"
-  },
-  {
-   "id": "powershell-blocks-replace",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "PowerShell refuses a command with `-replace`",
-   "checks": []
-  },
-  {
-   "id": "backslash-node-e",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "`node -e '...\\P...'` or heredoc loses backsla",
-   "checks": []
-  },
-  {
-   "id": "stacked-labels",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "C-300/C-301 plot: plan labels (SAN LAT / C.O.",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
-     "pattern": "dragged"
-    }
-   ]
-  },
-  {
-   "id": "mleader-oneline",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Design MLeader as one long line crossing text",
-   "checks": []
-  },
-  {
-   "id": "mleader-rotation-scale",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Recreated MLeader sideways / 1.4x bigger / wo",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "references/standards/formtech-c300.json",
-     "pattern": "existingUtilityLeader"
-    }
-   ]
-  },
-  {
-   "id": "mleader-clipped",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "MLeader text cut by the viewport edge on the",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "leaderX"
-    }
-   ]
-  },
-  {
-   "id": "off-0-R",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "Structure label prints `OFF: 0.00'R` instead",
-   "checks": []
-  },
-  {
-   "id": "viewport-annoscale",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`acad_list_viewports` -> `annotationScale:\"1\\",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/geometryDomain.ts",
-     "pattern": "set_viewport_scale"
-    },
-    {
-     "type": "rpc",
-     "method": "listViewports",
-     "params": {
-      "layout": "C-300"
-     },
-     "contains": [
-      "annotationScale"
-     ],
-     "skipIfError": true,
-     "skipIfEmpty": "viewports"
-    }
-   ]
-  },
-  {
-   "id": "close-civil3d-discard",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "`close-civil3d.ps1` stops with `STOP - dialog",
-   "checks": []
-  },
-  {
-   "id": "unsigned-dialog",
-   "since": "2026-09-26",
-   "area": "process",
-   "status": "process",
-   "match": "After installing a new DLL, Civil 3D waits an",
-   "checks": []
-  },
-  {
-   "id": "selected-objects-empty",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "open",
-   "match": "`get_selected_civil_objects_info` / `civil3d_",
-   "checks": []
-  },
-  {
-   "id": "eg-boundary-green-line",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "A green line around the whole site | EG surfa",
-   "checks": []
-  },
-  {
-   "id": "pipe-list-unexpected-error",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`civil3d_pipe list` / `get` -> \"The Civil 3D",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/pipeDomain.ts",
-     "pattern": "delete_pipe_network"
-    },
-    {
-     "type": "rpc",
-     "method": "deletePipeNetwork",
-     "params": {
-      "name": "__integrity_no_such_network__"
-     },
-     "expectError": "was not found"
-    }
-   ]
-  },
-  {
-   "id": "erase-entity-kinds",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`acad_erase_entity` of a Pipe/Structure/Profi",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "eraseEntities",
-     "params": {
-      "handles": [
-       "FFFFFFFFFF"
+      "id": "connect-failed",
+      "since": "2026-07",
+      "area": "deploy",
+      "status": "process",
+      "match": "`Failed to connect to Civil 3D plugin at loca",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "getCivil3DHealth",
+          "params": {},
+          "contains": [
+            "connected"
+          ]
+        }
       ]
-     },
-     "contains": [
-      "skippedCount"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "sysvar-allowlist",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "info",
-   "match": "`acad_set_system_variable` \"not on the list\"",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "setSystemVariable",
-     "params": {
-      "name": "CTAB",
-      "value": "Model"
-     },
-     "expectError": "not on the list"
-    }
-   ]
-  },
-  {
-   "id": "close-civil3d-other-doc",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "`close-civil3d.ps1` stops with `STOP - dialog",
-   "checks": []
-  },
-  {
-   "id": "start-process-drawing1",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "`Start-Process <dwg>` while Civil 3D starts o",
-   "checks": []
-  },
-  {
-   "id": "unknown-handle",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`Database.GetObjectId(false, handle, 0)` thro",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "eUnknownHandle"
     },
     {
-     "type": "rpc",
-     "method": "eraseEntities",
-     "params": {
-      "handles": [
-       "FFFFFFFFFF"
+      "id": "connect-timeout",
+      "since": "2026-07",
+      "area": "deploy",
+      "status": "process",
+      "match": "`Connection to Civil 3D plugin timed out afte",
+      "checks": []
+    },
+    {
+      "id": "command-timeout",
+      "since": "2026-07",
+      "area": "process",
+      "status": "process",
+      "match": "`Command timed out after 120000ms: <method>`",
+      "checks": []
+    },
+    {
+      "id": "modal-dialog-30s",
+      "since": "2026-07",
+      "area": "process",
+      "status": "process",
+      "match": "`civil3d_health` OK but an operation is over",
+      "checks": []
+    },
+    {
+      "id": "host-busy",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "`CIVIL3D.HOST_BUSY` \"host queue is full\" | To",
+      "checks": []
+    },
+    {
+      "id": "no-drawing",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`CIVIL3D.NO_DRAWING` / `drawingLoaded:false`",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
+          "pattern": "NO_DRAWING"
+        }
       ]
-     },
-     "contains": [
-      "not found or already erased"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "python-backspace",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "Regex with `\\b` pasted via a Python heredoc -",
-   "checks": []
-  },
-  {
-   "id": "label-override-glyphs",
-   "since": "2026-09-26",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "Big orange \"i\" icons in Model",
-   "checks": [
-    {
-     "type": "rpc",
-     "method": "getSystemVariable",
-     "params": {
-      "name": "LABELOVERRIDEGLYPHS"
-     },
-     "contains": [
-      "value"
-     ],
-     "warnIfContains": [
-      "\"value\": 1"
-     ]
-    }
-   ]
-  },
-  {
-   "id": "toolsearch-required-hidden",
-   "since": "2026-09-27",
-   "area": "process",
-   "status": "info",
-   "match": "The schema loaded by ToolSearch shows required fields as optional",
-   "checks": []
-  },
-  {
-   "id": "unsaved-flag-phantom",
-   "since": "2026-09-28",
-   "area": "plugin",
-   "status": "open",
-   "match": "`get_drawing_info` -> `unsavedChanges:true` r",
-   "checks": []
-  },
-  {
-   "id": "python-heredoc-js-escapes",
-   "since": "2026-09-28",
-   "area": "process",
-   "status": "process",
-   "match": "A `.mjs` patched from a Python heredoc fails",
-   "checks": []
-  },
-  {
-   "id": "nondeterministic-build",
-   "since": "2026-09-28",
-   "area": "deploy",
-   "status": "info",
-   "match": "`bin/Release` DLL and the ProgramData one hav",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/deploy-all.ps1",
-     "pattern": "not byte-deterministic"
-    }
-   ]
-  },
-  {
-   "id": "plan-approval-order",
-   "since": "2026-09-28",
-   "area": "node",
-   "status": "fixed",
-   "match": "`civil3d_request_plan_approval` then a step f",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/approvalPolicy.ts",
-     "pattern": "requestPlan"
     },
     {
-     "type": "vitest",
-     "file": "tests/approval_policy.test.ts"
-    }
-   ]
-  },
-  {
-   "id": "fase1-audit-layer-reader",
-   "since": "2026-09-28",
-   "area": "deploy",
-   "status": "fixed",
-   "match": "`civil3d_workflow_fase1_audit` (or `fase1-aud",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/LayerXrefCommands.cs",
-     "pattern": "ListLayersAsync"
+      "id": "schema-dialect",
+      "since": "2026-09-25",
+      "area": "node",
+      "status": "fixed",
+      "match": "`Tool '<x>' has an invalid outputSchema: ...",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/utils/schemaDialect.ts",
+          "pattern": "\\$schema"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/schema_dialect.test.ts"
+        }
+      ]
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_audit.test.ts"
+      "id": "drawing-changed-queued",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "\"The active drawing changed ... while the ope",
+      "checks": []
     },
     {
-     "type": "rpc",
-     "method": "listLayers",
-     "params": {
-      "name": "C-TINN-BNDY",
-      "includeXref": false
-     },
-     "contains": [
-      "layers"
-     ]
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "fase1-build-active-document",
-   "area": "node",
-   "status": "fixed",
-   "match": "`civil3d_workflow_fase1_build` fails at `chec",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "check active document before save"
+      "id": "object-not-found",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "`CIVIL3D.OBJECT_NOT_FOUND` | Handle, alignmen",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "deletePipeNetwork",
+          "params": {
+            "name": "__integrity_no_such_network__"
+          },
+          "expectError": "was not found"
+        }
+      ]
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "check new drawing is active"
+      "id": "invalid-input",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "`CIVIL3D.INVALID_INPUT` | Invalid parameter (",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "eraseEntities",
+          "params": {
+            "handles": [
+              "ZZZ"
+            ]
+          },
+          "expectError": "not a valid hexadecimal"
+        }
+      ]
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_build.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "fase1-build-titleblock-layout",
-   "area": "node",
-   "status": "fixed",
-   "match": "`fase1_build` `titleBlock` edits a text of AN",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "listTextEntities has no layout filter of its own"
+      "id": "path-not-allowed",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "`CIVIL3D.PATH_NOT_ALLOWED` / `FILE_TYPE_NOT_A",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/FileBoundary.cs",
+          "pattern": "PATH_NOT_ALLOWED"
+        }
+      ]
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_build.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "template-outside-roots",
-   "area": "process",
-   "status": "fixed",
-   "match": "`civil3d_drawing new` / `fase1_build template",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-prep-template.ps1",
-     "pattern": "AllowOutsideRoots"
+      "id": "approval-required",
+      "since": "2026-07",
+      "area": "node",
+      "status": "info",
+      "match": "`Approval required` | Mutating action without",
+      "checks": [
+        {
+          "type": "vitest",
+          "file": "tests/approval_policy.test.ts"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-build-payload.mjs",
-     "pattern": "outside the plugin.s file roots"
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "spec-project-schema1-window",
-   "area": "skill",
-   "status": "fixed",
-   "match": "`c300-build-spec.mjs --project project.json`",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-build-spec.mjs",
-     "pattern": "c300Input\\(rawProject\\)"
+      "id": "approval-token-mismatch",
+      "since": "2026-07",
+      "area": "node",
+      "status": "info",
+      "match": "`Approval token does not match` | Parameters",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/approvalPolicy.ts",
+          "pattern": "does not match this tool action"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/c300-build-spec.mjs",
-     "pattern": "function deriveWindow"
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "fase1-notes-orphan-glyphs",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "After cleaning the MD-WASD notes `(NOT PART O",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "AddTextExtents"
+      "id": "approval-single-action",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "Same, on a SINGLE-action tool (`civil3d_pipe_",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "SKILL.md",
+          "pattern": "in single-action tools"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/pipeDomain.ts",
+          "pattern": "supportedActions: \\[\"delete_pipe_network\"\\]"
+        }
+      ]
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "async function shiftOrphans"
+      "id": "label-list-limited",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "open",
+      "match": "`civil3d_label list` of an alignment returns",
+      "checks": []
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_build.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-09-28",
-   "id": "prop-notes-single-source",
-   "area": "skill",
-   "status": "fixed",
-   "match": "The script's PROP-note rule and the native to",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-strip-prop-notes.mjs",
-     "pattern": "build/tools/domains/fase1PropNotes.js"
+      "id": "classifier-blocked",
+      "since": "2026-08-05",
+      "area": "process",
+      "status": "process",
+      "match": "\"Blocked by classifier\" / denied in auto-mode",
+      "checks": []
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Audit.ts",
-     "pattern": "from \"./fase1PropNotes.js\""
+      "id": "response-shape",
+      "since": "2026-07-18",
+      "area": "plugin",
+      "status": "info",
+      "match": "Invalid response \"expected object, received a",
+      "checks": []
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_prop_notes.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "mtext-extents-false-box",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`fase1_build` step `Fase 1 notes` says only \"",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
-     "pattern": "TryGetMTextBox"
+      "id": "method-not-found",
+      "since": "2026-07",
+      "area": "deploy",
+      "status": "process",
+      "match": "`CIVIL3D.METHOD_NOT_FOUND` \"Plugin method 'x'",
+      "checks": [],
+      "note": "cubierto por el chequeo integrado deploy:dll-methods"
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "bottom did not move up"
+      "id": "tool-missing-toolsearch",
+      "since": "2026-07-19",
+      "area": "deploy",
+      "status": "process",
+      "match": "New tool absent from `ToolSearch` | A deploy",
+      "checks": [],
+      "note": "cubierto por deploy:extension-mirror y deploy:claude-restart"
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_build.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "fase1-build-request-timeout",
-   "area": "process",
-   "status": "process",
-   "match": "`civil3d_workflow_fase1_build` returns \"Reque",
-   "checks": []
-  },
-  {
-   "since": "2026-10-01",
-   "id": "dump-mleader-xy-not-arrow",
-   "area": "skill",
-   "status": "fixed",
-   "match": "A check says a manhole/FH \"has no label\" alth",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/dwg-dump.ps1",
-     "pattern": "\\|arrows="
+      "id": "plugin-not-loading",
+      "since": "2026-07",
+      "area": "deploy",
+      "status": "process",
+      "match": "Civil 3D starts but the plugin does not load",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "C:\\ProgramData\\Autodesk\\ApplicationPlugins\\Civil3DMcpPlugin.bundle\\PackageContents.xml"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "def arrows"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "survey-dims-doubled",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "C-300 plot shows R/W dims `25.00'` doubled (s",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "options\\.freezeLayers"
+      "id": "idle-socket-warn",
+      "since": "2026-07",
+      "area": "plugin",
+      "status": "info",
+      "match": "`[Warn] [RpcTcpServer] Closed a client that d",
+      "checks": []
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Audit.ts",
-     "pattern": "survey dimensions hidden"
+      "id": "npm-test-node",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "fixed",
+      "match": "`npm test` fails with `styleText` or `Cannot",
+      "checks": [
+        {
+          "type": "node-version",
+          "min": 20
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-audit.mjs",
-     "pattern": "survey dimensions hidden"
+      "id": "structure-junction",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "`civil3d_pipe_network_edit add_structure` ->",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-build-payload.mjs",
-     "pattern": "payload\\.freezeLayers"
+      "id": "retrieve-attribute",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "info",
+      "match": "`civil3d_pipe action:list` / `civil3d_pipe_st",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/pipeDomain.ts",
+          "pattern": "Retrieve attribute failed"
+        }
+      ]
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_audit.test.ts"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "scan-ocr-ps-case-shadow",
-   "area": "skill",
-   "status": "fixed",
-   "match": "`scan-ocr.ps1`: rotated-pass boxes fall outsi",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/scan-ocr.ps1",
-     "pattern": "\\$ImgH - \\$u"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "ocr-fragmented-callouts",
-   "area": "skill",
-   "status": "fixed",
-   "match": "As-built OCR splits a call into pieces (`206'",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-extract.mjs",
-     "pattern": "rows\\.sort\\(\\(a, b\\) => a\\.box\\.x - b\\.box\\.x"
+      "id": "appurtenance-onpipe",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "open",
+      "match": "`civil3d_pressure_appurtenance_add` with `onP",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-extract.mjs",
-     "pattern": "7\\[\\.a\\]\\?"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "label-long-line-overlap",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Build SAN/WM labels come out as ONE very long",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-utility-labels.mjs",
-     "pattern": "wrapText"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "build-single-block-import",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`fase1_build` cannot import `EXIST ARROW` / `",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "options\\.blockImports"
+      "id": "corec-onedrive-hang",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Core Console (`accoreconsole.exe`) hangs or t",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/qc-plot.ps1",
+          "pattern": "\\$env:TEMP"
+        }
+      ]
     },
     {
-     "type": "vitest",
-     "file": "tests/fase1_build.test.ts"
+      "id": "dim-invisible",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "BCC-1.0 dims invisible in the PDF (text ~0.00",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
+          "pattern": "annotationScale"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-build-payload.mjs",
-     "pattern": "payload\\.blockImports"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "qc-label-ownership",
-   "area": "skill",
-   "status": "fixed",
-   "match": "`fase1-qc.py` misattributes PDF words to labe",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "def box_dist"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "qc-partial-asphalt-cover",
-   "area": "skill",
-   "status": "fixed",
-   "match": "A label of ours sits half under the black asp",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "dark_frac\\(r_, 80\\) >= 0\\.25"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "mleader-move-anchor-flip",
-   "area": "plugin",
-   "status": "info",
-   "match": "Moving an MLeader text with `acad_update_text",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-declutter.py",
-     "pattern": "fwd = "
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "qc-shx-text-blind",
-   "area": "skill",
-   "status": "fixed",
-   "match": "A label of ours sits over a symbol, fill or h",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "survey SHX text over our labels"
+      "id": "dim-upside-down",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "Dim text upside down on the twisted sheet | F",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/geometryDomain.ts",
+          "pattern": "dimTxtDirection"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "def base_dump_of"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "qc-foreign-ink-blind",
-   "area": "skill",
-   "status": "fixed",
-   "match": "A label of ours is crossed by survey text (\"S",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "foreign ink over our labels"
+      "id": "dim-text-ejected",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "Short-dimension text crowded or far from its",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/DimensionViewportCommands.cs",
+          "pattern": "hasExplicitDimLine"
+        },
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "case Dimension dim:"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-audit.mjs",
+          "pattern": "dimension text position"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-declutter.py",
-     "pattern": "need_fore"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "title-block-template-values",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Sheet title block prints Goulds data (`231-23",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-build-payload.mjs",
-     "pattern": "c300-titleblock\\.mjs"
+      "id": "mleader-triangle",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "MLeader with a \"triangle\" (guide folds back o",
+      "checks": []
     },
     {
-     "type": "file-exists",
-     "path": "scripts/c300-titleblock.mjs"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-01",
-   "id": "build-open-template-slow",
-   "area": "process",
-   "status": "info",
-   "match": "Runner fails at \"check new drawing is active\"",
-   "checks": []
-  },
-  {
-   "since": "2026-10-02",
-   "id": "pl-symbols-silent-zero",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Build comes out with \"PL symbols 0\" and QC FA",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-pl-symbols.mjs",
-     "pattern": "returned no features after 4 tries"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "plan-labels-need-profile-view",
-   "area": "plugin",
-   "status": "fixed",
-   "match": "`profileViewApplyAnnotations`: \"Required para",
-   "checks": [
-    {
-     "type": "repo-grep",
-     "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
-     "pattern": "ApplyPlanLabelsOnly"
+      "id": "mtext-mask",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "MText label covered by the black asphalt fill",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "backgroundMask"
+        }
+      ]
     },
     {
-     "type": "repo-grep",
-     "file": "src/tools/domains/fase1Build.ts",
-     "pattern": "planLabelsFallback"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "studio-classify-by-entities",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Studio classifies the X-TOPO as X-ARCH | The",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-studio.mjs",
-     "pattern": "Entities decide, layer names only break ties"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "native-label-text-backslash-p",
-   "area": "skill",
-   "status": "info",
-   "match": "Alignment note text reads \"ALIGNMENT STARTPST",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "references/standards/formtech-c300.json",
-     "pattern": "textTemplate"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "gis-first-hit-empty",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Property Appraiser / GIS returns empty \"possi",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/lib/gis.mjs",
-     "pattern": "j.features.length > 0"
+      "id": "secureload",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Core Console `; error: File load canceled` on",
+      "checks": []
     },
     {
-     "type": "file-exists",
-     "path": "scripts/pa-area.mjs"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "ue-needs-user-confirmed-line",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Fase 1 sheet comes out without easement (U.E.",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/c300-easement.mjs"
+      "id": "model-space-only",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Core Console `** Command only valid in Model",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-build-payload.mjs",
-     "pattern": "c300-easement.mjs"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "review-exports-incomplete-manholes",
-   "area": "skill",
-   "status": "fixed",
-   "match": "As-built review exports manholes without RIM",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-review.py",
-     "pattern": "REQUIRED FIELDS"
+      "id": "close-civil3d-invisible-dialog",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Civil 3D will not close: invisible/background",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/close-civil3d.ps1",
+          "pattern": "AllowSave"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "as-built completeness"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "simulated-asbuilt-feeds-sheet",
-   "area": "skill",
-   "status": "fixed",
-   "match": "A simulated \"confirmed\" as-built feeds the Fa",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-build.mjs",
-     "pattern": "REFUSED"
+      "id": "start-tab-hang",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "All calls time out after opening Civil 3D on",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/CivilExecution.cs",
+          "pattern": "NO_DRAWING"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "as-built provenance"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "extract-splits-callouts",
-   "area": "skill",
-   "status": "fixed",
-   "match": "`asbuilt-extract` splits a manhole callout in",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-extract.mjs",
-     "pattern": "callout grouping"
+      "id": "zod-drops-fields",
+      "since": "2026-09-26",
+      "area": "deploy",
+      "status": "process",
+      "match": "New TS schema field ignored (e.g. `dimTad` do",
+      "checks": [],
+      "note": "cubierto por deploy:extension-mirror"
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-review.py",
-     "pattern": "misma callout"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "ocr-first-pass-loses-callout-text",
-   "area": "skill",
-   "status": "fixed",
-   "match": "First-pass OCR loses the name, RIM or digits",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-reocr.py"
+      "id": "powershell-blocks-replace",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "PowerShell refuses a command with `-replace`",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-extract.mjs",
-     "pattern": "second OCR pass"
+      "id": "backslash-node-e",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "`node -e '...\\P...'` or heredoc loses backsla",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-studio.mjs",
-     "pattern": "asbuilt-reocr.py"
+      "id": "stacked-labels",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "C-300/C-301 plot: plan labels (SAN LAT / C.O.",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
+          "pattern": "dragged"
+        }
+      ]
     },
     {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-glyphs.py"
+      "id": "mleader-oneline",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Design MLeader as one long line crossing text",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-reocr.py",
-     "pattern": "glyph reader"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "spec-parallel-street-hangs-civil3d",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Sheet spec has an alignment billions of feet",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-build-spec.mjs",
-     "pattern": "angDiff\\(s\\.deg, front\\.deg\\) >= 30"
+      "id": "mleader-rotation-scale",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Recreated MLeader sideways / 1.4x bigger / wo",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "references/standards/formtech-c300.json",
+          "pattern": "existingUtilityLeader"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/c300-build-spec.mjs",
-     "pattern": "SANITY GUARD"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "rw-dims-on-nplt-layer",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Engine copies only 1 R/W dim from the survey",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-build-spec.mjs",
-     "pattern": "seenDims"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "asbuilts-without-coordinates",
-   "area": "skill",
-   "status": "mitigated",
-   "match": "Scanned as-builts carry only station and RT/L",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-review.py",
-     "pattern": "Tramo X-UTIL"
+      "id": "mleader-clipped",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "MLeader text cut by the viewport edge on the",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "leaderX"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-build.mjs",
-     "pattern": "assigned in the review"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "road-labels-survey-layer-names",
-   "area": "skill",
-   "status": "fixed",
-   "match": "EOP and EXIST R/W labels missing when the sur",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-road-labels.mjs",
-     "pattern": "'EOP'"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "label-per-null",
-   "area": "skill",
-   "status": "fixed",
-   "match": "An existing-utility label prints \"(PER null)\"",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/c300-utility-labels.mjs",
-     "pattern": "const per ="
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "blocks-from-without-exist-arrow",
-   "area": "skill",
-   "status": "fixed",
-   "match": "Build fails \"Block 'EXIST ARROW' was not foun",
-   "checks": []
-  },
-  {
-   "since": "2026-10-02",
-   "id": "asbuilt-stations-pair-with-survey-symbols",
-   "area": "skill",
-   "status": "mitigated",
-   "match": "Manholes, valves and laterals of an as-built",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-georef-symbols.mjs"
+      "id": "off-0-R",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "Structure label prints `OFF: 0.00'R` instead",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-build.mjs",
-     "pattern": "survey manhole symbol"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "tool-written-regex-backspace",
-   "area": "skill",
-   "status": "mitigated",
-   "match": "backspace char",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/mdwasd-selftest.mjs"
+      "id": "viewport-annoscale",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`acad_list_viewports` -> `annotationScale:\"1\\",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/geometryDomain.ts",
+          "pattern": "set_viewport_scale"
+        },
+        {
+          "type": "rpc",
+          "method": "listViewports",
+          "params": {
+            "layout": "C-300"
+          },
+          "contains": [
+            "annotationScale"
+          ],
+          "skipIfError": true,
+          "skipIfEmpty": "viewports"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/mdwasd-check.mjs",
-     "pattern": "VALVE = /\\\\b"
-    }
-   ]
-  },
-  {
-   "since": "2026-10-02",
-   "id": "qc-label-side-guess-false-edge",
-   "area": "skill",
-   "status": "fixed",
-   "match": "QC says a label is cut by the viewport edge b",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "owns more of the label"
+      "id": "close-civil3d-discard",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "`close-civil3d.ps1` stops with `STOP - dialog",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-declutter.py",
-     "pattern": "ambiguous this close to perpendicular"
-    }
-   ]
-  },
-  {
-   "id": "close-civil3d-multi-discard",
-   "status": "mitigated",
-   "area": "skill",
-   "match": "`close-civil3d.ps1` with several fragments in",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/close-civil3d.ps1",
-     "pattern": "OrdinalIgnoreCase"
+      "id": "unsigned-dialog",
+      "since": "2026-09-26",
+      "area": "process",
+      "status": "process",
+      "match": "After installing a new DLL, Civil 3D waits an",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-redeliver.mjs",
-     "pattern": "one fragment per call"
-    }
-   ],
-   "since": "2026-10-02"
-  },
-  {
-   "id": "scan-pipe-callout-missing-from-review",
-   "status": "mitigated",
-   "area": "skill",
-   "match": "Water main stays unsized ('EXIST WATER MAIN')",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-find-callouts.py"
+      "id": "selected-objects-empty",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "open",
+      "match": "`get_selected_civil_objects_info` / `civil3d_",
+      "checks": []
     },
     {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-add-callout.mjs"
+      "id": "eg-boundary-green-line",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "A green line around the whole site | EG surfa",
+      "checks": []
     },
     {
-     "type": "file-exists",
-     "path": "scripts/asbuilt-callout-selftest.mjs"
-    }
-   ],
-   "since": "2026-10-02"
-  },
-  {
-   "id": "asbuilt-water-main-beyond-xutil",
-   "status": "mitigated",
-   "area": "skill",
-   "match": "An as-built hydrant/water fitting lands hundr",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/asbuilt-build.mjs",
-     "pattern": "waterFittingsOffXUtil"
+      "id": "pipe-list-unexpected-error",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`civil3d_pipe list` / `get` -> \"The Civil 3D",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/pipeDomain.ts",
+          "pattern": "delete_pipe_network"
+        },
+        {
+          "type": "rpc",
+          "method": "deletePipeNetwork",
+          "params": {
+            "name": "__integrity_no_such_network__"
+          },
+          "expectError": "was not found"
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/mdwasd-check.mjs",
-     "pattern": "beyond the X-UTIL WAT lines"
-    }
-   ],
-   "since": "2026-10-02"
-  },
-  {
-   "id": "shx-missing-attach-xref",
-   "since": "2026-10",
-   "area": "process",
-   "status": "fixed",
-   "match": "\"Missing SHX Files\" dialog when attaching a n",
-   "checks": []
-  },
-  {
-   "id": "plot-execution-policy",
-   "since": "2026-10",
-   "area": "process",
-   "status": "fixed",
-   "match": "`fase1-finish.mjs` fails the plot silently /",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-finish.mjs",
-     "pattern": "ExecutionPolicy|Bypass"
-    }
-   ]
-  },
-  {
-   "id": "survey-profile-other-layers",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "`c300-build-spec` says \"no CENTER_LINE LINE e",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "references/standards/survey-profiles.json"
+      "id": "erase-entity-kinds",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`acad_erase_entity` of a Pipe/Structure/Profi",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "eraseEntities",
+          "params": {
+            "handles": [
+              "FFFFFFFFFF"
+            ]
+          },
+          "contains": [
+            "skippedCount"
+          ]
+        }
+      ]
     },
     {
-     "type": "file-exists",
-     "path": "scripts/lib/survey-profile.mjs"
-    }
-   ]
-  },
-  {
-   "id": "title-block-other-project-values",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "Title prints another project's AGR/project nu",
-   "checks": []
-  },
-  {
-   "id": "drawing-recovery-after-forced-close",
-   "since": "2026-10",
-   "area": "process",
-   "status": "fixed",
-   "match": "\"Drawing Recovery\" appears opening Civil 3D a",
-   "checks": []
-  },
-  {
-   "id": "first-newdrawing-timeout-after-autostart",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "Rebuild with `--rebuild` on a freshly auto-st",
-   "checks": []
-  },
-  {
-   "id": "working-dwg-hidden-after-rebuild",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "Working DWG appears Hidden after a rebuild (n",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/package-base.mjs",
-     "pattern": "attributes last"
-    }
-   ]
-  },
-  {
-   "id": "live-colors-need-regen",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "Live Civil 3D window shows the surveyor's orange",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-from-scratch.mjs",
-     "pattern": "regen: true"
+      "id": "sysvar-allowlist",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "info",
+      "match": "`acad_set_system_variable` \"not on the list\"",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "setSystemVariable",
+          "params": {
+            "name": "CTAB",
+            "value": "Model"
+          },
+          "expectError": "not on the list"
+        }
+      ]
     },
     {
-     "type": "file-exists",
-     "path": "scripts/topo-hide-text.ps1"
-    }
-   ]
-  },
-  {
-   "id": "poc-governing-asbuilt",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "BASE cites an as-built the POC does not name",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/design-ready-audit.mjs",
-     "pattern": "DR-05"
+      "id": "close-civil3d-other-doc",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "`close-civil3d.ps1` stops with `STOP - dialog",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/poc-extract.mjs",
-     "pattern": "connections"
-    }
-   ]
-  },
-  {
-   "id": "north-arrow-ignores-twist",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "North arrow points up although the C-300 viewport is twisted",
-   "checks": [
-    {
-     "type": "file-exists",
-     "path": "scripts/c300-north-arrow.mjs"
+      "id": "start-process-drawing1",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "`Start-Process <dwg>` while Civil 3D starts o",
+      "checks": []
     },
     {
-     "type": "file-exists",
-     "path": "scripts/c300-north-arrow-offline.ps1"
+      "id": "unknown-handle",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`Database.GetObjectId(false, handle, 0)` thro",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "eUnknownHandle"
+        },
+        {
+          "type": "rpc",
+          "method": "eraseEntities",
+          "params": {
+            "handles": [
+              "FFFFFFFFFF"
+            ]
+          },
+          "contains": [
+            "not found or already erased"
+          ]
+        }
+      ]
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/fase1-from-scratch.mjs",
-     "pattern": "c300-north-arrow"
-    }
-   ]
-  },
-  {
-   "id": "project-json-hidden-eperm",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "`centerlines-extract.mjs --save` fails with EPERM on project.json",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/centerlines-extract.mjs",
-     "pattern": "saveProject"
-    }
-   ]
-  },
-  {
-   "id": "qc-survey-first-labels",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "QC \"label values = as-builts\" FAILS on a manhole whose label prints the survey",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/fase1-qc.py",
-     "pattern": "(PER SURVEY)"
-    }
-   ]
-  },
-  {
-   "id": "zip-without-dwg",
-   "since": "2026-10",
-   "area": "delivery",
-   "status": "fixed",
-   "match": "Delivery zip has NO working DWG",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/package-base.mjs",
-     "pattern": "ZIP INCOMPLETE"
-    }
-   ]
-  },
-  {
-   "id": "dated-releases-and-drive-versions",
-   "since": "2026-10",
-   "area": "delivery",
-   "status": "fixed",
-   "match": "Dated or lettered releases / Drive versions pile up",
-   "checks": [
-    {
-     "type": "skill-grep",
-     "file": "scripts/project-backup.mjs",
-     "pattern": "--clobber"
+      "id": "python-backspace",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "Regex with `\\b` pasted via a Python heredoc -",
+      "checks": []
     },
     {
-     "type": "skill-grep",
-     "file": "scripts/gdrive-update-zip.md",
-     "pattern": "Administrar versiones"
-    }
-   ]
-  },
-  {
-   "id": "rw-extension-other-blue",
-   "since": "2026-10",
-   "area": "engine",
-   "status": "fixed",
-   "match": "Extended R/W lines look like ANOTHER blue",
-   "checks": [
+      "id": "label-override-glyphs",
+      "since": "2026-09-26",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "Big orange \"i\" icons in Model",
+      "checks": [
+        {
+          "type": "rpc",
+          "method": "getSystemVariable",
+          "params": {
+            "name": "LABELOVERRIDEGLYPHS"
+          },
+          "contains": [
+            "value"
+          ],
+          "warnIfContains": [
+            "\"value\": 1"
+          ]
+        }
+      ]
+    },
     {
-     "type": "skill-grep",
-     "file": "scripts/layer-truecolor.ps1",
-     "pattern": "18,\\s*135,\\s*139"
+      "id": "toolsearch-required-hidden",
+      "since": "2026-09-27",
+      "area": "process",
+      "status": "info",
+      "match": "The schema loaded by ToolSearch shows required fields as optional",
+      "checks": []
+    },
+    {
+      "id": "unsaved-flag-phantom",
+      "since": "2026-09-28",
+      "area": "plugin",
+      "status": "open",
+      "match": "`get_drawing_info` -> `unsavedChanges:true` r",
+      "checks": []
+    },
+    {
+      "id": "python-heredoc-js-escapes",
+      "since": "2026-09-28",
+      "area": "process",
+      "status": "process",
+      "match": "A `.mjs` patched from a Python heredoc fails",
+      "checks": []
+    },
+    {
+      "id": "nondeterministic-build",
+      "since": "2026-09-28",
+      "area": "deploy",
+      "status": "info",
+      "match": "`bin/Release` DLL and the ProgramData one hav",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/deploy-all.ps1",
+          "pattern": "not byte-deterministic"
+        }
+      ]
+    },
+    {
+      "id": "plan-approval-order",
+      "since": "2026-09-28",
+      "area": "node",
+      "status": "fixed",
+      "match": "`civil3d_request_plan_approval` then a step f",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/approvalPolicy.ts",
+          "pattern": "requestPlan"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/approval_policy.test.ts"
+        }
+      ]
+    },
+    {
+      "id": "fase1-audit-layer-reader",
+      "since": "2026-09-28",
+      "area": "deploy",
+      "status": "fixed",
+      "match": "`civil3d_workflow_fase1_audit` (or `fase1-aud",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/LayerXrefCommands.cs",
+          "pattern": "ListLayersAsync"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_audit.test.ts"
+        },
+        {
+          "type": "rpc",
+          "method": "listLayers",
+          "params": {
+            "name": "C-TINN-BNDY",
+            "includeXref": false
+          },
+          "contains": [
+            "layers"
+          ]
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "fase1-build-active-document",
+      "area": "node",
+      "status": "fixed",
+      "match": "`civil3d_workflow_fase1_build` fails at `chec",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "check active document before save"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "check new drawing is active"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_build.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "fase1-build-titleblock-layout",
+      "area": "node",
+      "status": "fixed",
+      "match": "`fase1_build` `titleBlock` edits a text of AN",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "listTextEntities has no layout filter of its own"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_build.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "template-outside-roots",
+      "area": "process",
+      "status": "fixed",
+      "match": "`civil3d_drawing new` / `fase1_build template",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-prep-template.ps1",
+          "pattern": "AllowOutsideRoots"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-build-payload.mjs",
+          "pattern": "outside the plugin.s file roots"
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "spec-project-schema1-window",
+      "area": "skill",
+      "status": "fixed",
+      "match": "`c300-build-spec.mjs --project project.json`",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-build-spec.mjs",
+          "pattern": "c300Input\\(rawProject\\)"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-build-spec.mjs",
+          "pattern": "function deriveWindow"
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "fase1-notes-orphan-glyphs",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "After cleaning the MD-WASD notes `(NOT PART O",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "AddTextExtents"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "async function shiftOrphans"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_build.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-09-28",
+      "id": "prop-notes-single-source",
+      "area": "skill",
+      "status": "fixed",
+      "match": "The script's PROP-note rule and the native to",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-strip-prop-notes.mjs",
+          "pattern": "build/tools/domains/fase1PropNotes.js"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Audit.ts",
+          "pattern": "from \"./fase1PropNotes.js\""
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_prop_notes.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "mtext-extents-false-box",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`fase1_build` step `Fase 1 notes` says only \"",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/AcadCommands.cs",
+          "pattern": "TryGetMTextBox"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "bottom did not move up"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_build.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "fase1-build-request-timeout",
+      "area": "process",
+      "status": "process",
+      "match": "`civil3d_workflow_fase1_build` returns \"Reque",
+      "checks": []
+    },
+    {
+      "since": "2026-10-01",
+      "id": "dump-mleader-xy-not-arrow",
+      "area": "skill",
+      "status": "fixed",
+      "match": "A check says a manhole/FH \"has no label\" alth",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/dwg-dump.ps1",
+          "pattern": "\\|arrows="
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "def arrows"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "survey-dims-doubled",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "C-300 plot shows R/W dims `25.00'` doubled (s",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "options\\.freezeLayers"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Audit.ts",
+          "pattern": "survey dimensions hidden"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-audit.mjs",
+          "pattern": "survey dimensions hidden"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-build-payload.mjs",
+          "pattern": "payload\\.freezeLayers"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_audit.test.ts"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "scan-ocr-ps-case-shadow",
+      "area": "skill",
+      "status": "fixed",
+      "match": "`scan-ocr.ps1`: rotated-pass boxes fall outsi",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/scan-ocr.ps1",
+          "pattern": "\\$ImgH - \\$u"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "ocr-fragmented-callouts",
+      "area": "skill",
+      "status": "fixed",
+      "match": "As-built OCR splits a call into pieces (`206'",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-extract.mjs",
+          "pattern": "rows\\.sort\\(\\(a, b\\) => a\\.box\\.x - b\\.box\\.x"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-extract.mjs",
+          "pattern": "7\\[\\.a\\]\\?"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "label-long-line-overlap",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Build SAN/WM labels come out as ONE very long",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-utility-labels.mjs",
+          "pattern": "wrapText"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "build-single-block-import",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`fase1_build` cannot import `EXIST ARROW` / `",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "options\\.blockImports"
+        },
+        {
+          "type": "vitest",
+          "file": "tests/fase1_build.test.ts"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-build-payload.mjs",
+          "pattern": "payload\\.blockImports"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "qc-label-ownership",
+      "area": "skill",
+      "status": "fixed",
+      "match": "`fase1-qc.py` misattributes PDF words to labe",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "def box_dist"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "qc-partial-asphalt-cover",
+      "area": "skill",
+      "status": "fixed",
+      "match": "A label of ours sits half under the black asp",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "dark_frac\\(r_, 80\\) >= 0\\.25"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "mleader-move-anchor-flip",
+      "area": "plugin",
+      "status": "info",
+      "match": "Moving an MLeader text with `acad_update_text",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-declutter.py",
+          "pattern": "fwd = "
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "qc-shx-text-blind",
+      "area": "skill",
+      "status": "fixed",
+      "match": "A label of ours sits over a symbol, fill or h",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "survey SHX text over our labels"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "def base_dump_of"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "qc-foreign-ink-blind",
+      "area": "skill",
+      "status": "fixed",
+      "match": "A label of ours is crossed by survey text (\"S",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "foreign ink over our labels"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-declutter.py",
+          "pattern": "need_fore"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "title-block-template-values",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Sheet title block prints Goulds data (`231-23",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-build-payload.mjs",
+          "pattern": "c300-titleblock\\.mjs"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/c300-titleblock.mjs"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-01",
+      "id": "build-open-template-slow",
+      "area": "process",
+      "status": "info",
+      "match": "Runner fails at \"check new drawing is active\"",
+      "checks": []
+    },
+    {
+      "since": "2026-10-02",
+      "id": "pl-symbols-silent-zero",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Build comes out with \"PL symbols 0\" and QC FA",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-pl-symbols.mjs",
+          "pattern": "returned no features after 4 tries"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "plan-labels-need-profile-view",
+      "area": "plugin",
+      "status": "fixed",
+      "match": "`profileViewApplyAnnotations`: \"Required para",
+      "checks": [
+        {
+          "type": "repo-grep",
+          "file": "Civil3D-MCP-Plugin/ProfileViewAnnotationCommands.cs",
+          "pattern": "ApplyPlanLabelsOnly"
+        },
+        {
+          "type": "repo-grep",
+          "file": "src/tools/domains/fase1Build.ts",
+          "pattern": "planLabelsFallback"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "studio-classify-by-entities",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Studio classifies the X-TOPO as X-ARCH | The",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-studio.mjs",
+          "pattern": "Entities decide, layer names only break ties"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "native-label-text-backslash-p",
+      "area": "skill",
+      "status": "info",
+      "match": "Alignment note text reads \"ALIGNMENT STARTPST",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "references/standards/formtech-c300.json",
+          "pattern": "textTemplate"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "gis-first-hit-empty",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Property Appraiser / GIS returns empty \"possi",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/lib/gis.mjs",
+          "pattern": "j.features.length > 0"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/pa-area.mjs"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "ue-needs-user-confirmed-line",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Fase 1 sheet comes out without easement (U.E.",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/c300-easement.mjs"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-build-payload.mjs",
+          "pattern": "c300-easement.mjs"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "review-exports-incomplete-manholes",
+      "area": "skill",
+      "status": "fixed",
+      "match": "As-built review exports manholes without RIM",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-review.py",
+          "pattern": "REQUIRED FIELDS"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "as-built completeness"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "simulated-asbuilt-feeds-sheet",
+      "area": "skill",
+      "status": "fixed",
+      "match": "A simulated \"confirmed\" as-built feeds the Fa",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-build.mjs",
+          "pattern": "REFUSED"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "as-built provenance"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "extract-splits-callouts",
+      "area": "skill",
+      "status": "fixed",
+      "match": "`asbuilt-extract` splits a manhole callout in",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-extract.mjs",
+          "pattern": "callout grouping"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-review.py",
+          "pattern": "misma callout"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "ocr-first-pass-loses-callout-text",
+      "area": "skill",
+      "status": "fixed",
+      "match": "First-pass OCR loses the name, RIM or digits",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-reocr.py"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-extract.mjs",
+          "pattern": "second OCR pass"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-studio.mjs",
+          "pattern": "asbuilt-reocr.py"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-glyphs.py"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-reocr.py",
+          "pattern": "glyph reader"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "spec-parallel-street-hangs-civil3d",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Sheet spec has an alignment billions of feet",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-build-spec.mjs",
+          "pattern": "angDiff\\(s\\.deg, front\\.deg\\) >= 30"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-build-spec.mjs",
+          "pattern": "SANITY GUARD"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "rw-dims-on-nplt-layer",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Engine copies only 1 R/W dim from the survey",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-build-spec.mjs",
+          "pattern": "seenDims"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "asbuilts-without-coordinates",
+      "area": "skill",
+      "status": "mitigated",
+      "match": "Scanned as-builts carry only station and RT/L",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-review.py",
+          "pattern": "Tramo X-UTIL"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-build.mjs",
+          "pattern": "assigned in the review"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "road-labels-survey-layer-names",
+      "area": "skill",
+      "status": "fixed",
+      "match": "EOP and EXIST R/W labels missing when the sur",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-road-labels.mjs",
+          "pattern": "'EOP'"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "label-per-null",
+      "area": "skill",
+      "status": "fixed",
+      "match": "An existing-utility label prints \"(PER null)\"",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-utility-labels.mjs",
+          "pattern": "const per ="
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "blocks-from-without-exist-arrow",
+      "area": "skill",
+      "status": "fixed",
+      "match": "Build fails \"Block 'EXIST ARROW' was not foun",
+      "checks": []
+    },
+    {
+      "since": "2026-10-02",
+      "id": "asbuilt-stations-pair-with-survey-symbols",
+      "area": "skill",
+      "status": "mitigated",
+      "match": "Manholes, valves and laterals of an as-built",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-georef-symbols.mjs"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-build.mjs",
+          "pattern": "survey manhole symbol"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "tool-written-regex-backspace",
+      "area": "skill",
+      "status": "mitigated",
+      "match": "backspace char",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/mdwasd-selftest.mjs"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/mdwasd-check.mjs",
+          "pattern": "VALVE = /\\\\b"
+        }
+      ]
+    },
+    {
+      "since": "2026-10-02",
+      "id": "qc-label-side-guess-false-edge",
+      "area": "skill",
+      "status": "fixed",
+      "match": "QC says a label is cut by the viewport edge b",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "owns more of the label"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-declutter.py",
+          "pattern": "ambiguous this close to perpendicular"
+        }
+      ]
+    },
+    {
+      "id": "close-civil3d-multi-discard",
+      "status": "mitigated",
+      "area": "skill",
+      "match": "`close-civil3d.ps1` with several fragments in",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/close-civil3d.ps1",
+          "pattern": "OrdinalIgnoreCase"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-redeliver.mjs",
+          "pattern": "one fragment per call"
+        }
+      ],
+      "since": "2026-10-02"
+    },
+    {
+      "id": "scan-pipe-callout-missing-from-review",
+      "status": "mitigated",
+      "area": "skill",
+      "match": "Water main stays unsized ('EXIST WATER MAIN')",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-find-callouts.py"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-add-callout.mjs"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/asbuilt-callout-selftest.mjs"
+        }
+      ],
+      "since": "2026-10-02"
+    },
+    {
+      "id": "asbuilt-water-main-beyond-xutil",
+      "status": "mitigated",
+      "area": "skill",
+      "match": "An as-built hydrant/water fitting lands hundr",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/asbuilt-build.mjs",
+          "pattern": "waterFittingsOffXUtil"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/mdwasd-check.mjs",
+          "pattern": "beyond the X-UTIL WAT lines"
+        }
+      ],
+      "since": "2026-10-02"
+    },
+    {
+      "id": "shx-missing-attach-xref",
+      "since": "2026-10",
+      "area": "process",
+      "status": "fixed",
+      "match": "\"Missing SHX Files\" dialog when attaching a n",
+      "checks": []
+    },
+    {
+      "id": "plot-execution-policy",
+      "since": "2026-10",
+      "area": "process",
+      "status": "fixed",
+      "match": "`fase1-finish.mjs` fails the plot silently /",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-finish.mjs",
+          "pattern": "ExecutionPolicy|Bypass"
+        }
+      ]
+    },
+    {
+      "id": "survey-profile-other-layers",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "`c300-build-spec` says \"no CENTER_LINE LINE e",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "references/standards/survey-profiles.json"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/lib/survey-profile.mjs"
+        }
+      ]
+    },
+    {
+      "id": "title-block-other-project-values",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Title prints another project's AGR/project nu",
+      "checks": []
+    },
+    {
+      "id": "drawing-recovery-after-forced-close",
+      "since": "2026-10",
+      "area": "process",
+      "status": "fixed",
+      "match": "\"Drawing Recovery\" appears opening Civil 3D a",
+      "checks": []
+    },
+    {
+      "id": "first-newdrawing-timeout-after-autostart",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Rebuild with `--rebuild` on a freshly auto-st",
+      "checks": []
+    },
+    {
+      "id": "working-dwg-hidden-after-rebuild",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Working DWG appears Hidden after a rebuild (n",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/package-base.mjs",
+          "pattern": "attributes last"
+        }
+      ]
+    },
+    {
+      "id": "live-colors-need-regen",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Live Civil 3D window shows the surveyor's orange",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-from-scratch.mjs",
+          "pattern": "regen: true"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/topo-hide-text.ps1"
+        }
+      ]
+    },
+    {
+      "id": "poc-governing-asbuilt",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "BASE cites an as-built the POC does not name",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/design-ready-audit.mjs",
+          "pattern": "DR-05"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/poc-extract.mjs",
+          "pattern": "connections"
+        }
+      ]
+    },
+    {
+      "id": "north-arrow-ignores-twist",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "North arrow points up although the C-300 viewport is twisted",
+      "checks": [
+        {
+          "type": "file-exists",
+          "path": "scripts/c300-north-arrow.mjs"
+        },
+        {
+          "type": "file-exists",
+          "path": "scripts/c300-north-arrow-offline.ps1"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-from-scratch.mjs",
+          "pattern": "c300-north-arrow"
+        }
+      ]
+    },
+    {
+      "id": "project-json-hidden-eperm",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "`centerlines-extract.mjs --save` fails with EPERM on project.json",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/centerlines-extract.mjs",
+          "pattern": "saveProject"
+        }
+      ]
+    },
+    {
+      "id": "qc-survey-first-labels",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "QC \"label values = as-builts\" FAILS on a manhole whose label prints the survey",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/fase1-qc.py",
+          "pattern": "(PER SURVEY)"
+        }
+      ]
+    },
+    {
+      "id": "zip-without-dwg",
+      "since": "2026-10",
+      "area": "delivery",
+      "status": "fixed",
+      "match": "Delivery zip has NO working DWG",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/package-base.mjs",
+          "pattern": "ZIP INCOMPLETE"
+        }
+      ]
+    },
+    {
+      "id": "dated-releases-and-drive-versions",
+      "since": "2026-10",
+      "area": "delivery",
+      "status": "fixed",
+      "match": "Dated or lettered releases / Drive versions pile up",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/project-backup.mjs",
+          "pattern": "--clobber"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/gdrive-update-zip.md",
+          "pattern": "Administrar versiones"
+        }
+      ]
+    },
+    {
+      "id": "rw-extension-other-blue",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Extended R/W lines look like ANOTHER blue",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/layer-truecolor.ps1",
+          "pattern": "18,\\s*135,\\s*139"
+        }
+      ]
+    },
+    {
+      "id": "override-glyph-orange-i",
+      "since": "2026-10",
+      "area": "engine",
+      "status": "fixed",
+      "match": "Big orange circled \"i\" symbols cover the sheet",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/align-labels-to-mleader.ps1",
+          "pattern": "LABELOVERRIDEGLYPHS"
+        }
+      ]
     }
-   ]
-  }
- ]
+  ]
 }
