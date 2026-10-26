@@ -10,8 +10,9 @@ engineer. The folder link, sub-folder IDs and access mode live in the private me
 - The zip name is always `<Project> @xereft base.zip` (e.g. `Villa one @xereft base.zip`).
 
 ## Steps
+0. Save every open drawing (`plugin-rpc.mjs setActiveDocument {"match":"<Name>"}` + `saveDrawing`) and refresh the PDF (`base-pdf-refresh.mjs --dir`). A zip without the working DWG is a FAILED delivery (2026-10-26 incident).
 1. Regenerate the zip (deliverables only: no DWL, no `_backup`, no `_reports`, no `project.json`):
-   `node scripts\package-base.mjs --dir "<...>\Proyectos\<Name>\<Name> @xereft base" --zip` -> `%TEMP%\<Name> @xereft base.zip`. Report its size.
+   `node scripts\package-base.mjs --dir "<...>\Proyectos\<Name>\<Name> @xereft base" --zip` -> `%TEMP%\<Name> @xereft base.zip`. Report its size. The script stages a copy (an open DWG is locked: `Compress-Archive` skipped it silently) and exits 1 with `ZIP INCOMPLETE` if a deliverable is missing; then open the zip and compare the top-level entries and sizes with the folder BEFORE uploading.
 2. Start the loopback server for that zip (the browser upload tool is limited to 10 MB):
    `node scripts\gdrive-serve-zip.mjs <token> 8799 "<Name> @xereft base.zip"` (run in background). Chrome may ask once for local-network access: that is the user's prompt.
 3. In Chrome open the project's Drive subfolder (URL from memory). Check the name of the existing file and its modified time.

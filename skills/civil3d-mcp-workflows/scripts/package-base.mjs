@@ -7,7 +7,7 @@
 //   node package-base.mjs --dir "<...\<NAME> @XEREFT BASE>" --phase PROPOSED        start the design folder: copies BASE -> "<NAME> @XEREFT PROPOSED" (files renamed, project.json phase set); refuses if it exists
 //   --zip  also writes "<NAME> @XEREFT BASE.zip" in %TEMP% with ONLY the visible deliverables (what to e-mail) and prints its path
 // Runs from fase1-from-scratch.mjs when project.json has "package": {"base": true} (or --package).
-import { cpSync, existsSync, readFileSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
@@ -84,10 +84,20 @@ for (const f of readdirSync(dir)) if (/\.(bak|dwl2?)$/i.test(f)) hide(join(dir, 
 for (const w of WORK) if (existsSync(join(dir, w))) hide(join(dir, w));
 
 if (has("zip")) {
-  const z = join(tmpdir(), `${stem}.zip`);
-  const items = [`${stem}.dwg`, `${stem}.pdf`, "X-TOPO.dwg", "X-ARCH.dwg", "X-UTIL.dwg", "SOURCE FILES"].filter((f) => existsSync(join(dir, f))).map((f) => `'${join(dir, f).replace(/'/g, "''")}'`).join(",");
-  spawnSync("powershell", ["-NoProfile", "-Command", `if (Test-Path '${z}') { Remove-Item '${z}' -Force }; Compress-Archive -Path ${items} -DestinationPath '${z}'`], { encoding: "utf8" });
-  console.log(`  zip (deliverables only): ${z}`);
+  // Civil 3D keeps the open DWG locked: Compress-Archive silently SKIPPED it (2026-10-26: three delivery zips went out without the working DWG), copying it is allowed.
+  // So the deliverables are copied to a staging folder first, zipped from there (forward-slash entries), and the zip is checked to contain every deliverable.
+  const z = join(tmpdir(), `${stem}.zip`), stage = join(tmpdir(), `pkg-stage-${process.pid}`);
+  const names = [`${stem}.dwg`, `${stem}.pdf`, "X-TOPO.dwg", "X-ARCH.dwg", "X-UTIL.dwg", "SOURCE FILES"].filter((f) => existsSync(join(dir, f)));
+  rmSync(stage, { recursive: true, force: true }); mkdirSync(stage, { recursive: true });
+  for (const f of names) cpSync(join(dir, f), join(stage, f), { recursive: true });
+  if (existsSync(z)) rmSync(z, { force: true });
+  const zr = spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName System.IO.Compression.FileSystem; [IO.Compression.ZipFile]::CreateFromDirectory('${stage.replace(/'/g, "''")}', '${z.replace(/'/g, "''")}', 'Optimal', $false)`], { encoding: "utf8" });
+  rmSync(stage, { recursive: true, force: true });
+  const lr = spawnSync("powershell", ["-NoProfile", "-Command", `Add-Type -AssemblyName System.IO.Compression.FileSystem; $a=[IO.Compression.ZipFile]::OpenRead('${z.replace(/'/g, "''")}'); $a.Entries | ForEach-Object { $_.FullName }; $a.Dispose()`], { encoding: "utf8" });
+  const inZip = new Set(String(lr.stdout).split(/\r?\n/).map((s) => s.trim().split(/[\\/]/)[0]));
+  const missing = names.filter((f) => !inZip.has(f));
+  if (!existsSync(z) || missing.length) { console.error(`ZIP INCOMPLETE: missing ${missing.join(", ") || "everything"} ${String(zr.stderr).slice(0, 200)}`); process.exit(1); }
+  console.log(`  zip (deliverables only): ${z}  (${names.length} items incl. ${stem}.dwg)`);
 }
 console.log(`folder: ${dir}\n  visible: ${readdirSync(dir).filter((f) => !WORK.includes(f) && !/\.(bak|dwl2?)$/i.test(f)).join("  |  ")}${nSrc ? `\n  SOURCE FILES: ${nSrc} file(s)` : ""}\n  ${verdict}`);
 for (const p of problems) console.log(`  WARN ${p}`);
