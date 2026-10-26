@@ -6,7 +6,8 @@
 // (extend the red polyline instead of trimming survey data).
 //   node c300-rw-extend.mjs --dump X-TOPO_dump.txt --config streets.json --out payload.json
 // streets.json = { "NAME": { "a":[x,y], "b":[x,y]  /* survey CL */, "h":25 /* half width */, "red":[[x,y],[x,y]] /* ends of the red CENTER_LINE */, "low":"OTHER"|null, "high":"OTHER"|null /* crossing street at each end */ } }
-// Then create the polylines on host layer R-W (color 4, linetype PHANTOM2, lineweight 40, ByLayer entities) with createEntities.
+// Then create the polylines on host layer R-W (linetype PHANTOM2, lineweight 40, ByLayer entities) with createEntities, THEN set the layer TRUE colour 18,135,139 (the faded survey cyan; an ACI cyan looks like another blue):
+//   powershell -NoProfile -ExecutionPolicy Bypass -File layer-truecolor.ps1 -Doc "<name>*" -Layer R-W -Save
 import fs from 'node:fs';
 const args=Object.fromEntries(process.argv.slice(2).reduce((a,v,i,arr)=>(v.startsWith('--')?a.concat([[v.slice(2),arr[i+1]]]):a),[]));
 if(!args.dump||!args.config){console.error('usage: node c300-rw-extend.mjs --dump X-TOPO_dump.txt --config streets.json [--out payload.json]');process.exit(2);}

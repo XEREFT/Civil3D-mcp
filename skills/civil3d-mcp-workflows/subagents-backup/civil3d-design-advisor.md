@@ -24,4 +24,4 @@ Workflow for one project:
 2. `asbuilt.json`: POC-governing refs, then `asbuilt-survey-merge.mjs`.
 3. `fase1-from-scratch.mjs --dir <dir> --dwg "<Name> @xereft base.dwg" --template _template.dwg --rebuild`.
 4. `design-ready-audit.mjs --dir <dir>` -> 0 FAIL; explain each WARN. Plot, look at the PDF against the designer reference (`design-gap-diff.mjs`, `dwg-fingerprint.ps1`), run the visual-polish lint.
-5. `package-base.mjs`. Report before/after score and the client questions the files cannot answer.
+5. `package-base.mjs --zip` (save all drawings and refresh the PDF first; the zip MUST contain the working DWG: the script exits `ZIP INCOMPLETE` otherwise; then open the zip and compare it with the folder). Delivery files are REPLACED in place (one zip per folder in Drive, old versions deleted; one release per folder in the private repo, tags `<project>-base` / `<project>-proposed`), see `/entrega`. Report before/after score and the client questions the files cannot answer.

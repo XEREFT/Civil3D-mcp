@@ -10,3 +10,5 @@ Work in English (talk to the user in Spanish). Run flow I of skill `civil3d-mcp-
 4. `BCC - ALIGNMENT` style, EG border hidden, existing SAN/WM = X-UTIL layers as received, no PROP/PROPOSED words (MD-WASD notes: `civil3d_workflow_fase1_build { expectedDocument: "<this DWG>" }` cleans them in one call; by hand: `fase1-strip-prop-notes.mjs` + `fase1-notes-shift.py`; subject label from `project.json`). Re-audit to 0 FAIL.
 5. Save (`civil3d_drawing save`, approval) and run `node .../scripts/fase1-finish.mjs` (dump + audit + plot + PDF review + comparison with the approved PDF + copy + project.json update). Must end READY.
 6. Record EVERYTHING without being asked: `project-state.mjs decide/log`, memory, skill/agents if you learned something, `integrity-check.mjs` (0 FAIL). `sync-skill-to-fork.sh` only if asked.
+
+Delivery reminder (2026-10-26): save all drawings first, the zip must contain the working DWG (`package-base.mjs` exits `ZIP INCOMPLETE` otherwise) and deliveries REPLACE the previous ones: use `/entrega`.

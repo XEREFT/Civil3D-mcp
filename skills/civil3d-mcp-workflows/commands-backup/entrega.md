@@ -1,0 +1,10 @@
+---
+description: Deliver a project folder (base or proposed) - save all, refresh PDF, zip WITH the DWG, verify, replace the repo release and the Drive zip, delete old Drive versions
+argument-hint: "<project name, e.g. Goulds> [base|proposed]"
+---
+Work in English (talk to the user in Spanish). A delivery REPLACES files, never versions them (memory `feedback-replace-in-place-no-versions`) and the zip MUST contain the working DWG (memory `feedback-zip-must-contain-dwg`). Steps for `$ARGUMENTS` (default phase: base):
+1. Save every open drawing: `node ~/.claude/skills/civil3d-mcp-workflows/scripts/plugin-rpc.mjs setActiveDocument '{"match":"<Name>"}'` then `saveDrawing '{}'` (if the plugin is down, ask the user to save and close Civil 3D). Then `base-pdf-refresh.mjs --dir "<...>\Proyectos\<Name>\<Name> @xereft base"` and look at the PDF.
+2. `node scripts/package-base.mjs --dir "<folder>" --zip --no-verify`: it stages a copy (the open DWG is locked) and exits 1 `ZIP INCOMPLETE` if a deliverable is missing. Then open the zip (`[IO.Compression.ZipFile]::OpenRead`) and compare the top-level entries and byte sizes with the folder; the DWG must be there and identical. Stop on any difference.
+3. `node scripts/project-backup.mjs --only "<Name>" --release`: pushes the small files and REPLACES the zip inside the ONE release `<project>-base` (or `-proposed`); never pass a dated `--tag`. Check `gh release list` shows one release per folder.
+4. Google Drive (`@XEREFT AutoCAD/<Name>/`, link and ids in memory `project-backup-sharing`), following `scripts/gdrive-update-zip.md`: loopback server `gdrive-serve-zip.mjs`, Claude in Chrome synthetic drop, choose "Reemplazar archivo existente" (never "Conservar ambos"), verify ONE file with the new size, then delete the old versions (Administrar versiones > Borrar > Borrar definitivamente; never "Versión actual"), stop the server by the PID that owns port 8799, close the tab.
+5. Update the memory `project-backup-sharing` with the date and sizes, and report to the user in Spanish: sizes, that the DWG is inside, release and Drive state. Never share the link outside what the user asked.

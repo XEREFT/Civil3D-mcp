@@ -1744,6 +1744,53 @@
      "pattern": "(PER SURVEY)"
     }
    ]
+  },
+  {
+   "id": "zip-without-dwg",
+   "since": "2026-10",
+   "area": "delivery",
+   "status": "fixed",
+   "match": "Delivery zip has NO working DWG",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/package-base.mjs",
+     "pattern": "ZIP INCOMPLETE"
+    }
+   ]
+  },
+  {
+   "id": "dated-releases-and-drive-versions",
+   "since": "2026-10",
+   "area": "delivery",
+   "status": "fixed",
+   "match": "Dated or lettered releases / Drive versions pile up",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/project-backup.mjs",
+     "pattern": "--clobber"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/gdrive-update-zip.md",
+     "pattern": "Administrar versiones"
+    }
+   ]
+  },
+  {
+   "id": "rw-extension-other-blue",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "Extended R/W lines look like ANOTHER blue",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/layer-truecolor.ps1",
+     "pattern": "18,\\s*135,\\s*139"
+    }
+   ]
   }
  ]
 }
