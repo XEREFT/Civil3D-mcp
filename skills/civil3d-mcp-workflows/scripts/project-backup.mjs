@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PRIVATE BACKUP of the projects (user decision 2026-10-25): the public repo XEREFT/Civil3D-mcp only holds skill + scripts; client data goes ONLY to the PRIVATE repo XEREFT/projects.
 //   git (small, diffable files): per project folder  project.json, _reports\*.json, the PDF, the sources list;  NEVER DWG/TIF/zip (binary, 6-130 MB, no useful diff)
-//   releases (what was delivered): --release makes "<NAME> @xereft base.zip" (visible deliverables only, via package-base.mjs --zip) and uploads it as a release asset
+//   releases (what was delivered): --release makes "<NAME> @xereft base.zip" (visible deliverables only, via package-base.mjs --zip) and REPLACES it in the ONE release per folder (tag <project>-base / <project>-proposed, no dates)
 //   node project-backup.mjs [--projects "<...\Proyectos>"] [--clone C:\Users\camil\XEREFT-projects] [--only "Villa one"] [--release] [--tag <tag>] [--dry]
 // Safe to run any time: refuses to push if the remote is not PRIVATE.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -62,8 +62,14 @@ if (has("release") && !dry) {
   for (const b of bases) {
     const r = run(process.execPath, [join(here, "package-base.mjs"), "--dir", b.dir, "--zip", "--no-verify"]);
     const m = /zip \(deliverables only\): (.+\.zip)/.exec(r.stdout); if (!m) { console.error(`  ${b.folder}: no zip produced: ${(r.stdout + r.stderr).slice(-200)}`); continue; }
-    const tag = flag("tag", `${b.project.toLowerCase().replace(/\W+/g, "-")}-${b.folder.toLowerCase().includes("proposed") ? "proposed" : "base"}-${stamp}`);
-    const g = run("gh", ["release", "create", tag, m[1].trim(), "--repo", REPO, "--title", `${b.project} - ${b.folder} (${stamp})`, "--notes", `Deliverables-only zip of "${b.folder}" generated ${stamp} by project-backup.mjs`]);
-    console.log(g.status ? `  ${tag}: release failed: ${g.stderr.trim()}` : `  ${tag}: ${g.stdout.trim()}`);
+    // ONE release per folder, fixed tag (user rule 2026-10-26: files are REPLACED in place, never versioned by date): <project>-base / <project>-proposed
+    const tag = flag("tag", `${b.project.toLowerCase().replace(/\W+/g, "-")}-${b.folder.toLowerCase().includes("proposed") ? "proposed" : "base"}`);
+    const title = `${b.project} - ${b.folder}`, notes = `Deliverables-only zip of "${b.folder}", last replaced ${stamp} by project-backup.mjs`;
+    const exists = run("gh", ["release", "view", tag, "--repo", REPO]).status === 0;
+    const g = exists
+      ? run("gh", ["release", "upload", tag, m[1].trim(), "--clobber", "--repo", REPO])
+      : run("gh", ["release", "create", tag, m[1].trim(), "--repo", REPO, "--title", title, "--notes", notes]);
+    if (exists && !g.status) run("gh", ["release", "edit", tag, "--repo", REPO, "--title", title, "--notes", notes]);
+    console.log(g.status ? `  ${tag}: release failed: ${g.stderr.trim()}` : `  ${tag}: ${exists ? "zip replaced in the existing release" : "release created"}`);
   }
 }

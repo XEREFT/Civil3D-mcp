@@ -22,7 +22,7 @@ engineer. The folder link, sub-folder IDs and access mode live in the private me
 7. Verify (get_page_text of the folder): exactly ONE file with that name, new modified time and size. If "Keep both" slipped in (`name (1).zip`), tell the user; do not delete without asking.
 8. Confirm the folder link still opens the same folder (the URL does not change on a version upload) and that the general access is still the mode recorded in memory.
 9. Stop the server by the PID that owns port 8799 (`Get-NetTCPConnection -LocalPort 8799 -State Listen`), never by process name.
-10. Update the memory `project-backup-sharing` (date of the update) and run `node scripts\project-backup.mjs --release` so the private repo matches.
+10. Update the memory `project-backup-sharing` (date of the update) and run `node scripts\project-backup.mjs --release` so the private repo matches: it REPLACES the zip in the one release per folder (tag `<project>-base` / `<project>-proposed`, no dates). Never create dated or lettered copies, anywhere (user rule 2026-10-26).
 
 ## First upload (2026-10-25)
 Folders created with Drive "New > New folder" (focus the name field before typing: the first keystrokes otherwise go to the page), the three zips dropped with steps 2-5, sizes verified in Drive.
