@@ -19,7 +19,7 @@ const has = (n) => args.includes(`--${n}`);
 const die = (m) => { console.error(m); process.exit(2); };
 const here = dirname(fileURLToPath(import.meta.url));
 const dir = flag("dir") ? resolve(flag("dir")) : die('usage: node package-base.mjs --dir "<...\\<NAME> @XEREFT BASE>" [--phase PROPOSED] [--zip] [--no-verify]');
-if (!/ @XEREFT (BASE|PROPOSED)$/.test(basename(dir))) die(`"${dir}" is not a "<NAME> @XEREFT BASE|PROPOSED" folder`);
+if (!/ @XEREFT (BASE|PROPOSED)$/i.test(basename(dir))) die(`"${dir}" is not a "<NAME> @XEREFT BASE|PROPOSED" folder`);
 const pjPath = join(dir, "project.json");
 if (!existsSync(pjPath)) die(`no project.json in ${dir}`);
 const pj = JSON.parse(readFileSync(pjPath, "utf8"));
@@ -30,13 +30,14 @@ const WORK = ["project.json", "_template.dwg", "_reports", "_backup"];
 
 // ---- --phase PROPOSED: clone the BASE folder into the design folder ----
 if (flag("phase")?.toUpperCase() === "PROPOSED") {
-  if (!/ BASE$/.test(stem)) die("--phase PROPOSED starts from a BASE folder");
-  const to = join(dirname(dir), `${name} @XEREFT PROPOSED`);
+  if (!/ BASE$/i.test(stem)) die("--phase PROPOSED starts from a BASE folder");
+  const propName = stem.replace(/ BASE$/i, (m) => (m === " BASE" ? " PROPOSED" : " proposed")); // keeps the folder's case: "Goulds @xereft base" -> "Goulds @xereft proposed"
+  const to = join(dirname(dir), propName);
   if (existsSync(to)) die(`${to} already exists: work in it (never overwrite a design folder)`);
   cpSync(dir, to, { recursive: true, filter: (s) => !/\.(bak|dwl2?)$/i.test(s) });
-  for (const ext of [".dwg", ".pdf"]) if (existsSync(join(to, `${stem}${ext}`))) renameSync(join(to, `${stem}${ext}`), join(to, `${name} @XEREFT PROPOSED${ext}`));
+  for (const ext of [".dwg", ".pdf"]) if (existsSync(join(to, `${stem}${ext}`))) renameSync(join(to, `${stem}${ext}`), join(to, `${propName}${ext}`));
   const j = JSON.parse(readFileSync(join(to, "project.json"), "utf8"));
-  j.phase = "PROPOSED"; j.deliverables = { ...j.deliverables, dwg: `${name} @XEREFT PROPOSED.dwg`, pdf: `${name} @XEREFT PROPOSED.pdf` }; j.package = { base: true, phase: "PROPOSED" };
+  j.phase = "PROPOSED"; j.deliverables = { ...j.deliverables, dwg: `${propName}.dwg`, pdf: `${propName}.pdf` }; j.package = { base: true, phase: "PROPOSED" };
   (j.history ??= []).push({ date: new Date().toISOString().slice(0, 10), event: `design folder created from ${stem}` });
   writeFileSync(join(to, "project.json"), JSON.stringify(j, null, 2));
   for (const w of WORK) if (existsSync(join(to, w))) hide(join(to, w));

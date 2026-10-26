@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // NEW PROJECT BOOTSTRAP: everything about a new Fase 1 project that does not need a live Civil 3D session, in one command.
-//   node new-project.mjs --name "VILLA ONE" [--project-no 26-04.047] [--agr 33810] [--root "<...>\AUTOCAD @XEREFT"]
+//   node new-project.mjs --name "VILLA ONE" [--project-no 26-04.047] [--agr 33810] [--root "<...>\AUTOCAD @XEREFT" | --dir "<...>\Proyectos\<Name>\<Name> @xereft base"]
 //        [--poc <POC.pdf>] [--topo <X-TOPO.dwg>] [--util <X-UTIL.dwg>] [--arch <X-ARCH.dwg>]
 //        [--template-from <previous project's C-300.dwg>] [--xy 859852,444852] [--dry-run]
 // Creates <root>\<NAME> @XEREFT BASE\ (the ONE working + hand-off folder; per project only: the client's untouched intake folder, this BASE folder and, when we design, <NAME> @XEREFT PROPOSED) with _backup and _reports; copies the base xrefs in as X-TOPO/X-UTIL/X-ARCH.dwg (never moves them);
@@ -22,8 +22,10 @@ const dry = has("dry-run");
 const name = flag("name");
 if (!name) { console.error("usage: node new-project.mjs --name \"<PROJECT>\" [--project-no ..] [--agr ..] [--poc ..] [--topo ..] [--util ..] [--arch ..] [--template-from ..] [--xy x,y] [--dry-run]"); process.exit(2); }
 const root = (flag("root") ?? ps.DEFAULT_ROOT).replace(/\\/g, "/");
-const folderName = `${name.toUpperCase().replace(/\s*@XEREFT(\s+(BASE|PROPOSED))?\s*$/, "")} @XEREFT BASE`;
-const dir = join(root, folderName).replace(/\\/g, "/");
+// --dir "<...>\Proyectos\<Name>\<Name> @xereft base" = the user's layout (2026-10-25): the BASE folder sits next to the client's intake inside Proyectos\<Name>\; its name (any case) names the deliverables.
+const dir = flag("dir") ? resolve(flag("dir")).replace(/\\/g, "/") : join(root, `${name.toUpperCase().replace(/\s*@XEREFT(\s+(BASE|PROPOSED))?\s*$/, "")} @XEREFT BASE`).replace(/\\/g, "/");
+if (flag("dir") && !/ @XEREFT BASE$/i.test(basename(dir))) { console.error(`--dir must end in " @xereft base": ${dir}`); process.exit(2); }
+const folderName = basename(dir);
 const done = [];
 const doStep = (label, fn) => { if (dry) { console.log(`[dry-run] ${label}`); return; } fn(); console.log(`ok   ${label}`); done.push(label); };
 
