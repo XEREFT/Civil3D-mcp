@@ -21,7 +21,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { c300Input } from './project-state.mjs';
-import { pickProfile } from './lib/survey-profile.mjs';
+import { pickProfile, profileByName } from './lib/survey-profile.mjs';
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, arr) => (v.startsWith('--') ? a.concat([[v.slice(2), arr[i + 1]]]) : a), []));
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -106,13 +106,21 @@ const ents = allEnts.filter((e) => inWin(e.p));
 
 // Survey layer roles (centerline / property line / R/W dims / pavement edge): each surveyor names them differently ->
 // references/standards/survey-profiles.json, picked by the layers found in the window (project.json sources.surveyProfile forces one)
-const SP = pickProfile(ents, rawProject.sources?.surveyProfile);
+// project.json site.centerlines [{a:[x,y], b:[x,y]}] (centerlines-extract.mjs --save): street centerlines kept OUTSIDE the survey. The client's newest X-TOPO often has none
+// near the lot (VILLA ONE 09-21, Goulds 08-03: the designer draws CENTER_LINE in the C-300 host instead), which used to force us onto an older, worse X-TOPO.
+const siteCl = (rawProject.site?.centerlines ?? []).filter((c) => Array.isArray(c.a) && Array.isArray(c.b)).map((c) => ({ a: c.a.map(Number), b: c.b.map(Number) }));
+let SP;
+try { SP = pickProfile(ents, rawProject.sources?.surveyProfile); }
+catch (e) { if (!siteCl.length) throw e; SP = profileByName('default'); }
 
-// Street centerline segments
-const segs = ents.filter((e) => e.type === 'LINE' && SP.centerline.includes(e.layer)).map((e) => {
-  const a = e.p, b = pt(e.p2);
-  return { a, b, deg: norm180(angDeg(sub(b, a))), len: len(sub(b, a)) };
-}).filter((s) => s.len > 1);
+// Street centerline segments (survey LINEs + LWPOLYLINE pieces + site.centerlines)
+const segOf = (a, b) => ({ a, b, deg: norm180(angDeg(sub(b, a))), len: len(sub(b, a)) });
+const polyPts = (v) => (v || '').split(';').filter(Boolean).map((s) => s.split(',').map(Number));
+const segs = [
+  ...ents.filter((e) => e.type === 'LINE' && SP.centerline.includes(e.layer)).map((e) => segOf(e.p, pt(e.p2))),
+  ...ents.filter((e) => e.type === 'LWPOLYLINE' && SP.centerline.includes(e.layer)).flatMap((e) => { const v = polyPts(e.v); return v.slice(1).map((q, i) => segOf(v[i], q)); }),
+  ...siteCl.map((c) => segOf(c.a, c.b)),
+].filter((s) => s.len > 1);
 if (!segs.length) throw new Error(`no ${SP.centerline.join('/')} LINE entities in the window`);
 
 // Cluster segments into streets: same direction family (±8°) and same line (perpendicular offset < 15 ft)
@@ -156,7 +164,7 @@ for (const st of streets) {
 const num = (project.address.match(/SW\s+(\d+\w*)/i) || [])[1];
 // Several streets can share the number (FormTech topo of SEIDENSTEIN: SW 53RD COURT / PLACE / AVENUE all in one window): the full street name of the
 // address wins (suffix abbreviations expanded), the number alone only breaks the tie when exactly one street carries it
-const fullName = project.address.toUpperCase().replace(/^[\dX]+\s+/, '').replace(/\bCT\b\.?/, 'COURT').replace(/\bAVE\b\.?/, 'AVENUE').replace(/\bST\b\.?/, 'STREET').replace(/\bPL\b\.?/, 'PLACE').replace(/\bRD\b\.?/, 'ROAD').replace(/\s+/g, ' ').trim();
+const fullName = project.address.toUpperCase().replace(/^[\dX/]+\s+/, '').replace(/\bCT\b\.?/, 'COURT').replace(/\bAVE\b\.?/, 'AVENUE').replace(/\bST\b\.?/, 'STREET').replace(/\bPL\b\.?/, 'PLACE').replace(/\bRD\b\.?/, 'ROAD').replace(/\s+/g, ' ').trim();
 const byNum = streets.filter((s) => num && s.name.includes(num.toUpperCase()));
 const front = streets.find((s) => s.name === fullName) ?? (byNum.length === 1 ? byNum[0] : byNum.find((s) => fullName.includes(s.name.replace(/^SW\s+/, ''))) ?? byNum[0]);
 if (!front) throw new Error(`frontage street for "${project.address}" not found among ${streets.map((s) => s.name).join(', ')}`);
@@ -177,8 +185,37 @@ if (!cross.length) throw new Error(`no cross street within 700 ft of the lot mee
 // Orient the frontage direction to [0,180) — the convention both reference sheets follow (91.51°, 0.9°)
 const theta = norm180(front.deg);
 const u = dirOf(theta);
-const twistDeg = (360 - theta) % 360;
-const crossRot = (theta + 90) % 360; // cross-street text reads bottom-to-top after the twist
+// VIEW ANGLE (design audit 2026-10-25): the street that reads horizontal on the sheet. Default = the frontage (VILLA ONE: the main runs along SW 118TH AVE).
+// When the POC connection points (project.json site.pocPoints, the existing main/MH the POC names) do not fit the frontage-aligned viewport together with the lot,
+// the designer turns the sheet to the street grid instead (Goulds 08-03: twist 359.1 deg, north up, SW 232ND ST horizontal, so SW 231ST ST -> SW 125TH AVE -> SW 232ND ST
+// all show). site.viewport {twistDeg, center:[x,y]} forces both.
+const vpForce = rawProject.site?.viewport;
+const pocPts = (rawProject.site?.pocPoints ?? []).filter((q) => Array.isArray(q) && q.length === 2).map((q) => q.map(Number));
+let viewTheta = theta, viewCenterForce = null, viewNote = null;
+{
+  const VH = std.viewport.size[0] * 20 / 2, VV = std.viewport.size[1] * 20 / 2;
+  const fits = (ang, c, pts) => { const a = dirOf(ang), n = [-a[1], a[0]]; return pts.every((q) => Math.abs(dot(sub(q, c), a)) <= VH - 15 && Math.abs(dot(sub(q, c), n)) <= VV - 15); };
+  if (vpForce && Number.isFinite(+vpForce.twistDeg)) {
+    viewTheta = ((360 - +vpForce.twistDeg) % 360 + 360) % 360;
+    if (Array.isArray(vpForce.center)) viewCenterForce = vpForce.center.map(Number);
+    viewNote = `viewport forced by project.json site.viewport: twist ${(+vpForce.twistDeg).toFixed(4)} deg`;
+  } else if (pocPts.length) {
+    const pts = [lot, ...pocPts];
+    const bb = [Math.min(...pts.map((q) => q[0])), Math.min(...pts.map((q) => q[1])), Math.max(...pts.map((q) => q[0])), Math.max(...pts.map((q) => q[1]))];
+    const mid = [(bb[0] + bb[2]) / 2, (bb[1] + bb[3]) / 2];
+    // grid street = the window street closest to east-west (Miami-Dade grid), else the frontage turned 90 deg
+    const grid = streets.reduce((a, s) => (Math.min(s.deg, 180 - s.deg) < Math.min(a.deg, 180 - a.deg) ? s : a), streets[0]);
+    const gridTheta = norm180(grid.deg);
+    if (!fits(theta, mid, pts) && fits(gridTheta, mid, pts)) {
+      viewTheta = gridTheta; viewCenterForce = mid;
+      viewNote = `POC point(s) do not fit the frontage-aligned sheet with the lot: sheet turned to the street grid (${grid.name} horizontal, twist ${((360 - gridTheta) % 360).toFixed(2)} deg), centered on lot + POC`;
+    } else if (!fits(theta, mid, pts)) viewNote = 'WARN: the lot and the POC point(s) do not fit one 1"=20\' viewport in any orientation: the sheet keeps the frontage view, POC outside';
+  }
+}
+const twistDeg = (360 - viewTheta) % 360;
+// rotation that keeps a text parallel to a street of angle `deg` and readable on the twisted sheet (left-to-right, or bottom-to-top when vertical)
+const readable = (deg) => { const s = (((deg + twistDeg) % 360) + 360) % 360; const sheet = s > 90.5 && s <= 270.5 ? s - 180 : s; return (((sheet - twistDeg) % 360) + 360) % 360; };
+const crossRot = (theta + 90) % 360; // kept for streets that really are perpendicular; diagonal cross streets use readable(c.deg) (Goulds: labels used to land inside the lots)
 
 for (const c of cross) {
   c.int = intersect(front.origin, front.u, c.origin, c.u);
@@ -270,10 +307,13 @@ const label = (text, onCl, rotDeg) => {
   entities.push({ kind: 'mtext', layer: sl.layer, textStyle: sl.textStyle, height: sl.height, attachment: sl.attachment, rotation: r4(rotDeg * D2R), text, x: r4(p[0]), y: r4(p[1]),
     ...(sl.backgroundMask ? { backgroundMask: true, backgroundScale: sl.backgroundScale ?? 1.2 } : {}) });
 };
-for (const sgn of [1, -1]) label(front.name, add(near.int, mul(u, sgn * sl.distanceFromIntersectionFt)), theta);
+for (const sgn of [1, -1]) label(front.name, add(near.int, mul(u, sgn * sl.distanceFromIntersectionFt)), readable(theta));
 for (const c of cross) {
-  const cu = dirOf(crossRot);
-  for (const sgn of [1, -1]) label(c.name, add(c.int, mul(cu, sgn * sl.distanceFromIntersectionFt)), crossRot);
+  // along the cross street's OWN centerline, only on the legs the survey draws (a T intersection has one leg)
+  for (const sgn of [1, -1]) {
+    if (!c.segs.some((s) => [s.a, s.b].some((p) => dot(sub(p, c.int), c.u) * sgn > 5))) continue;
+    label(c.name, add(c.int, mul(c.u, sgn * sl.distanceFromIntersectionFt)), readable(c.deg));
+  }
 }
 
 // 5) _cl symbols: survey ones copied, plus one 50 ft out on labelled legs that have none
@@ -281,8 +321,9 @@ const cl = S.clSymbol;
 const surveyCl = ents.filter((e) => e.type === 'INSERT' && e.block === '_cl');
 for (const e of surveyCl) entities.push({ kind: 'block', blockName: cl.blockName, layer: cl.layer, scale: cl.scale, rotation: r4(+e.rot), x: r4(e.p[0]), y: r4(e.p[1]) });
 const legs = [
-  ...[1, -1].map((sgn) => ({ from: near.int, dir: mul(u, sgn), rotDeg: theta })),
-  ...cross.flatMap((c) => [1, -1].map((sgn) => ({ from: c.int, dir: mul(dirOf(crossRot), sgn), rotDeg: crossRot }))),
+  ...[1, -1].map((sgn) => ({ from: near.int, dir: mul(u, sgn), rotDeg: readable(theta) })),
+  ...cross.flatMap((c) => [1, -1].filter((sgn) => c.segs.some((s) => [s.a, s.b].some((p) => dot(sub(p, c.int), c.u) * sgn > 5)))
+    .map((sgn) => ({ from: c.int, dir: mul(c.u, sgn), rotDeg: readable(c.deg) }))),
 ];
 for (const leg of legs) {
   const covered = surveyCl.some((e) => { const d = sub(e.p, leg.from); const along = dot(d, leg.dir); return along > 0 && along < 90 && Math.abs(dot(d, [-leg.dir[1], leg.dir[0]])) < 10; });
@@ -297,17 +338,19 @@ report.push(`_cl symbols: ${surveyCl.length} copied from survey + ${entities.fil
 const pl = S.propertyLabel;
 const [book, page] = (project.pa.plat.match(/P\.?B\.?\s*(\d+)\s*PG[-\s]*(\d+)/i) || []).slice(1);
 const propText = pl.textFormat
-  .replace('{address}', project.address).replace('{folio}', project.pa.folio)
+  // every folio the POC lists (subject.folios, poc-extract.mjs): Goulds = 2 lots, the designer prints both, the BASE used to print one
+  .replace('{address}', project.address).replace('{folio}', (rawProject.subject?.folios?.length > 1 ? rawProject.subject.folios.join(', ') : project.pa.folio))
   .replace('{units}', project.property.units).replace('{sf}', project.property.sf)
   .replace('{use}', project.property.use).replace('{gpd}', project.property.gpd)
   .replace('{book}', book).replace('{page}', page);
-entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(theta * D2R), text: propText, x: r4(subjectAt[0]), y: r4(subjectAt[1]),
+entities.push({ kind: 'mtext', layer: pl.layer, textStyle: pl.textStyle, height: pl.height, attachment: pl.attachment, width: pl.width, rotation: r4(viewTheta * D2R), text: propText, x: r4(subjectAt[0]), y: r4(subjectAt[1]),
   ...(pl.backgroundMask ? { backgroundMask: true, backgroundScale: pl.backgroundScale ?? 1.2 } : {}) });
 
 // 7) Viewport: center on the frontage CL midway between the far intersection and the lot (+25 ft)
 const sFar = dot(sub(far.int, front.origin), u);
 const sCenter = (sFar + sLot + 25 * Math.sign(sLot - sFar)) / 2;
-const center = add(front.origin, mul(u, sCenter));
+const center = viewCenterForce ?? add(front.origin, mul(u, sCenter));
+if (viewNote) report.push(viewNote);
 
 // 8) Lot lines for the PL symbols when the profile says the county plat lots cannot give them (survey profile plLines): straight survey lot lines of the window that do not run
 //    along an R/W line (the frontage), >= 50 ft, in the viewport -> c300-pl-symbols.mjs --survey-lines
@@ -333,7 +376,7 @@ const spec = {
   project: project.name,
   streets: streets.map((s) => ({ name: s.name, angleDeg: r4(s.deg), frontage: s === front })),
   alignment: { name: alName, layer: S.alignment.layer, style: S.alignment.style, labelSet: S.alignment.labelSet, points: [P(alStart), P(alEnd)], lengthFt: alLen },
-  twist: { layout: std.viewport.layout, streetAngleDegrees: r4(theta), centerX: r4(center[0]), centerY: r4(center[1]), resultingTwistDeg: r4(twistDeg) },
+  twist: { layout: std.viewport.layout, streetAngleDegrees: r4(viewTheta), centerX: r4(center[0]), centerY: r4(center[1]), resultingTwistDeg: r4(twistDeg) },
   createEntities: { layers: Object.fromEntries(usedLayers.map((n) => [n, std.layers[n]])), entities },
   window: win,
   ...(plSurveyLines ? { plSurveyLines } : {}),

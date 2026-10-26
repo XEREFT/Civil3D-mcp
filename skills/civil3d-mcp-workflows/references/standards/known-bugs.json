@@ -1675,6 +1675,75 @@
      "path": "scripts/topo-hide-text.ps1"
     }
    ]
+  },
+  {
+   "id": "poc-governing-asbuilt",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "BASE cites an as-built the POC does not name",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/design-ready-audit.mjs",
+     "pattern": "DR-05"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/poc-extract.mjs",
+     "pattern": "connections"
+    }
+   ]
+  },
+  {
+   "id": "north-arrow-ignores-twist",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "North arrow points up although the C-300 viewport is twisted",
+   "checks": [
+    {
+     "type": "file-exists",
+     "path": "scripts/c300-north-arrow.mjs"
+    },
+    {
+     "type": "file-exists",
+     "path": "scripts/c300-north-arrow-offline.ps1"
+    },
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-from-scratch.mjs",
+     "pattern": "c300-north-arrow"
+    }
+   ]
+  },
+  {
+   "id": "project-json-hidden-eperm",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "`centerlines-extract.mjs --save` fails with EPERM on project.json",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/centerlines-extract.mjs",
+     "pattern": "saveProject"
+    }
+   ]
+  },
+  {
+   "id": "qc-survey-first-labels",
+   "since": "2026-10",
+   "area": "engine",
+   "status": "fixed",
+   "match": "QC \"label values = as-builts\" FAILS on a manhole whose label prints the survey",
+   "checks": [
+    {
+     "type": "skill-grep",
+     "file": "scripts/fase1-qc.py",
+     "pattern": "(PER SURVEY)"
+    }
+   ]
   }
  ]
 }

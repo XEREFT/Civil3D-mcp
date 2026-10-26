@@ -299,8 +299,12 @@ else:
         if not lab: continue                      # a missing label is already a FAIL above
         t = _flat(lab[0]["txt"]); _chk += 1
         rim = re.search(r"RIM:\s*([\d.]+)", t); invs = sorted((d_ or "ND", float(v)) for v, d_ in re.findall(r"INV:\s*([\d.]+)'(?:\s*\((\w)\))?", t))   # ND = the as-built prints no direction
-        if m.get("rim") is not None and (not rim or abs(float(rim.group(1)) - m["rim"]) > 0.005): _bad.append(f"{m['id']} RIM label {rim.group(1) if rim else 'none'} vs as-built {m['rim']}")
-        if sorted((d_, float(v)) for d_, v in m.get("inv", [])) != invs: _bad.append(f"{m['id']} INV label {invs} vs as-built {m.get('inv')}")
+        sv = m.get("survey")                      # survey-first (design audit 2026-10-25): a surveyed manhole prints the SURVEY R.E./I.E., marked (PER SURVEY)
+        want_rim, want_inv, who = (sv.get("rim"), sv.get("inv") or [], "survey") if sv else (m.get("rim"), m.get("inv", []), "as-built")
+        if want_rim is not None and (not rim or abs(float(rim.group(1)) - want_rim) > 0.005): _bad.append(f"{m['id']} RIM label {rim.group(1) if rim else 'none'} vs {who} {want_rim}")
+        if sorted((d_, float(v)) for d_, v in want_inv) != invs: _bad.append(f"{m['id']} INV label {invs} vs {who} {want_inv}")
+        if sv and "(PER SURVEY)" not in t: _bad.append(f"{m['id']} label does not say (PER SURVEY)")
+        if sv and m.get("rim") is not None and sv.get("rim") is not None and abs(m["rim"] - sv["rim"]) > 0.10 and "(FIELD VERIFY)" not in t: _bad.append(f"{m['id']} survey RIM {sv['rim']} vs as-built {m['rim']} but no (FIELD VERIFY)")
     # completeness: every manhole of X-UTIL inside the viewport needs RIM + INV (with directions) from the confirmed as-built, else its label prints empty / partial
     _inc = [f"{m['id']}: " + ", ".join(x for x, miss in (("no RIM", m.get("rim") is None and not m.get("rimNA")), ("no INV", not m.get("inv")), ("INV without direction", any(d_ == "?" for d_, _ in m.get("inv", [])))) if miss)
             for m in _ab.get("manholes", []) if in_view((m["x"], m["y"])) and not m.get("outsideXUtil") and ((m.get("rim") is None and not m.get("rimNA")) or not m.get("inv") or any(d_ == "?" for d_, _ in m.get("inv", [])))]

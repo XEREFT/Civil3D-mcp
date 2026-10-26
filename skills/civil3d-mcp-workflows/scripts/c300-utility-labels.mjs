@@ -70,8 +70,10 @@ for (const s of ab.sewerMains) {
     ? (s.to === ab.intersectionMh ? add(B, mul(d, -40)) : add(A, mul(d, 40)))
     : add(A, mul(d, 15));
   // the as-built prints each run with its length ("337'- 8" PVC SDR-35@ 0.40%"): print it too (standards existingUtilityLeader.printScanLength; the QC reads s.text inside the label)
+  // design audit 2026-10-25: the designer prints no length, the user's rule (2026-10-02) keeps it -- kept; the Goulds "303'" was wrong only because the run came from
+  // the wrong as-built. s.asBuilt overrides the project sewerRef for a main covered by another as-built (the POC names the governing one per main)
   const lenPrefix = EL.printScanLength !== false && s.scanLengthFt ? `${s.scanLengthFt}'- ` : '';
-  leader(EL, `${lenPrefix}${s.text}${per(ab.sewerRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
+  leader(EL, `${lenPrefix}${s.text}${per(s.asBuilt ?? ab.sewerRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), 12 * away)), mul(d, 8)));
   // flow arrows 20 ft inside each end, only where the pipe is drawn in X-UTIL
   const flowRot = Math.atan2(d[1], d[0]) + 3.8636;
   const ends = [add(A, mul(d, 20))];
@@ -87,7 +89,7 @@ for (const w of ab.waterMains) {
   const d = unit(sub(w.b, w.a)), L = len(sub(w.b, w.a));
   const arrow = add(w.a, mul(d, Math.min(90, L / 2)));
   const sewerSide = sideOf(hub, w.a, d) || 1;
-  leader(EL, `${w.text}${per(ab.waterRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), -14 * sewerSide)), mul(d, 8)));
+  leader(EL, `${w.text}${per(w.asBuilt ?? ab.waterRef)}\\P(TO REMAIN)`, arrow, add(add(arrow, mul(perp(d), -14 * sewerSide)), mul(d, 8)));
 }
 
 // 3) Manholes not labeled by the survey
@@ -98,10 +100,35 @@ for (const m of Object.values(mh).filter((x) => !x.labeledBySurvey && !x.outside
   const away = -nearestWaterSide(m.p, d);
   // elevations always with 2 decimals, as the as-builts print them ("12.20'", never "12.2'")
   const el = (v) => (Number.isFinite(Number(v)) ? Number(v).toFixed(2) : v);
-  const invLines = m.inv.map(([dir, v]) => `INV: ${el(v)}'${dir === 'ND' ? '' : ` (${dir})`}`).join('\\P');
-    // a manhole whose as-built prints no RIM (the user waived it with N/D in the review) is labeled with its INV only
-  const rimLine = m.rimNA || m.rim == null ? '' : `RIM: ${el(m.rim)}'\\P`;
-  leader(EL, `EXIST. SAN MH \\P${rimLine}${invLines}\\P(${ab.sewerRef})`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
+  // SURVEY GOVERNS a measured structure (design audit 2026-10-25: the designer labels the survey's R.E./I.E., Goulds MH 9.39/4.09/3.99 and VILLA ONE 10.82, not
+  // the as-built). m.survey {rim, inv:[[dir,v]]} (asbuilt-survey-merge.mjs) -> survey values + "(PER SURVEY)" + the as-built ref; a gap > 0.10 ft between the two
+  // adds "(FIELD VERIFY)" so the engineer sees the conflict instead of a silently chosen number.
+  const src = m.survey ?? m;
+  const invLines = (src.inv ?? []).map(([dir, v]) => `INV: ${el(v)}'${!dir || dir === 'ND' ? '' : ` (${dir})`}`).join('\\P');
+  // a manhole whose as-built prints no RIM (the user waived it with N/D in the review) is labeled with its INV only
+  const rimLine = src.rimNA || src.rim == null ? '' : `RIM: ${el(src.rim)}'\\P`;
+  const ref = m.asBuilt ?? ab.sewerRef;
+  let tail = `(${ref})`;
+  if (m.survey) {
+    const gaps = [];
+    if (m.rim != null && m.survey.rim != null) gaps.push(Math.abs(m.rim - m.survey.rim));
+    const abInv = (m.inv ?? []).map(([, v]) => Number(v)).filter(Number.isFinite), svInv = (m.survey.inv ?? []).map(([, v]) => Number(v)).filter(Number.isFinite);
+    if (abInv.length && svInv.length) gaps.push(Math.min(...abInv.flatMap((a) => svInv.map((b) => Math.abs(a - b)))));
+    tail = `(PER SURVEY)\\P(${ref})${gaps.some((g) => g > 0.10) ? '\\P(FIELD VERIFY)' : ''}`;
+  }
+  leader(EL, `EXIST. SAN MH \\P${rimLine}${invLines}\\P${tail}`, m.p, add(add(m.p, mul(perp(d), 22 * away)), mul(d, 12)));
+}
+
+// 3b) Storm structures and pipes the survey shows (asbuilt.json `storm` [{kind:"CB", x, y, rim}], `stormPipes` [{a:[x,y], b:[x,y]}]): the designer labels them
+//     on every sheet (Goulds 08-03: "EXIST STORM CB RIM: 9.34 (TO REMAIN)", "EXIST STORM PIPE (TO REMAIN) (CONTRACTOR TO FIELD VERIFY SIZE, MATERIAL AND INV)").
+for (const [i, c] of (ab.storm ?? []).entries()) {
+  const p = [c.x, c.y];
+  const rim = Number.isFinite(Number(c.rim)) ? ` RIM: ${Number(c.rim).toFixed(2)}` : '';
+  leader(EL, `EXIST STORM ${c.kind ?? 'CB'}${rim} (TO REMAIN)`, p, add(p, [-14 - (i % 2) * 6, 10 + (i % 2) * 6]));
+}
+for (const sp of ab.stormPipes ?? []) {
+  const d = unit(sub(sp.b, sp.a)), m = add(sp.a, mul(sub(sp.b, sp.a), 0.5));
+  leader(EL, 'EXIST STORM PIPE (TO REMAIN) (CONTRACTOR TO FIELD VERIFY SIZE, MATERIAL AND INV)', m, add(add(m, mul(perp(d), 16)), mul(d, 6)));
 }
 
 // 4) Hydrants: block + label, text 12 ft further from the street CL (the hub street line)
@@ -128,7 +155,7 @@ if (args.spec) {
 const apps = (ab.appurtenances ?? []).filter((a) => { const ok = specIn([a.x, a.y]); if (!ok) skippedOut++; return ok; }).sort((p, q) => p.x - q.x);
 if (skippedOut) console.log(`${skippedOut} appurtenance(s) outside the C-300 viewport: not labeled`);
 apps.forEach((a, i) => {
-  const ref = a.ref === 'sewer' ? ab.sewerRef : ab.waterRef;
+  const ref = a.asBuilt ?? (a.ref === 'sewer' ? ab.sewerRef : ab.waterRef);
   const head = a.noExist ? a.label : `EXIST ${a.label}`;
   const lines = [head, a.stationText, a.detail, ref ? (a.noExist ? `(PER ${ref})` : `(PER ${ref})\\P(TO REMAIN)`) : (a.noExist ? null : '(TO REMAIN)')].filter(Boolean);
   const north = a.ref === 'sewer' ? -1 : 1;

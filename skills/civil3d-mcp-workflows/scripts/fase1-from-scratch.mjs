@@ -67,7 +67,8 @@ if (existsSync(target)) {
   const pj = existsSync(join(dir, "project.json")) ? JSON.parse(readFileSync(join(dir, "project.json"), "utf8")) : {};
   const src = pj.sources ?? {};
   // survey colors must be ByLayer for the xref look to apply (once per project: the backup file is the marker)
-  if (src.xrefStyle === "gray" && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_color_bylayer.dwg"))) {
+  // design audit 2026-10-25: the gray survey look is the DEFAULT (the designer's sheets of VILLA ONE and Goulds both gray every X-TOPO layer); sources.xrefStyle "color" opts out
+  if ((src.xrefStyle ?? "gray") === "gray" && existsSync(join(dir, "X-TOPO.dwg")) && !existsSync(join(dir, "_backup", "X-TOPO_antes_color_bylayer.dwg"))) {
     const b = pwsh("topo-bylayer.ps1", ["-Topo", join(dir, "X-TOPO.dwg")]); log(`\n== 0b. topo ByLayer: ${tail(b.stdout, 2)}`);
   }
   // survey texts that share a layer with texts we keep (e.g. lot-corner angles, absent from the VILLA ONE / Goulds sheets): moved to a layer the profile freezes (once per rule)
@@ -143,11 +144,14 @@ if (r.status !== 0) die("\nBUILD FAILED: nothing after the failing step ran. Tra
 // ---- 2b. short dimensions whose text DIMFIT threw off their line (e.g. the 6.00' SAN-WM separation dim): put the text back, save ----
 { const fx = run(node, [join(here, "fase1-fix-dims.mjs"), "--expect", targetBase]); log(`\n== 2b. dimension texts: ${tail(fx.stdout, 3)}`); }
 
-// ---- 2c. survey look (opt-in: project.json sources.xrefStyle = "gray"): X-TOPO layers to ACI 8 like the firm's GUIA, lot lines ACI 4, spot elevations + trees frozen ----
+// ---- 2c. survey look (DEFAULT since the 2026-10-25 design audit; project.json sources.xrefStyle = "color" opts out): X-TOPO layers to ACI 8 like the firm's GUIA, lot lines ACI 4, spot elevations + trees frozen ----
 {
-  let xs; try { xs = JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).sources?.xrefStyle; } catch { /* no project.json: nothing to do */ }
+  let xs = "gray"; try { xs = JSON.parse(readFileSync(join(dir, "project.json"), "utf8")).sources?.xrefStyle ?? "gray"; } catch { /* no project.json: default look */ }
   if (xs === "gray") { const st = run(node, [join(here, "fase1-xref-style.mjs"), "--expect", targetBase, "--dir", dir]); log(`\n== 2c. xref style: ${tail(st.stdout, 3)}`); }
 }
+
+// ---- 2d. north arrow = viewport twist (design audit 2026-10-25: the template arrow stays at 0 while the sheet is turned 268 deg on VILLA ONE) ----
+{ const na = run(node, [join(here, "c300-north-arrow.mjs"), "--expect", targetBase]); log(`\n== 2d. north arrow: ${tail(na.stdout || na.stderr, 2)}`); }
 
 // ---- 3 + 4. plot + QC, then the declutter loop ----
 const qcJson = join(work, "qc.json"), planJson = join(work, "plan.json");
