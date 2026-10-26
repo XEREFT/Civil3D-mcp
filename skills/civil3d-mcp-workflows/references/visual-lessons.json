@@ -65,6 +65,17 @@
    "encodedIn": [
     "scripts/road-labels-nudge.mjs"
    ]
+  },
+  {
+   "date": "2026-10-26",
+   "feedback": "SEIDENSTEIN: R/W marks with diagonal arrows of mixed angle/length, some white and some gray, sparse, missing at the four corners of the SW 74th intersection: 'No me gusta como se ve ese RW... geometricamente estetica'. The user also straightened 3 EOP marks by hand 'para proximas etiquetas'.",
+   "rule": "R/W marks follow the EOP signature: leader strictly orthogonal on the SHEET axes, 8 ft long, text beyond the landing (right of a vertical leader), all white, ONE set (survey R/W marks hidden). Station rhythm: 14 ft from every R/W corner on each leg, then equal ~125 ft along every run (survey lines AND the c300-rw-extend.mjs extensions), over the whole plan, not only the sheet frame. A blocked station is retried (street side, farther, tighter, slid <=20 ft, corners <=60 ft) and only omitted when there is no room; marks touching the sheet frame stay fully inside it. Text point offsets are calibrated on the style: landing end = text point +/-(h+0.1) ft inboard and h/2 below.",
+   "encodedIn": [
+    "scripts/c300-rw-marks.mjs",
+    "scripts/c300-rw-apply.mjs (/rw-marks)",
+    "scripts/c300-rw-extend.mjs",
+    "visual-signature.json rwMarks"
+   ]
   }
  ],
  "open": [

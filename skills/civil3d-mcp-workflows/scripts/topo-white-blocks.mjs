@@ -18,6 +18,9 @@ const names = blocks.map((b) => `"${b.toUpperCase()}"`).join(" ");
 const dry = a.includes("--dry-run");
 const lisp = [`(setq ss (ssget "_X" (list (cons 410 "Model") (cons 0 "INSERT"))) n 0 m 0)`,
   `(if ss (repeat (sslength ss) (setq e (entget (ssname ss n))) (if (member (strcase (cdr (assoc 2 e))) (list ${names})) (progn (setq m (1+ m))${dry ? "" : ` (if (assoc 62 e) (entmod (subst (cons 62 7) (assoc 62 e) e)) (entmod (append e (list (cons 62 7)))))`})) (setq n (1+ n))))`,
+  // the S circle (SMH) is drawn with ByLayer entities on layer 0 inside the definition: an explicit colour on the INSERT does not reach them and the host's gray layer
+  // override wins (SEIDENSTEIN 2026-10-26: the symbol stayed gray), so the definition's own entities get colour 7 too
+  ...(dry ? [] : [`(foreach b (list ${names}) (setq en (cdr (assoc -2 (tblsearch "BLOCK" b)))) (while en (setq e (entget en)) (if (assoc 62 e) (entmod (subst (cons 62 7) (assoc 62 e) e)) (entmod (append e (list (cons 62 7))))) (setq en (entnext en))))`]),
   `(princ (strcat (chr 10) "WHITEBLK " (itoa m)))`, ...(dry ? ["QUIT"] : ["_.QSAVE", "QUIT", "Y"])];
 writeFileSync(join(work, "s.scr"), lisp.join("\n") + "\n", "ascii");
 const r = spawnSync(CORE, ["/i", copy, "/s", join(work, "s.scr"), "/l", "en-US"], { timeout: 180000, windowsHide: true, encoding: "latin1" });

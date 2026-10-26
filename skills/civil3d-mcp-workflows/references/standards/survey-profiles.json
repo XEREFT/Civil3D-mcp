@@ -86,7 +86,9 @@
     "SLAB"
    ],
    "whiteBlocks": [
-    "SMH"
+    "SMH",
+    "mh",
+    "basin"
    ],
    "hideBlocks": [
     "ARR-L"

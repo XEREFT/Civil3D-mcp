@@ -67,5 +67,12 @@
     2.0
    ]
   }
+ },
+ "rwMarks": {
+  "rule": "white `R/W` MLeader per station: strictly orthogonal leader in SHEET axes, 8 ft long, text beyond the landing (right of a vertical leader); same family as EOP / EXIST R/W",
+  "stations": "14 ft from each R/W corner on every leg, then equally spaced (~125 ft) along every R/W run, survey lines and extension lines alike",
+  "blocked": "retry street side, 11/15 ft, tighter clearance, slide <=20 ft (corner stations <=60 ft into the run); omit only without room; never overlap texts, dimensions or lines; a mark touching the sheet frame must lie entirely inside it",
+  "landingCalibration": "Formtech-1.0: landing end = text point +/-(h+0.1) ft inboard and h/2 below the text point",
+  "tool": "/rw-marks (c300-rw-apply.mjs)"
  }
 }

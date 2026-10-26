@@ -30,16 +30,19 @@ const KEEP = { x: Number(flag("keep-x", "893307")), y0: Number(flag("keep-y0", "
 const CORE = flag("core", "C:\\Program Files\\Autodesk\\AutoCAD 2027\\accoreconsole.exe");
 const backupName = flag("backup-name", "X-TOPO_antes_ocultar_etiquetas_pavimento_v2.dwg");
 
-// what is hidden (cleaned, upper-cased text must match exactly; "18' ASPHALT PAVEMENT", "ASPHALT WALKWAY", street names, EOP... are NOT in the list)
+// what is hidden (cleaned, upper-cased text must match exactly; "18' ASPHALT PAVEMENT", street names, EOP... are NOT in the list; GRASS MEDIAN / ASPHALT WALKWAY = group "landscape", since 2026-10-26)
 // groups: "pavement" = the five classes below; "site" = fence / gate / column callouts (user 2026-10-25: site features that are not used to design the water/sewer
 // installations; the yellow architecture and the survey linework stay). Default --groups pavement,site.
-const GROUPS = flag("groups", "pavement,site,corners").split(",").map((s) => s.trim());
+const GROUPS = flag("groups", "pavement,site,corners,landscape").split(",").map((s) => s.trim());
 const CLASSES = [
   ["pavement", "SOD", /^SOD$/],
   ["pavement", "PAVERS", /^(\d+'\s*)?PAVERS?\s+(APPROACH|WALK)$/],
   ["pavement", "CONCRETE", /^(\d+'\s*)?(CONC\.?|CONCRETE)\s+(APPROACH|WALK)$/],
   ["pavement", "PARKWAY", /^(\d+'\s*)?PARKWAY$/],
   ["pavement", "ASPHALT", /^(\d+'\s*)?ASPHALT(\s+APPROACH)?$/],
+  // "landscape": survey callouts of the median / walkway that is only labelled for the topo (user 2026-10-26, SEIDENSTEIN after the sheet was extended south to SW 76th ST: "no son necesarias para el diseno")
+  ["landscape", "GRASS-MEDIAN", /^GRASS MEDIAN$/],
+  ["landscape", "ASPHALT-WALKWAY", /^ASPHALT WALKWAY$/],
   ["site", "FENCE-GATE", /^(\d+'\s*)?(METAL |WOOD |CHAIN[- ]LINK |WROUGHT IRON |ALUM(INUM)? )?(GATE|FENCE)$/],
   ["site", "COLUMN", /^[\d.']+X[\d.']+\s+COL(UMN)?(\s*\(TYP\))?$/],
   // "corners": found-monument notes at the lot corners with their N/E coordinates (FND. I.P. ø1/2" (NO ID.) NW CORNER C.P. # 1 / N 498125.53 / E 893331.89 / BLOCK CORNER). The VILLA ONE and Goulds
