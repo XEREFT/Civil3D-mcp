@@ -76,3 +76,5 @@ Counted on the plan view of Villa One "how it should look" and Goulds 08-03 (`de
 ## Open questions to put to the client (only what the files cannot answer)
 * Goulds: laterals of ES7843-7 (STA 21+50 and 22+01) have no N/E: location needed if the engineer wants them drawn.
 * (Withdrawn 2026-10-26: "MH#14 RIM 10.76 vs survey 9.39" was a wrong MH mapping; the real gap is 0.06 ft.)
+
+* **Re-orienting a sheet (user 2026-10-26, Goulds, north up):** the viewport twist, the layout north arrow `sna` (rotation = twist) and every label we wrote for the old twist change together: `scripts/sheet-reorient.ps1 -Doc "<name>*" -DeltaDeg 90 [-Apply]` (street-name MText flip/keep, subject label rigid -delta, MLeaders `Rotate(-delta)` about the tip). Nothing is saved by the script; check the layout, fix by eye (native ALIGNMENT labels can land on a dimension), then save and deliver. Memory `sheet-reorient-labels`.
