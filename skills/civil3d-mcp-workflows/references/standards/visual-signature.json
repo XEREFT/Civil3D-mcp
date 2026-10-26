@@ -1,0 +1,71 @@
+{
+ "_about": "XEREFT visual signature for plan sheets (C-300): ONE look for every project - same fonts, sizes, colours, leader geometry and alignment grid. Read by c300-road-labels.mjs (placement) and visual-lint.mjs (checks). User brief 2026-10-25: 'always the same signature: colours, font, sizes; labels and arrows tidy, aligned vertically and horizontally, never overlapped, professional'. Extend it when the user corrects a sheet: add the rule here, add a lesson in references/visual-lessons.json, make visual-lint.mjs check it.",
+ "version": 2,
+ "typography": {
+  "survey": "keep the surveyor's text exactly as drawn (never re-style survey text)",
+  "ourLabels": {
+   "mleaderStyle": "Formtech-1.0",
+   "textHeightFt": 1.4,
+   "layer": "C-ANNO",
+   "colorIndex": 8,
+   "annotative": true,
+   "note": "native NoteLabels (EOP, RW) take size/font from their Civil 3D label styles on C-ANNO; never override"
+  },
+  "titles": "lot notes / street names keep the survey fonts, centred in their lot or street, one row per sheet row"
+ },
+ "colour": {
+  "ourLabels": "colour 8 (grey) on C-ANNO: the monochrome plot prints them black; no per-label colour overrides",
+  "onScreen": "cyan = R/W lot line only, white = street names and symbols, yellow = architecture, grey = the rest (see memory fase1-look-and-tools)"
+ },
+ "leaders": {
+  "geometry": "EOP / EXIST R/W / SAN MH labels: strictly vertical or strictly horizontal in SHEET axes (never diagonal). Utility callouts and ALIGNMENT START/END may be one straight diagonal leader when the orthogonal one would cross something (see diagonalExceptions)",
+  "pushFt": 8,
+  "textSide": "text right of a vertical leader (sideFt) so every label attaches on the same side; left only when the right side would sit on survey linework or text",
+  "arrow": "one arrowhead per label, at the feature (edge, R/W line, structure); never two labels pointing at the same spot",
+  "sideFt": 1.5,
+  "diagonalExceptions": {
+   "appliesTo": [
+    "multi-line utility callouts (EXIST 8\" G.V., SAN MAIN, WM... MLeaders)",
+    "ALIGNMENT START / END station-offset labels"
+   ],
+   "why": "user 2026-10-25: these point at a symbol or a station inside a crowded block; a strictly vertical/horizontal leader would cross linework or text, so a straight DIAGONAL leader is the tidy choice",
+   "rules": [
+    "exception only when the orthogonal leader would cross survey linework / other text or the text would not fit beside the arrow",
+    "ONE straight segment, no bends, one arrowhead (or dot) at the feature, never two leaders to the same spot",
+    "text block sits in clear space, left-aligned, same style/size/colour as every other label (Formtech-1.0, 1.4 ft, C-ANNO, 8); leader enters the block at its first line or its left middle, never across the text",
+    "leader must not cross another label's text or leader; angles within one sheet stay in one family (prefer 45 deg +- 15, or the street-normal direction)",
+    "keep leaders as short as the free space allows; the text may move, the arrow tip never does"
+   ],
+   "neverDiagonal": [
+    "EOP",
+    "EXIST R/W",
+    "SAN MH labels"
+   ]
+  }
+ },
+ "grid": {
+  "rows": "labels of the same kind on the same side of the street share ONE text line (arrows within snapFt along the push axis): a row of EOP or EXIST R/W reads as a straight row",
+  "snapFt": 6,
+  "clearanceFt": 1.0,
+  "noOverlap": "label text never sits on survey linework (lot lines, edges, centrelines) nor on other text; boxes are tested before placement (c300-road-labels.mjs) and again by visual-lint.mjs / fase1-qc.py on the plot",
+  "lotNotes": "survey lot notes centred between lot lines, X = X0 - 0.036878*(Y - Y0) for one sheet row, next row = row + half the tallest block + 4 ft (topo-move-text.mjs)",
+  "sanMhLabels": "text right of the arrow, left-aligned lines, near-vertical leader (anchor = arrow + (-40, +2) in model for the FormTech twist), rotation in RADIANS (topo-san-mh-labels.mjs)"
+ },
+ "checks": {
+  "slantMaxDeg": 6,
+  "rowToleranceFt": 0.25,
+  "mleaderAllowed": {
+   "style": [
+    "Formtech-1.0",
+    "Standard"
+   ],
+   "layer": [
+    "C-ANNO"
+   ],
+   "textHeightFt": [
+    1.4,
+    2.0
+   ]
+  }
+ }
+}

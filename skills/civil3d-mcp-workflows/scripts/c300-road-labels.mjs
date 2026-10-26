@@ -45,12 +45,22 @@ const kv = (fields) => Object.fromEntries(fields.filter((f) => f.includes('=')).
 const pt = (s) => (s ? s.replace(/[()]/g, '').trim().split(/\s+/).map(Number).slice(0, 2) : null);
 // survey layer roles: from the spec (c300-build-spec.mjs picked the profile, references/standards/survey-profiles.json); older specs = the VILLA ONE / Goulds names
 const SP = spec.surveyProfile ?? { centerline: ['CENTER_LINE'], propertyLine: ['PROPERTY_LINE'], rwDimLayers: ['DIM', '_NPLT-TXT'], pavementEdge: ['IMPROVEMENTS', 'EOP'] };
-const cls = [], dims = [], edges = [], prop = [];
+const cls = [], dims = [], edges = [], prop = [], obstacles = [], textBoxes = [];
 for (const line of fs.readFileSync(args.topo, 'utf8').split(/\r?\n/)) {
   const f = line.split('|'); if (f[0] !== 'ENT') continue;
   const d = kv(f.slice(4)), layer = f[3], type = f[1], p0 = [Number(d.x), Number(d.y)];
   const verts = type === 'LWPOLYLINE' ? (d.v ?? '').split(';').filter(Boolean).map((s) => s.split(',').map(Number))
     : type === 'LINE' ? [p0, pt(d.p2)] : null;
+  if ((type === 'MTEXT' || type === 'TEXT') && Number(d.h) > 0 && !/^\s*$/.test(d.txt ?? '')) {                        // survey text is an obstacle too (centred approximation, in feet)
+    const n = String(d.txt).replace(/\\[A-Za-z][^;]*;/g, '').replace(/\\P/g, '\n').split('\n'), hh = Number(d.h);
+    const w = Math.max(Number(d.w) || 0, Math.max(...n.map((s) => s.length)) * hh * 0.7);
+    const L = Math.min(w, 80), Hh = hh * n.length * 1.15, rot = Number(d.rot) || 0, att = Number(d.att) || 1;
+    const dir = [Math.cos(rot), Math.sin(rot)], up = [-dir[1], dir[0]], ax = (att - 1) % 3, ay = Math.floor((att - 1) / 3);
+    const c = add(add(p0, mul(dir, L * (0.5 - ax * 0.5))), mul(up, Hh * (ay === 0 ? -0.5 : ay === 2 ? 0.5 : 0)));
+    const th = rot - A, cs = Math.abs(Math.cos(th)), sn = Math.abs(Math.sin(th));
+    textBoxes.push({ c, hw: cs * L / 2 + sn * Hh / 2, hh: sn * L / 2 + cs * Hh / 2 });
+  }
+  if (verts && [...SP.centerline, ...SP.propertyLine, ...SP.pavementEdge, ...(SP.plLines ?? []), ...(SP.rwLines ?? [])].includes(layer)) obstacles.push(verts);   // linework a label text must not sit on
   if (SP.centerline.includes(layer) && verts) for (let i = 0; i + 1 < verts.length; i++) cls.push([verts[i], verts[i + 1]]);
   else if (SP.rwDimLayers.includes(layer) && type === 'DIMENSION') dims.push({ h: f[2], a: p0, b: pt(d.p2) });       // surveyors use DIM (VILLA ONE), _NPLT-TXT (Goulds 33809) or TEXT/DIMLINE (FormTech)
   else if (SP.propertyLine.includes(layer) && type === 'LINE' && verts) prop.push([verts[0], verts[1]]);
@@ -78,6 +88,66 @@ const leader = (text, arrow, textPt, native) => {
 };
 const note = (def, arrow) => ({ type: def.type, style: def.style, layer: def.layer, anchor: { x: r4(arrow[0]), y: r4(arrow[1]) } });
 const counts = { rw: 0, eop: 0, align: 0 };
+// EOP / EXIST R/W placement = a tidy grid in SHEET axes (user, 2026-10-25: "aligned vertically and horizontally, never overlapped, professional"):
+//   * the leader is strictly vertical (street runs along the sheet x) or strictly horizontal (street runs along sheet y) - never slanted;
+//   * the text always sits to the RIGHT of a vertical leader (SIDE_FT), so every label attaches on the same side (no left/right flip);
+//   * labels of the same kind on the same side of the street share ONE text line: arrows within SNAP_FT of each other along the push axis get
+//     the same text coordinate (mean arrow coordinate +/- PUSH), so a row of "EOP" or "EXIST R/W" reads as a straight row/column.
+const SIG = (() => { try { return JSON.parse(fs.readFileSync(path.join(here, "../references/standards/visual-signature.json"), "utf8")); } catch { return {}; } })();   // the shared visual signature
+const SIDE_FT = Number(args.side ?? SIG.leaders?.sideFt ?? PLC.sideFt ?? 1.5), SNAP_FT = Number(args.snap ?? SIG.grid?.snapFt ?? PLC.snapFt ?? 6);
+const tidy = [], placed = [];
+const TEXT_W = TEXT_H * 0.85;                                      // approx. glyph advance (caps) in feet; boxes are only used to pick a side
+const boxesOverlap = (a, b) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3];
+const segHitsBox = (p, q, b) => {                                   // Liang-Barsky segment vs axis-aligned box (sheet axes)
+  let t0 = 0, t1 = 1; const d = [q[0] - p[0], q[1] - p[1]];
+  for (const [pk, qk] of [[-d[0], p[0] - b[0]], [d[0], b[2] - p[0]], [-d[1], p[1] - b[1]], [d[1], b[3] - p[1]]]) {
+    if (pk === 0) { if (qk < 0) return false; } else { const r = qk / pk; if (pk < 0) { if (r > t1) return false; if (r > t0) t0 = r; } else { if (r < t0) return false; if (r < t1) t1 = r; } }
+  }
+  return true;
+};
+const sheetOf = (p) => { const d = sub(p, ctr); return [dot(d, ux), dot(d, uy)]; };
+const modelOf = (s) => add(ctr, add(mul(ux, s[0]), mul(uy, s[1])));
+const placeTidy = () => {
+  for (const t of tidy) {
+    const so = [dot(t.out, ux), dot(t.out, uy)];
+    t.vertical = Math.abs(so[1]) >= Math.abs(so[0]);
+    t.sgn = Math.sign(t.vertical ? so[1] : so[0]) || 1;
+    t.s = sheetOf(t.arrow);
+  }
+  const groups = new Map();
+  for (const t of tidy) { const k = `${t.kind}|${t.vertical ? 'v' : 'h'}|${t.sgn}`; (groups.get(k) ?? groups.set(k, []).get(k)).push(t); }
+  for (const g of groups.values()) {
+    const ax = g[0].vertical ? 1 : 0;                                   // coordinate along the push axis (sheet y for vertical leaders)
+    g.sort((a, b) => a.s[ax] - b.s[ax]);
+    for (let i = 0, j = 0; i < g.length; i = j) {
+      for (j = i + 1; j < g.length && g[j].s[ax] - g[i].s[ax] <= SNAP_FT; j++);
+      const cl = g.slice(i, j), mean = cl.reduce((m, t) => m + t.s[ax], 0) / cl.length;
+      const cost = (bx) => obstacles.reduce((n, v) => n + v.slice(1).filter((p, k) => segHitsBox(sheetOf(v[k]), sheetOf(p), bx)).length, 0)
+        + textBoxes.filter((tb) => { const sc = sheetOf(tb.c); return boxesOverlap([sc[0] - tb.hw, sc[1] - tb.hh, sc[0] + tb.hw, sc[1] + tb.hh], bx); }).length * 2;
+      // the WHOLE row/column moves together: try the push distances in order and keep the one with the least total cost, so a row never breaks apart
+      let bestSet = null;
+      for (const push of [PUSH, PUSH * 1.75, PUSH * 2.6]) {
+        const line = mean + cl[0].sgn * push, taken = [], set = [];
+        let total = 0;
+        for (const t of cl) {
+          // text box in sheet axes: right of a vertical leader by default; the left side only when the right one would sit on survey linework or text
+          const w = TEXT_W * t.text.length, h = TEXT_H * 1.2, box = (x0, y0, x1, y1) => [x0, y0, x1, y1];
+          const cands = t.vertical
+            ? [{ ts: [t.s[0] + SIDE_FT, line], b: box(t.s[0] + SIDE_FT, line - h / 2, t.s[0] + SIDE_FT + w, line + h / 2) },
+               { ts: [t.s[0] - SIDE_FT, line], b: box(t.s[0] - SIDE_FT - w, line - h / 2, t.s[0] - SIDE_FT, line + h / 2) }]
+            : t.sgn > 0 ? [{ ts: [line, t.s[1]], b: box(line, t.s[1] - h / 2, line + w, t.s[1] + h / 2) }]
+                        : [{ ts: [line, t.s[1]], b: box(line - w, t.s[1] - h / 2, line, t.s[1] + h / 2) }];
+          const best = cands.map((c) => ({ ...c, c: cost(c.b) + placed.concat(taken).filter((q) => boxesOverlap(q, c.b)).length * 4 })).sort((p, q) => p.c - q.c)[0];   // stable: the right side wins a tie
+          taken.push(best.b); total += best.c; set.push({ t, best });
+        }
+        if (!bestSet || total < bestSet.total) bestSet = { total, set, taken };
+        if (total === 0) break;
+      }
+      for (const { t, best } of bestSet.set) leader(t.text, t.arrow, modelOf(best.ts), t.native);
+      placed.push(...bestSet.taken);
+    }
+  }
+};
 
 // 1) EXIST R/W: the dim end that is NOT on a street CL
 if (!args['no-rw']) {
@@ -90,7 +160,7 @@ if (!args['no-rw']) {
     const rw = da.d < db.d ? dm.b : dm.a, cl = da.d < db.d ? dm.a : dm.b;
     if (seen.some((s) => len(sub(s, rw)) < 1)) continue; seen.push(rw);
     const out = unit(sub(rw, cl));
-    leader(PLR.note.rw.printedText, rw, add(rw, mul(out, PUSH)), note(PLR.note.rw, rw));
+    tidy.push({ kind: 'rw', text: PLR.note.rw.printedText, arrow: rw, out, native: note(PLR.note.rw, rw) });
     counts.rw++;
   }
 }
@@ -105,10 +175,12 @@ if (!args['no-eop']) {
     if (!inView(p, 6)) continue;
     const n = perp(dir), cl = nearCl(p);
     const away = unit(dot(n, sub(p, cl.q)) >= 0 ? n : mul(n, -1));
-    leader(PLR.note.eop.printedText, p, add(p, mul(away, PUSH)), note(PLR.note.eop, p));
+    tidy.push({ kind: 'eop', text: PLR.note.eop.printedText, arrow: p, out: away, native: note(PLR.note.eop, p) });
     counts.eop++;
   }
 }
+
+placeTidy();
 
 // 3) ALIGNMENT START / END (station-offset note: STA, OFF, street name, N, E)
 if (!args['no-align']) {
