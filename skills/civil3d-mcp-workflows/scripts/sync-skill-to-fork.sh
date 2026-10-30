@@ -41,7 +41,7 @@ git add -A skills
 if git diff --cached --quiet; then echo "skill already up to date on the fork branch"; exit 0; fi
 git commit -q -m "$MSG
 
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>"
 git log --oneline -1
 if [ "$PUSH" = "--yes" ]; then
   git push fork "$BR"

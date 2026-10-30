@@ -1,6 +1,6 @@
 {
  "_about": "XEREFT visual signature for plan sheets (C-300): ONE look for every project - same fonts, sizes, colours, leader geometry and alignment grid. Read by c300-road-labels.mjs (placement) and visual-lint.mjs (checks). User brief 2026-10-25: 'always the same signature: colours, font, sizes; labels and arrows tidy, aligned vertically and horizontally, never overlapped, professional'. Extend it when the user corrects a sheet: add the rule here, add a lesson in references/visual-lessons.json, make visual-lint.mjs check it.",
- "version": 2,
+ "version": 3,
  "typography": {
   "survey": "keep the surveyor's text exactly as drawn (never re-style survey text)",
   "ourLabels": {
@@ -67,6 +67,33 @@
     2.0
    ]
   }
+ },
+ "nativeLabels": {
+  "_about": "Design engineer correction 2026-10-27 (video review of Seidenstein PROPOSED). Applies to PROPOSED / design sheets; see references/engineer-feedback-2026-10.md section 1.",
+  "rule": "every plan callout that carries a station/offset or an elevation is a NATIVE Civil 3D label bound to its alignment / profile view, never an MLeader or MText copy: it must update when moved. Our MLeader signature (Formtech-1.0, C-ANNO, grey 8) stays only for annotations that carry NO model data (R/W marks, EOP when not native, notes, SAN MH callouts, utility callouts of Fase 1).",
+  "planCallouts": {
+   "command": "Annotate > Add Labels > Alignment > Station Offset - Fixed Point",
+   "styles": ["SAN LAT", "C.O", "WATER SERVICE", "WATER SERVICE - ASP", "REMOVE EXIST PLUG", "ALGN", "ALGN START", "ALGN END"],
+   "typedByHand": "only the INV line (and any fixed wording the style does not carry); STA/OFF stay automatic",
+   "editWith": "contextual tab Edit Label Text (EditLabelText) -> Text Component Editor; Reset Label restores the style text",
+   "leaderBehaviour": "arrow tip = control point (station follows the tip); several labels that meet at one crossing keep their tips on that crossing, only the text is moved"
+  },
+  "profileLabels": {
+   "elevation": "Add Labels > Profile View > Station Elevation, style 'Station and Elevation', marker '_No Markers'",
+   "pipe": "native Pipe Profile Label (pipe label style 'Prop San Main'; invert through the End Depth to Invert property)",
+   "crossing": "no automatic label exists for the crossing point of another pipe: manual (MLeader) is accepted there"
+  },
+  "forbidden": [
+   "explode or convert a native label to MLeader/MText to hide the override glyph or to edit its text",
+   "re-setting a viewport / annotation scale to make a label fit",
+   "deleting the (yellow) labels a Civil 3D table reads: switch their layer to no-plot instead"
+  ],
+  "overrideGlyph": "the orange circled 'i' only marks overridden label text; it never plots. Do not replace labels because of it; use LABELOVERRIDEGLYPHS 0 for the live window (per PC setting, not stored in the DWG)",
+  "baseException": "Fase 1 BASE keeps the user's 2026-10-26 decision (ALGN START/END replaced by MLeaders so the receiving engineer sees no glyph). Ask the engineer once whether he prefers native + LABELOVERRIDEGLYPHS 0 in the hand-off notes."
+ },
+ "viewports": {
+  "rule": "viewport scale = annotation scale (C-300 plan 1\"=20', annotation scale shown in the status bar); never change it to fit content; lock the viewports after setting them; profile sheets keep their own viewport scale (0.05 / 1:20 vertical exaggeration view style V:10)",
+  "source": "engineer, video 2026-10-27 00:06:40"
  },
  "rwMarks": {
   "rule": "white `R/W` MLeader per station: strictly orthogonal leader in SHEET axes, 8 ft long, text beyond the landing (right of a vertical leader); same family as EOP / EXIST R/W",

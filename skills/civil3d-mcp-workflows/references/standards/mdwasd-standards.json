@@ -342,6 +342,25 @@
         "SS 22.0 clean-out",
         "SS 2.0 sheet 2 (cover 30 in, lids)"
       ]
+    },
+    "SS 1.0 sheet 2 of 2 (08/26/2010) gravity sewer service lateral for DEEP sewers": {
+      "applies": "sewer depth 7 ft or greater (verified on the official PDF 2026-10-26)",
+      "fittings": "tee rotated as required on the 8 in min main, 45 deg bend, 6 in lateral min sloped downward min 1/8 in/ft, 90 deg bend, riser pipe, clean-out with threaded plug in box and lid",
+      "cleanout": "30 in from centreline / 18 in from R/W line shown; 3 ft min to invert or deeper as required; box in sidewalk flags, in grass see SS 21.0",
+      "end": "approved watertight plug removed for future domestic connection with PVC hard coupling by others",
+      "refs": "SS 22.0 clean-out, UC-310, SS 21.0",
+      "source": "https://www.miamidade.gov/resources/water/documents/donation/part-4/PDF/SS_1_0_2.pdf",
+      "rule": "if main depth >= 7 ft cite SS 1.0 SHT 2 OF 2 on every lateral; SHT 1 OF 2 (shallow wye) only for < 7 ft"
+    },
+    "UC-250 gravity sewer design (2026-10-26 read)": {
+      "terminalRunMinSlope8in": "0.40 % maintained for at least 300 ft (longer if loading abnormally light)",
+      "absoluteMinimumSlopes": "shall not be used (field variations cut velocity below 2 fps) -> design with margin above 0.40 %",
+      "minVelocityFps": 2,
+      "manning_n": 0.013,
+      "mhSpacingFt": "<= 400 without permission",
+      "dropThroughManhole": "NOT stated in UC-250; SS 9.0 = drop connection (new precast MH); 0.10 ft through-drop is a common outside rule (WSSC etc.), confirm with WASD",
+      "source": "https://www.miamidade.gov/water/library/Donation/part-1/UC-250.pdf",
+      "standardsIndex": "https://www.miamidade.gov/global/service.page?Mduid_service=ser148156625339722 (Part IV Sewer Details SS 1.0-23.0 with PDF links)"
     }
   },
   "detailsIndex": {

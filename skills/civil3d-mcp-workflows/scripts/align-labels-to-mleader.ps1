@@ -1,3 +1,4 @@
+# SCOPE (design engineer, 2026-10-27): Fase 1 BASE only (the user's 2026-10-26 decision). NEVER run this on a PROPOSED / design drawing: the engineer corrected exactly this (MLeader copies of native labels stop following the alignment). See references/engineer-feedback-2026-10.md.
 # NOTE: PointLocation call below is untested as a script; the same replacement was done inline on Goulds with the label coordinates from the build payload.
 # Replaces the NATIVE Civil 3D alignment START/END labels (AeccDbStaOffsetLabel) with plain MLeaders so the big orange "i" override glyph can never cover the sheet
 # (user 2026-10-26, Goulds: "estos simbolos en amarillo, en I grande ... no permiten visualizar el archivo, quitalos para mi y para quien lo reciba").

@@ -87,7 +87,7 @@ if (has("zip")) {
   // Civil 3D keeps the open DWG locked: Compress-Archive silently SKIPPED it (2026-10-26: three delivery zips went out without the working DWG), copying it is allowed.
   // So the deliverables are copied to a staging folder first, zipped from there (forward-slash entries), and the zip is checked to contain every deliverable.
   const z = join(tmpdir(), `${stem}.zip`), stage = join(tmpdir(), `pkg-stage-${process.pid}`);
-  const names = [`${stem}.dwg`, `${stem}.pdf`, "X-TOPO.dwg", "X-ARCH.dwg", "X-UTIL.dwg", "SOURCE FILES"].filter((f) => existsSync(join(dir, f)));
+  const names = [`${stem}.dwg`, `${stem}.pdf`, pj.deliverables?.profilesPdf, pj.deliverables?.coverPdf, "X-TOPO.dwg", "X-ARCH.dwg", "X-UTIL.dwg", "SOURCE FILES"].filter((f) => f && existsSync(join(dir, f))); // PROPOSED folders also carry the profiles + cover PDFs
   rmSync(stage, { recursive: true, force: true }); mkdirSync(stage, { recursive: true });
   for (const f of names) cpSync(join(dir, f), join(stage, f), { recursive: true });
   if (existsSync(z)) rmSync(z, { force: true });

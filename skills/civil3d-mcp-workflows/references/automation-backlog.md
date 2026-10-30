@@ -2,6 +2,14 @@
 
 The long dated work log that used to live here was condensed; per-bug details are in `troubleshooting.md`, `standards/known-bugs.json` and `tool-index.md`. Current folder/packaging model: SKILL.md ("Language and folder rules").
 
+## Next (design engineer feedback 2026-10-27)
+| Item | Why | Idea |
+|---|---|---|
+| ~~Native SAN LAT label creator~~ **DONE 2026-10-29** | the engineer wants STA/OFF to follow the alignment | `scripts/c300-native-sanlat-labels.mjs` (no new C# needed: `profileViewApplyAnnotations` without a profile view + `overrides[{index:0,text}]`; marker must be `_No Markers`, a null marker throws "Value does not fall within the expected range"). Modes: from the MLeaders of the drawing, or `--spec labels.json` for a new project; `--dry-run`, `--replace-mleaders`, `--path`. Still to extend: C.O / WATER SERVICE / ALGN styles (same call, other style + text), profile-view side (ask the engineer) |
+| ~~Lint for substitutes~~ **DONE 2026-10-29** (rule `mleader-substitute` in `visual-lint.mjs`) | prevent the 2026-10-27 regression | flags any MLeader matching `SAN LAT CONNECTION` or `STA: ..+../OFF:`; the viewport-scale part is still open (next row) |
+| **Viewport scale guard** | engineer: never change scales | read-only check in `fase1-audit`/qc: viewport CustomScale vs `CANNOSCALE` per layout (C-300 = 1"=20') |
+| **Lateral method kit** | engineer demoed it live (video 1) | after the user approves: script that clones a lateral profile (30" cover, 1.04%) from a template profile per ASP folio |
+
 ## Already automated (do not ask how again)
 | Need | Trigger | What it does | Where |
 |---|---|---|---|

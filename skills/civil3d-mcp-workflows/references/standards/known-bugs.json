@@ -1805,6 +1805,49 @@
           "pattern": "LABELOVERRIDEGLYPHS"
         }
       ]
+    },
+    {
+      "id": "proposed-labels-must-stay-native",
+      "since": "2026-10-27",
+      "area": "process",
+      "status": "process",
+      "match": "do not update when moved; engineer: \"that is a multileader, it never changes\"",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "references/standards/visual-signature.json",
+          "pattern": "nativeLabels"
+        },
+        {
+          "type": "skill-grep",
+          "file": "references/engineer-feedback-2026-10.md",
+          "pattern": "Station Offset - Fixed Point"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/align-labels-to-mleader.ps1",
+          "pattern": "Fase 1 BASE only"
+        },
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-native-sanlat-labels.mjs",
+          "pattern": "_No Markers"
+        }
+      ]
+    },
+    {
+      "id": "stationoffsetlabel-null-marker",
+      "since": "2026-10-29",
+      "area": "plugin",
+      "status": "process",
+      "match": "Value does not fall within the expected range.",
+      "checks": [
+        {
+          "type": "skill-grep",
+          "file": "scripts/c300-native-sanlat-labels.mjs",
+          "pattern": "_No Markers"
+        }
+      ]
     }
   ]
 }

@@ -1,86 +1,125 @@
 {
- "_about": "Memory of the visual-polish loop: every correction the user made about how a sheet LOOKS, the rule adopted and where it is encoded. Read it before polishing; append an entry whenever the user (or the lint/PDF) shows a defect not yet covered. Newest last.",
- "lessons": [
-  {
-   "date": "2026-10-25",
-   "feedback": "Neighbour lot titles overlapped; one title was off to the left",
-   "rule": "Survey lot notes centred between lot lines, one sheet row shares one X (slope 0.036878), next row = row + half tallest block + 4 ft; straddling note stays centred below",
-   "encodedIn": [
-    "scripts/topo-move-text.mjs",
-    "visual-signature.json grid.lotNotes"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "Sanitary MH labels were diagonal/crooked and covered the map",
-   "rule": "MLeader rotation in RADIANS; text right of the arrow, left-aligned, near-vertical leader",
-   "encodedIn": [
-    "scripts/topo-san-mh-labels.mjs",
-    "visual-signature.json grid.sanMhLabels"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "Red curved arrows pointing at nothing",
-   "rule": "No arrow without a label; blocks with fixed internal colours are hidden, not recoloured",
-   "encodedIn": [
-    "scripts/topo-hide-blocks.mjs",
-    "survey-profiles.json hideBlocks"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "EOP / EXIST R/W labels: slanted leaders, text on the left or right at random, text sitting on lines and next to dimensions (screenshots); liked: horizontal leader at the arrow's height with the text outside",
-   "rule": "Leaders strictly vertical/horizontal in sheet axes; text right of a vertical leader; labels of one kind and side share one text line; side flips to the left only to avoid survey linework/text; never overlap",
-   "encodedIn": [
-    "scripts/c300-road-labels.mjs placeTidy()",
-    "scripts/c300-road-labels-realign.mjs",
-    "scripts/visual-lint.mjs",
-    "visual-signature.json leaders+grid"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "Wants one fixed visual signature (colours, font, sizes) and a self-improving process",
-   "rule": "visual-signature.json is the single source; visual-lint.mjs measures it; this file records corrections; skill + agent civil3d-visual-polish run the loop",
-   "encodedIn": [
-    "skills/civil3d-visual-polish",
-    ".claude/agents/civil3d-visual-polish.md"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "Screenshots of an 8\" G.V. callout and ALIGNMENT START with long diagonal leaders: 'some aesthetic exceptions must be diagonal because the tool cannot know the space and orthogonal would look bad'",
-   "rule": "Diagonal leaders are allowed ONLY for multi-line utility callouts and ALIGNMENT START/END; one straight segment, clear space, never crossing text/leaders, one angle family per sheet; EOP / EXIST R/W / SAN MH stay strictly orthogonal",
-   "encodedIn": [
-    "visual-signature.json leaders.diagonalExceptions",
-    "visual-lint.mjs (slant check only on native EOP/RW)",
-    "skills/civil3d-visual-polish"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "feedback": "Printed overlaps of EXIST R/W text with rotated BLOCK / P.B. survey titles that the model-space lint cannot see",
-   "rule": "After lint, verify on the PLOT: road-labels-nudge.mjs reads fase1-qc.py overlap clashes (owners = label handle), pushes the whole row +8 ft further out, repeats until 0 printed overlaps; --dry only reports; --reuse-qc after re-activating the drawing",
-   "encodedIn": [
-    "scripts/road-labels-nudge.mjs"
-   ]
-  },
-  {
-   "date": "2026-10-26",
-   "feedback": "SEIDENSTEIN: R/W marks with diagonal arrows of mixed angle/length, some white and some gray, sparse, missing at the four corners of the SW 74th intersection: 'No me gusta como se ve ese RW... geometricamente estetica'. The user also straightened 3 EOP marks by hand 'para proximas etiquetas'.",
-   "rule": "R/W marks follow the EOP signature: leader strictly orthogonal on the SHEET axes, 8 ft long, text beyond the landing (right of a vertical leader), all white, ONE set (survey R/W marks hidden). Station rhythm: 14 ft from every R/W corner on each leg, then equal ~125 ft along every run (survey lines AND the c300-rw-extend.mjs extensions), over the whole plan, not only the sheet frame. A blocked station is retried (street side, farther, tighter, slid <=20 ft, corners <=60 ft) and only omitted when there is no room; marks touching the sheet frame stay fully inside it. Text point offsets are calibrated on the style: landing end = text point +/-(h+0.1) ft inboard and h/2 below.",
-   "encodedIn": [
-    "scripts/c300-rw-marks.mjs",
-    "scripts/c300-rw-apply.mjs (/rw-marks)",
-    "scripts/c300-rw-extend.mjs",
-    "visual-signature.json rwMarks"
-   ]
-  }
- ],
- "open": [
-  "visual-lint cannot see survey text that is not in the dump layers; check the PDF crops after every polish",
-  "EXIST R/W labels beside 'BLOCK n / P.B.' titles can still touch them on some sheets (look at the PDF)",
-  "Diagonal callouts: lint does not yet measure their angle family / crossings (MLeader leader vertices are not read); check the PDF crops"
- ]
+  "_about": "Memory of the visual-polish loop: every correction the user made about how a sheet LOOKS, the rule adopted and where it is encoded. Read it before polishing; append an entry whenever the user (or the lint/PDF) shows a defect not yet covered. Newest last.",
+  "lessons": [
+    {
+      "date": "2026-10-25",
+      "feedback": "Neighbour lot titles overlapped; one title was off to the left",
+      "rule": "Survey lot notes centred between lot lines, one sheet row shares one X (slope 0.036878), next row = row + half tallest block + 4 ft; straddling note stays centred below",
+      "encodedIn": [
+        "scripts/topo-move-text.mjs",
+        "visual-signature.json grid.lotNotes"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "Sanitary MH labels were diagonal/crooked and covered the map",
+      "rule": "MLeader rotation in RADIANS; text right of the arrow, left-aligned, near-vertical leader",
+      "encodedIn": [
+        "scripts/topo-san-mh-labels.mjs",
+        "visual-signature.json grid.sanMhLabels"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "Red curved arrows pointing at nothing",
+      "rule": "No arrow without a label; blocks with fixed internal colours are hidden, not recoloured",
+      "encodedIn": [
+        "scripts/topo-hide-blocks.mjs",
+        "survey-profiles.json hideBlocks"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "EOP / EXIST R/W labels: slanted leaders, text on the left or right at random, text sitting on lines and next to dimensions (screenshots); liked: horizontal leader at the arrow's height with the text outside",
+      "rule": "Leaders strictly vertical/horizontal in sheet axes; text right of a vertical leader; labels of one kind and side share one text line; side flips to the left only to avoid survey linework/text; never overlap",
+      "encodedIn": [
+        "scripts/c300-road-labels.mjs placeTidy()",
+        "scripts/c300-road-labels-realign.mjs",
+        "scripts/visual-lint.mjs",
+        "visual-signature.json leaders+grid"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "Wants one fixed visual signature (colours, font, sizes) and a self-improving process",
+      "rule": "visual-signature.json is the single source; visual-lint.mjs measures it; this file records corrections; skill + agent civil3d-visual-polish run the loop",
+      "encodedIn": [
+        "skills/civil3d-visual-polish",
+        ".claude/agents/civil3d-visual-polish.md"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "Screenshots of an 8\" G.V. callout and ALIGNMENT START with long diagonal leaders: 'some aesthetic exceptions must be diagonal because the tool cannot know the space and orthogonal would look bad'",
+      "rule": "Diagonal leaders are allowed ONLY for multi-line utility callouts and ALIGNMENT START/END; one straight segment, clear space, never crossing text/leaders, one angle family per sheet; EOP / EXIST R/W / SAN MH stay strictly orthogonal",
+      "encodedIn": [
+        "visual-signature.json leaders.diagonalExceptions",
+        "visual-lint.mjs (slant check only on native EOP/RW)",
+        "skills/civil3d-visual-polish"
+      ]
+    },
+    {
+      "date": "2026-10-25",
+      "feedback": "Printed overlaps of EXIST R/W text with rotated BLOCK / P.B. survey titles that the model-space lint cannot see",
+      "rule": "After lint, verify on the PLOT: road-labels-nudge.mjs reads fase1-qc.py overlap clashes (owners = label handle), pushes the whole row +8 ft further out, repeats until 0 printed overlaps; --dry only reports; --reuse-qc after re-activating the drawing",
+      "encodedIn": [
+        "scripts/road-labels-nudge.mjs"
+      ]
+    },
+    {
+      "date": "2026-10-26",
+      "feedback": "SEIDENSTEIN: R/W marks with diagonal arrows of mixed angle/length, some white and some gray, sparse, missing at the four corners of the SW 74th intersection: 'No me gusta como se ve ese RW... geometricamente estetica'. The user also straightened 3 EOP marks by hand 'para proximas etiquetas'.",
+      "rule": "R/W marks follow the EOP signature: leader strictly orthogonal on the SHEET axes, 8 ft long, text beyond the landing (right of a vertical leader), all white, ONE set (survey R/W marks hidden). Station rhythm: 14 ft from every R/W corner on each leg, then equal ~125 ft along every run (survey lines AND the c300-rw-extend.mjs extensions), over the whole plan, not only the sheet frame. A blocked station is retried (street side, farther, tighter, slid <=20 ft, corners <=60 ft) and only omitted when there is no room; marks touching the sheet frame stay fully inside it. Text point offsets are calibrated on the style: landing end = text point +/-(h+0.1) ft inboard and h/2 below.",
+      "encodedIn": [
+        "scripts/c300-rw-marks.mjs",
+        "scripts/c300-rw-apply.mjs (/rw-marks)",
+        "scripts/c300-rw-extend.mjs",
+        "visual-signature.json rwMarks"
+      ]
+    },
+    {
+      "date": "2026-10-27",
+      "source": "design engineer (DG), screen recording 2026-10-27 19:25, Seidenstein PROPOSED review",
+      "feedback": "Our PROPOSED SAN LAT CONNECTION callouts had been converted from native Civil 3D labels to Multileaders: 'that label is no longer a label, it is a multileader; if I move it the numbers never change; in mine all labels are automatic'. The leaders that used to converge on one point were separated. Also: never change the viewport scale (1\"=20' must equal the annotation scale).",
+      "rule": "PROPOSED plan callouts with STA/OFF are native Station Offset - Fixed Point labels (style SAN LAT / C.O / WATER SERVICE ...), only the INV text is typed (Edit Label Text); elevations come from native Profile View > Station Elevation labels; the arrow tip is the control point; never explode / convert to MLeader; never change viewport scales; keep the table-linked labels (switch them to no-plot instead of deleting). The orange 'i' override glyph is not a reason to replace a label. The engineer's corrected file is the source of truth: our ideas are suggestions only.",
+      "encodedIn": [
+        "visual-signature.json nativeLabels + viewports",
+        "references/engineer-feedback-2026-10.md",
+        "SKILL.md (design-phase row, Seidenstein notes superseded)",
+        "scripts/align-labels-to-mleader.ps1 (scope header: Fase 1 BASE only)",
+        "memory feedback-engineer-native-labels-2026-10, feedback-engineer-fixed-files-suggest-only"
+      ],
+      "lintGap": "closed 2026-10-29: visual-lint.mjs rule mleader-substitute flags MLeaders matching /SAN LAT CONNECTION|STA:.*OFF:/"
+    },
+    {
+      "date": "2026-10-29",
+      "source": "design engineer (DG) recording 2026-10-27 + user instruction 'all corrections exactly as he did them'",
+      "feedback": "Cover: our hand-drawn schematic map and twisted north arrow were replaced by the engineer's way: county WASD template cover + a locked location-map viewport at 1\"=300', twist 0, north arrow always up.",
+      "rule": "Rebuild the cover with scripts/cover-wasd-*.ps1 (reference section 8): aim the viewport with PLAN _W + ZOOM _C <pt> 0.0033333333xp in MSPACE, lock it, keep two \\P before the subtitle (cumulative \\H), widen the legal description MText to ~5.3.",
+      "encodedIn": "",
+      "lintGap": ""
+    },
+    {
+      "date": "2026-10-29",
+      "source": "user, comparing with the engineer's recording",
+      "feedback": "Sanitary additions (C.O. structures, lateral pipes, SAN LAT alignments) must be yellow and no-plot like the engineer's, never deleted (his lateral table reads them).",
+      "rule": "C.O. null structures -> structure style NPLT_Storm Sewer Manhole; lateral pipes -> pipe style NPLT; SAN LAT alignments -> layer _NPLT. Run scripts/c300-nplt-laterals.ps1 (COM roots AeccXUiLand/AeccXUiPipe 13.9), save, replot C-300; the C-300 viewport (1\"=20', locked) is never touched. Reference section 10.",
+      "encodedIn": "scripts/c300-nplt-laterals.ps1",
+      "lintGap": "lint does not read network part styles"
+    },
+    {
+      "date": "2026-10-29",
+      "source": "user, comparing with the engineer's recording",
+      "feedback": "Cover location map: only the property is marked (black filled square + arrow); the extra rectangle in the street and its dimensions must go.",
+      "rule": "The map rectangles are BNDRY lines inside X-TOPO.dwg: find them with (nentselp) in the map viewport, delete them in X-TOPO.dwg, fill the property with a 2D SOLID, delete the paper dimensions, reload the xref, replot C-001. scripts/cover-map-property.ps1, reference section 11. Compare with the engineer's frame BEFORE saying done.",
+      "encodedIn": "scripts/cover-map-property.ps1",
+      "lintGap": "no check compares the cover map with the engineer's"
+    }
+  ],
+  "open": [
+    "DONE 2026-10-29: native SAN LAT labels are created by scripts/c300-native-sanlat-labels.mjs (profileViewApplyAnnotations + overrides, marker _No Markers). Open: the same for C.O / WATER SERVICE / ALGN callouts and for the profile-view copies (ask the engineer for the profile method first)",
+    "visual-lint cannot see survey text that is not in the dump layers; check the PDF crops after every polish",
+    "EXIST R/W labels beside 'BLOCK n / P.B.' titles can still touch them on some sheets (look at the PDF)",
+    "Diagonal callouts: lint does not yet measure their angle family / crossings (MLeader leader vertices are not read); check the PDF crops"
+  ]
 }

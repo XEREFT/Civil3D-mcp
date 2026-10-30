@@ -95,6 +95,9 @@ for (const m of mls) {
   if (h && !ok.textHeightFt.some((v) => Math.abs(v - h) < 0.05)) add("warn", "mleader-height", `${m.handle} "${m.text}" text height ${h.toFixed(2)} ft (allowed: ${ok.textHeightFt.join(", ")})`);
 }
 
+// engineer 2026-10-27: callouts that carry STA/OFF/INV are NATIVE labels (c300-native-sanlat-labels.mjs), never Multileader copies
+for (const m of mls) if (/SAN LAT CONNECTION|STA:\s*\d+\+[\d.]+\s*\/\s*OFF:/.test(m.text ?? "")) add("error", "mleader-substitute", `${m.handle} is a Multileader with station/offset text: re-create it natively (node c300-native-sanlat-labels.mjs --replace-mleaders)`);
+
 const errors = findings.filter((f) => f.level === "error").length, warns = findings.length - errors;
 const score = Math.max(0, 100 - errors * 10 - warns * 2);
 for (const f of findings) console.log(`${f.level.toUpperCase().padEnd(5)} [${f.rule}] ${f.msg}`);
